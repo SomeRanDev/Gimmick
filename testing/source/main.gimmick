@@ -1,0 +1,4 @@
+
+include iostream;
+
+std.cout << "Hello fuckers." << std.endl;
