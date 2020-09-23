@@ -1,4 +1,4 @@
 
 include iostream;
 
-std.cout << "Hello fuckers." << std.endl;
+std.cout << "Whoops (lol). Forgot to purge that before first push. Feels bad." << std.endl;
