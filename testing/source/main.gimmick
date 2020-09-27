@@ -1,4 +1,6 @@
 
-include iostream;
 
-std.cout << "Whoops (lol). Forgot to purge that before first push. Feels bad." << std.endl;
+
+import bla/test
+
+

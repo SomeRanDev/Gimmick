@@ -1,0 +1,6 @@
+primitive ptr<T>:
+	def isNull() -> bool:
+		return this != null;
+
+	def or(alt: T) -> T:
+		return this == null ? alt : *this;

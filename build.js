@@ -35,8 +35,6 @@ let BuildObj = null;
 let ShouldBuild = true;
 let ShouldRun = false;
 
-const KotlinFiles = [];
-
 const BuildArgs = [];
 
 const GimmickArgs = [];
@@ -97,7 +95,15 @@ function ProcessArgument(arg) {
 // ================================================
 
 function PrintLine() {
-	console.log("--------------------------");
+	console.log("========================================");
+};
+
+// ================================================
+// * Format Arguments
+// ================================================
+
+function FormatArguments(args) {
+	return args.map(arg => "\"" + arg.replace(/"/g,"\\\"") + "\"").join(" ");
 };
 
 // ================================================
@@ -105,10 +111,9 @@ function PrintLine() {
 // ================================================
 
 function Run() {
-	const ArgList = GimmickArgs.join(" ");
-	const path = require("path");
+	const ArgList = FormatArguments(GimmickArgs);
 	if(BuildObj) {
-		BuildObj.run();
+		BuildObj.run(ArgList);
 	}
 };
 
@@ -126,17 +131,18 @@ function OnRunComplete(err, stdout, stderr) {
 // ================================================
 
 function Build() {
-	const ArgList = BuildArgs.join(" ");
-	const path = require("path");
+	const ArgList = BuildArgs.map(arg => `"${arg}"`).join(" ");
 	if(BuildObj) {
-		BuildObj.build();
+		BuildObj.build(ArgList);
 	}
 };
 
 function OnBuildComplete(err, stdout, stderr) {
 	OnRunComplete(err, stdout, stderr);
 	if(ShouldRun) {
-		PrintLine();
+		if(stdout && stderr) {
+			PrintLine();
+		}
 		Run();
 	}
 };
@@ -159,40 +165,40 @@ function Main() {
 // ================================================
 
 class BuildBase {
-	build() {
+	build(args) {
 	}
 
-	run() {
+	run(args) {
 	}
 }
 
 class BuildJs extends BuildBase {
-	build() {
-		exec("haxe builds/build.js.hxml", OnBuildComplete);
+	build(args) {
+		exec(`haxe builds/build.js.hxml ${args}`, OnBuildComplete);
 	}
 
-	run() {
+	run(args) {
 		console.warn("The `js` build cannot be run automatically.");
 	}
 }
 
 class BuildNode extends BuildBase {
-	build() {
-		exec("haxe builds/build.node.hxml", OnBuildComplete);
+	build(args) {
+		exec(`haxe builds/build.node.hxml ${args}`, OnBuildComplete);
 	}
 
-	run() {
-		exec("node bin/node/Gimmick.js", OnRunComplete);
+	run(args) {
+		exec(`node bin/node/Gimmick.js ${args}`, OnRunComplete);
 	}
 }
 
 class BuildHl extends BuildBase {
-	build() {
-		exec("haxe builds/build.hl.hxml", OnBuildComplete);
+	build(args) {
+		exec(`haxe builds/build.hl.hxml ${args}`, OnBuildComplete);
 	}
 
-	run() {
-		exec("hl bin/hl/Gimmick.hl", OnRunComplete);
+	run(args) {
+		exec(`hl bin/hl/Gimmick.hl ${args}`, OnRunComplete);
 	}
 }
 

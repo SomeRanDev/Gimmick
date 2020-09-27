@@ -1,12 +1,34 @@
 package;
 
+import io.CompilerArgumentParser;
+import io.SourceFileExtracter;
+import io.SourceFileManager;
+
+import parsers.Error;
+
 class Main {
 	static function main() {
-		trace("WHoops.");
-		trace("Turns out kotlin was a flop.");
-		trace("It's multiplatform apis suck.");
-		trace("Not like this transpilier is gonna use its original langauge forever.");
-		trace("But gosh darn it, I don't wanna touch C++ if I don't have to.");
-		trace("So by process of elimination. Itz hacks tyme.");
+		final args = #if (sys || hxnodejs) Sys.args() #else [] #end;
+		final argParser = new CompilerArgumentParser(args);
+		if(argParser.contains("help")) {
+			return haxe.Log.trace("<TODO: write help stuff here>", null);
+		}
+
+		final sourcePaths = SourceFileExtracter.getSourceFolders(argParser);
+
+		final manager = new SourceFileManager();
+		for(path in sourcePaths) {
+			manager.addPath(path);
+		}
+
+		manager.beginParse();
+
+		if(Error.hasErrors()) {
+			Error.printAllErrors();
+			return;
+		}
+
+		if(argParser.containsValue("out")) {
+		}
 	}
 }
