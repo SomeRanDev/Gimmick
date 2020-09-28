@@ -30,7 +30,8 @@ class SourceFileExtracter {
 				} else {
 					final path = new Path(filePath);
 					if(path.ext == fileExtension) {
-						sourceFiles.push(new SourceFilePathInfo(filePath, relativePath));
+						final importPath = relativePath.substring(0, relativePath.length - (path.ext.length + 1));
+						sourceFiles.push(new SourceFilePathInfo(filePath, relativePath, importPath));
 					}
 				}
 			}

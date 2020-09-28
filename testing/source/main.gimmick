@@ -1,6 +1,6 @@
 
 
 
-import bla/test
+import alt;
 
-
+fds = 32

@@ -38,10 +38,10 @@ class Error {
 		return result;
 	}
 
-	public static function addError(errorType: ErrorType, parser: Parser, start: Int) {
+	public static function addError(errorType: ErrorType, parser: Parser, start: Int, endOffset: Int = 0) {
 		final lineNumber = parser.getLineNumber();
 		final lineStr = findLine(parser.content, lineNumber);
-		final end = parser.getIndexFromLine();
+		final end = parser.getIndexFromLine() + endOffset;
 		final errorLineString = formatLineString(lineStr, lineNumber, start, end, errorType);
 		final error = new Error(errorType, errorLineString, parser.getRelativePath(), lineNumber, start, end);
 		errors.push(error);

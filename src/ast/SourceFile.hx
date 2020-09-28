@@ -43,6 +43,6 @@ class SourceFile {
 	}
 
 	public function matchesRelativePath(path: String): Bool {
-		return path == pathInfo.relativePath;
+		return path == pathInfo.importPath;
 	}
 }
