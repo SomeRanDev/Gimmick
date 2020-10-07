@@ -18,7 +18,10 @@ class CompilerArgumentParser {
 					argData[key] = [];
 				}
 				if(value != null) {
-					argData[key].push(value);
+					final list = argData[key];
+					if(list != null) {
+						list.push(value);
+					}
 				}
 			}
 		}

@@ -1,13 +1,19 @@
 package parsers.expr;
 
-import parsers.expr.Expression;
+import parsers.expr.TypedExpression;
+
+import ast.typing.Type;
+import ast.typing.NumberType;
 
 enum Literal {
 	Name(name: String);
-	Number(number: String, format: NumberLiteralFormat);
+	Null;
+	Boolean(value: Bool);
+	Number(number: String, format: NumberLiteralFormat, type: NumberType);
 	String(content: String, isMultiline: Bool, isRaw: Bool);
-	List(expressions: Array<Expression>);
-	Tuple(expressions: Array<Expression>);
+	List(expressions: Array<TypedExpression>);
+	Tuple(expressions: Array<TypedExpression>);
+	TypeName(type: Type);
 }
 
 enum NumberLiteralFormat {

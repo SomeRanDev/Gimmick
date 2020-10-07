@@ -1,0 +1,36 @@
+
+
+import alt
+
+start namespace test.aa2.qqq
+
+var fd = 23 + A.athing
+
+var aaa = 1
+var aas: int = 12
+
+const bla = 12
+
+var bla2 = 23
+var dasa = bla + 1
+
+aas = 1 + 12
+
+aas = 1
+
+aas = 2
+
+var blastring = ""
+
+blastring = "test"
+
+end namespace # test.aa2.qqq
+
+var ttt = test.aa2.qqq.bla2
+
+var bla43 = 12
+
+var bla = test.aa2.qqq.aas
+
+var atestaagin = (12, 43);
+

@@ -5,6 +5,8 @@ using StringTools;
 import io.SourceFileManager;
 
 import ast.SourceFile;
+import ast.scope.Scope;
+import ast.typing.Type;
 
 import parsers.Error;
 import parsers.ErrorType;
@@ -12,10 +14,16 @@ import parsers.ErrorType;
 import parsers.expr.Literal;
 import parsers.expr.Expression;
 import parsers.expr.ExpressionParser;
+import parsers.expr.LiteralParser;
+import parsers.expr.TypeParser;
+import parsers.expr.Position;
 
+import parsers.modules.Module;
 import parsers.modules.ParserModule;
 import parsers.modules.ParserModule_Import;
+import parsers.modules.ParserModule_Variable;
 import parsers.modules.ParserModule_Expression;
+import parsers.modules.ParserModule_Namespace;
 
 class Parser {
 	public var content(default, null): String;
@@ -24,10 +32,13 @@ class Parser {
 	public var lineNumber(default, null): Int;
 	public var ended(default, null): Bool;
 
-	public var hitCharFlag(default, null): Bool;
-	public var literalParsed(default, null): Null<Literal>;
+	public var scope(default, null): Scope;
 
-	var modules: Array<ParserModule>;
+	public var hitCharFlag(default, null): Bool;
+
+	var preliminary: Bool;
+	var moduleParsers: Array<ParserModule>;
+	var modules: Array<Module>;
 	var file: SourceFile;
 	var currLineIndex: Int;
 
@@ -35,24 +46,20 @@ class Parser {
 	public static final multilineCommentOperatorStart = "###";
 	public static final multilineCommentOperatorEnd = "###";
 
-	public static final rawStringOperator = "r";
-	public static final stringOperator = "\"";
-	public static final multilineStringOperatorStart = "\"\"\"";
-	public static final multilineStringOperatorEnd = "\"\"\"";
-
-	public static final listSeparatorOperator = ",";
-	public static final arrayOperatorStart = "[";
-	public static final arrayOperatorEnd = "]";
-	public static final tupleOperatorStart = "(";
-	public static final tupleOperatorEnd = ")";
-
-	public function new(content: String, manager: SourceFileManager, file: SourceFile) {
+	public function new(content: String, manager: SourceFileManager, file: SourceFile, preliminary: Bool) {
 		this.content = content;
 		this.manager = manager;
 		index = 0;
 		lineNumber = 1;
 		ended = false;
+
+		scope = new Scope(file);
+		scope.push();
+
 		hitCharFlag = false;
+
+		this.preliminary = preliminary;
+		moduleParsers = [];
 		modules = [];
 		this.file = file;
 		currLineIndex = 0;
@@ -66,15 +73,49 @@ class Parser {
 				break;
 			}
 		}
+		endParse();
 	}
 
 	function parse() {
-		parseWhitespace();
-		for(mod in modules) {
-			if(mod.parse(this)) {
+		parseWhitespaceOrComments();
+		for(mod in moduleParsers) {
+			final module = mod.parse(this);
+			if(module != null) {
+				modules.push(module);
+				onModuleAdd(module);
 				break;
 			}
 		}
+	}
+
+	function onModuleAdd(module: Module) {
+		updateScope(module);
+	}
+
+	function updateScope(module: Module) {
+		switch(module) {
+			case Variable(variable): {
+				scope.addMember(Variable(variable.getRef()));
+			}
+			case Function(func): {
+				scope.addMember(Function(func.getRef()));
+			}
+			case NamespaceStart(names): {
+				scope.pushMutlipleNamespaces(names);
+			}
+			case NamespaceEnd: {
+				scope.popNamespace();
+			}
+			case Expression(exprMember): {
+				scope.addExpressionMember(exprMember);
+			}
+			default: {}
+		}
+	}
+
+	function endParse() {
+		scope.popAllNamespaces();
+		scope.commitMainFunction();
 	}
 
 	function indexOutsideParser(): Bool {
@@ -83,6 +124,10 @@ class Parser {
 
 	public function getIndex(): Int {
 		return index;
+	}
+
+	public function setIndex(i: Int) {
+		index = i;
 	}
 
 	public function getIndexFromLine(): Int {
@@ -97,13 +142,35 @@ class Parser {
 		return file.pathInfo.relativePath;
 	}
 
+	public function getContent(): String {
+		return content;
+	}
+
+	public function getContentLength(): Int {
+		return content.length;
+	}
+
+	public function makePosition(start: Int) {
+		return new Position(file, lineNumber, start, index);
+	}
+
+	public function isPreliminary(): Bool {
+		return preliminary;
+	}
+
 	// ======================================================
 	// * Modes
 	// ======================================================
 
+	public function getModules() {
+		return modules;
+	}
+
 	public function setMode_SourceFile() {
-		modules = [
+		moduleParsers = [
 			ParserModule_Import.it,
+			ParserModule_Namespace.it,
+			ParserModule_Variable.it,
 			ParserModule_Expression.it
 		];
 	}
@@ -128,13 +195,13 @@ class Parser {
 		return content.charCodeAt(index);
 	}
 
-	public function charCodeIsNewLine(code: Int): Bool {
+	public function charCodeIsNewLine(code: Null<Int>): Bool {
 		return code == 10;
 	}
 
 	public function checkAhead(check: String): Bool {
 		final end = index + check.length;
-		if(end >= content.length) return false;
+		if(end > content.length) return false;
 		for(i in index...end) {
 			if(content.charAt(i) != check.charAt(i - index)) {
 				return false;
@@ -163,19 +230,19 @@ class Parser {
 		return (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c == 95;
 	}
 
-	public function isNumberChar(c: Int): Bool {
-		return (c >= 48 && c <= 57);
+	public function isNumberChar(c: Null<Int>): Bool {
+		return c != null && (c >= 48 && c <= 57);
 	}
 
-	public function isDecimalNumberChar(c: Int): Bool {
+	public function isDecimalNumberChar(c: Null<Int>): Bool {
 		return isNumberChar(c) || c == 95;
 	}
 
-	public function isHexNumberChar(c: Int): Bool {
+	public function isHexNumberChar(c: Null<Int>): Bool {
 		return isNumberChar(c) || (c >= 65 && c <= 70) || (c >= 97 && c <= 102) || c == 95;
 	}
 
-	public function isBinaryNumberChar(c: Int): Bool {
+	public function isBinaryNumberChar(c: Null<Int>): Bool {
 		return c == 48 || c == 49 || c == 95;
 	}
 
@@ -183,93 +250,16 @@ class Parser {
 		return isNumberChar(c) || isNameCharStarter(c);
 	}
 
-	public function parseNextLiteral(): Null<Literal> {
-		var result = null;
-		var count = 0;
-		while(result == null && count <= 5) {
-			switch(count) {
-				case 0: result = parseArrayLiteral();
-				case 1: result = parseTupleLiteral();
-				case 2: result = parseNextMultilineString();
-				case 3: result = parseNextString();
-				case 4: result = parseNextNumber();
-				case 5: result = parseNextVarName();
-			}
-			count++;
+	public function parseNextContent(content: String): Bool {
+		if(checkAhead(content)) {
+			incrementIndex(content.length);
+			return true;
 		}
-		return result;
+		return false;
 	}
 
-	public function parseNextNumber(): Null<Literal> {
-		var result = null;
-		var count = 0;
-		while(result == null && count <= 2) {
-			switch(count) {
-				case 0: result = parseNextHexNumber();
-				case 1: result = parseNextBinaryNumber();
-				case 2: result = parseDecimalNumber();
-			}
-			count++;
-		}
-		return result == null ? null : Number(result, count == 0 ? Hex : (count == 1 ? Binary : Decimal));
-	}
-
-	public function parseDecimalNumber(): Null<String> {
-		var result = null;
-		if(isNumberChar(currentCharCode())) {
-			result = "";
-			var gotDot = false;
-			while(index < content.length) {
-				if(isDecimalNumberChar(currentCharCode())) {
-					result += currentChar();
-				} else if(currentCharCode() == 46 /* period */) {
-					if(!gotDot && isDecimalNumberChar(charCodeAt(index + 1))) {
-						result += ".";
-						gotDot = true;
-					} else {
-						break;
-					}
-				} else {
-					break;
-				}
-				if(incrementIndex(1)) {
-					break;
-				}
-			}
-		}
-		return result;
-	}
-
-	public function parseHexOrBinaryNumber(isHex: Bool): Null<String> {
-		final numberStarter = isHex ? "0x" : "0b";
-		var result = null;
-		if(checkAhead(numberStarter)) {
-			result = numberStarter;
-			incrementIndex(numberStarter.length);
-			while(index < content.length) {
-				final charCode = currentCharCode();
-				if(isDecimalNumberChar(charCode)) {
-					result += currentChar();
-				} else {
-					break;
-				}
-				if(incrementIndex(1)) {
-					break;
-				}
-			}
-		}
-		return result;
-	}
-
-	public function parseNextHexNumber(): Null<String> {
-		return parseHexOrBinaryNumber(true);
-	}
-
-	public function parseNextBinaryNumber(): Null<String> {
-		return parseHexOrBinaryNumber(false);
-	}
-
-	public function parseNextVarName(): Null<Literal> {
+	@:nullSafety(Off)
+	public function parseNextVarName(): Null<String> {
 		var result = null;
 		if(isNameCharStarter(currentCharCode())) {
 			result = "";
@@ -280,129 +270,29 @@ class Parser {
 				}
 			}
 		}
-		return result == null ? null : Name(result);
-	}
-
-	public function parseNextMultilineString(): Null<Literal> {
-		var result = null;
-		var start = multilineStringOperatorStart;
-		var isRaw = false;
-		var wasSlash = false;
-		final end = multilineStringOperatorEnd;
-		final endChar = end.charAt(0);
-		if(checkAhead(rawStringOperator)) {
-			start = rawStringOperator + start;
-			isRaw = true;
-		}
-		if(checkAhead(start)) {
-			incrementIndex(start.length);
-			result = "";
-			while(true) {
-				final char = currentChar();
-				if(char == endChar) {
-					if(checkAhead(end)) {
-						incrementIndex(end.length);
-						break;
-					}
-				} else if(!wasSlash && char == "\\") {
-					wasSlash = true;
-				} else if(wasSlash) {
-					if(!validEscapeCharacters().contains(char)) {
-						Error.addError(UnknownEscapeCharacter, this, getIndexFromLine() - 1, 1);
-					}
-					wasSlash = false;
-				}
-				result += char;
-				if(char == "\n") {
-					incrementLine();
-				}
-				if(incrementIndex(1)) {
-					break;
-				}
-			}
-		}
-		return result == null ? null : String(result, true, isRaw);
-	}
-
-	public function parseNextString(): Null<Literal> {
-		if(stringOperator.length == 0) return null;
-		var result = null;
-		final op = stringOperator;
-		final opChar = op.charAt(0);
-		var start = op;
-		var isRaw = false;
-		var wasSlash = false;
-		if(checkAhead(rawStringOperator)) {
-			start = rawStringOperator + start;
-			isRaw = true;
-		}
-		if(checkAhead(start)) {
-			incrementIndex(start.length);
-			result = "";
-			while(true) {
-				final char = currentChar();
-				if(char == opChar) {
-					if(checkAhead(op)) {
-						incrementIndex(op.length);
-						break;
-					}
-				} else if(!wasSlash && char == "\\") {
-					wasSlash = true;
-				} else if(char == "\n") {
-					Error.addError(UnexpectedEndOfString, this, getIndexFromLine());
-					break;
-				} else if(wasSlash) {
-					if(!validEscapeCharacters().contains(char)) {
-						Error.addError(UnknownEscapeCharacter, this, getIndexFromLine() - 1, 1);
-					}
-					wasSlash = false;
-				}
-				result += char;
-				if(incrementIndex(1)) {
-					break;
-				}
-			}
-		}
-		return result == null ? null : String(result, false, isRaw);
-	}
-
-	public function validEscapeCharacters(): Array<String> {
-		return ["n", "r", "t", "v", "f", "\\", "\"", "\'"];
-	}
-
-	public function parseArrayLiteral(): Null<Literal> {
-		final exprs = parseListType(arrayOperatorStart, arrayOperatorEnd);
-		return exprs == null ? null : List(exprs);
-	}
-
-	public function parseTupleLiteral(): Null<Literal> {
-		final exprs = parseListType(tupleOperatorStart, tupleOperatorEnd);
-		return exprs == null ? null : Tuple(exprs);
-	}
-
-	public function parseListType(start: String, end: String): Null<Array<Expression>> {
-		var result = null;
-		if(checkAhead(start)) {
-			result = [];
-			incrementIndex(start.length);
-			while(true) {
-				if(checkAhead(end)) {
-					incrementIndex(end.length);
-					break;
-				}
-				parseWhitespaceOrComments();
-				final expr = parseExpression();
-				if(expr != null) {
-					result.push(expr);
-					if(checkAhead(listSeparatorOperator)) {
-						incrementIndex(listSeparatorOperator.length);
-					}
-				} else {
-					break;
-				}
-			}
-		}
 		return result;
+	}
+
+	public function parseDotConnectedVarNames(): Null<Array<String>> {
+		final result = [];
+		var name = null;
+		do {
+			name = parseNextVarName();
+			if(name != null) {
+				result.push(name);
+			} else {
+				break;
+			}
+			if(!parseNextContent(".")) {
+				break;
+			}
+		} while(name != null);
+		return result.length == 0 ? null : result;
+	}
+
+	public function parseNextLiteral(): Null<Literal> {
+		final literalParser = new LiteralParser(this);
+		return literalParser.parseLiteral();
 	}
 
 	public function parseExpression(): Null<Expression> {
@@ -414,12 +304,26 @@ class Parser {
 		return null;
 	}
 
+	public function parseType(): Null<Type> {
+		final typeParser = new TypeParser(this);
+		return typeParser.parseType();
+	}
+
 	public function parseWord(word: String): Bool {
 		if(checkAheadWord(word)) {
 			incrementIndex(word.length);
 			return true;
 		}
 		return false;
+	}
+
+	public function parseMultipleWords(words: Array<String>): Null<String> {
+		for(word in words) {
+			if(parseWord(word)) {
+				return word;
+			}
+		}
+		return null;
 	}
 
 	public function parsePossibleCharacter(char: String): Bool {
@@ -497,7 +401,7 @@ class Parser {
 					isComment = true;
 				}
 			}
-			if(!isComment) {
+			if(!isComment && char != null) {
 				result += char;
 			}
 			if(incrementIndex(1)) {
@@ -509,13 +413,17 @@ class Parser {
 
 	public function parseComment(): Bool {
 		if(checkAhead(singleCommentOperator)) {
+			var foundNewline = false;
 			while(index < content.length) {
 				if(charCodeIsNewLine(charCodeAt(index))) {
 					incrementLine();
-					return true;
+					foundNewline = true;
 				}
 				if(incrementIndex(1)) {
 					break;
+				}
+				if(foundNewline) {
+					return true;
 				}
 			}
 		}
@@ -529,14 +437,12 @@ class Parser {
 		if(start.length == 0 || end.length == 0) return true;
 		var result = true;
 		var finished = false;
-		if(checkAhead(start)) {
+		if(parseNextContent(start)) {
 			final endChar0 = end.charAt(0);
-			incrementIndex(start.length);
 			while(index < content.length) {
 				final char = charAt(index);
 				if(char == endChar0) {
-					if(checkAhead(end)) {
-						incrementIndex(end.length);
+					if(parseNextContent(end)) {
 						finished = true;
 						break;
 					}
@@ -552,7 +458,7 @@ class Parser {
 		return result;
 	}
 
-	function incrementLine() {
+	public function incrementLine() {
 		lineNumber++;
 		currLineIndex = index + 1;
 	}

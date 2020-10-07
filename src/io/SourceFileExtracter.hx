@@ -4,12 +4,13 @@ import haxe.io.Path;
 import sys.FileSystem;
 
 import io.SourceFilePathInfo;
+import io.SourceFolderInfo;
 
 class SourceFileExtracter {
 	var basePath: String;
 	var sourceFiles: Array<SourceFilePathInfo>;
 
-	static final fileExtension = "gimmick";
+	static final fileExtensions: Array<String> = ["gim", "gimmick"];
 
 	public function new(path: String) {
 		basePath = path;
@@ -29,8 +30,9 @@ class SourceFileExtracter {
 					extractFiles(basePath, relativePath);
 				} else {
 					final path = new Path(filePath);
-					if(path.ext == fileExtension) {
-						final importPath = relativePath.substring(0, relativePath.length - (path.ext.length + 1));
+					final ext = path.ext;
+					if(ext != null && fileExtensions.contains(ext)) {
+						final importPath = relativePath.substring(0, relativePath.length - (ext.length + 1));
 						sourceFiles.push(new SourceFilePathInfo(filePath, relativePath, importPath));
 					}
 				}
@@ -56,12 +58,13 @@ class SourceFileExtracter {
 		#end
 	}
 
-	public static function getSourceFolders(argParser: CompilerArgumentParser): Array<String> {
+	public static function getSourceFolders(argParser: CompilerArgumentParser): Array<SourceFolderInfo> {
 		final sourcePaths = argParser.getValuesOr("src", ["."]);
+		final result = sourcePaths.map(path -> new SourceFolderInfo(path, Source));
 		#if (sys || hxnodejs)
 		final apiFolder = argParser.getValueOr("api", getApiFolder());
-		sourcePaths.insert(0, apiFolder);
+		result.insert(0, new SourceFolderInfo(apiFolder, Api));
 		#end
-		return sourcePaths;
+		return result;
 	}
 }

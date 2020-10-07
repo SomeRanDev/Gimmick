@@ -3,4 +3,12 @@
 -cp src
 -main Main
 
+-dce no
+
+--macro nullSafety("ast", Loose)
+--macro nullSafety("io", Loose)
+--macro nullSafety("parsers", Loose)
+--macro nullSafety("modules", Loose)
+--macro nullSafety("transpiler", Loose)
+
 -js bin/node/Gimmick.js

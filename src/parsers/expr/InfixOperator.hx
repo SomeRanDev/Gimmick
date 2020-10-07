@@ -1,12 +1,73 @@
 package parsers.expr;
 
+import ast.typing.Type;
+
+using ast.scope.ScopeMember;
+
 import parsers.expr.Expression;
 import parsers.expr.Expression.ExpressionHelper;
 import parsers.expr.Operator;
 
 class InfixOperator extends Operator {
-	public function toCpp(lexpr: Expression, rexpr: Expression) {
-		return ExpressionHelper.toCpp(lexpr) + " " + op + " " + ExpressionHelper.toCpp(rexpr);
+	public function findReturnType(ltype: Type, rtype: Type): Null<Type> {
+		if(isAccessor()) {
+			// to access stuff
+			switch(ltype.type) {
+				case Class(cls, typeParams): {
+					switch(rtype.type) {
+						case UnknownNamed(name): {
+							final member = cls.get().members.find(name);
+							if(member != null) {
+								return member.getType();
+							}
+						}
+						default: {}
+					}
+				}
+				default: {}
+			}
+		}
+
+		var initialTest = switch(ltype.type) {
+			case Void:
+				Type.Void();
+			case Any | External(_, _):
+				Type.Any();
+			default: null;
+		}
+		if(initialTest == null) {
+			initialTest = switch(rtype.type) {
+				case Void:
+					Type.Void();
+				case Any | External(_, _):
+					Type.Any();
+				default: null;
+			}
+		}
+		if(initialTest != null) {
+			return initialTest;
+		}
+		
+		// do overloaded stuff
+
+		if(op == "=") {
+			return ltype.canBeAssigned(rtype) == null ? ltype : null;
+		}
+
+		if(ltype.bothSameAndNotNull(rtype)) {
+			final defaultsTest = switch(ltype.type) {
+				case Number(numType): ltype;
+				default: null;
+			}
+
+			return defaultsTest;
+		}
+
+		return null;
+	}
+
+	public function isAccessor(): Bool {
+		return op == "." || op == "->";
 	}
 }
 
