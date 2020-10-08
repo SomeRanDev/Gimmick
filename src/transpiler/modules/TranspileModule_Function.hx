@@ -8,14 +8,15 @@ import transpiler.modules.TranspileModule_Expression;
 import transpiler.modules.TranspileModule_Type;
 
 class TranspileModule_Function {
-	public static function transpile(func: Ref<FunctionMember>): String {
+	public static function transpile(func: Ref<FunctionMember>, transpiler: Transpiler) {
 		final data = func.get();
 		final type = data.type.get();
 		var result = TranspileModule_Type.transpile(type.returnType) + " " + data.name + "() {\n";
 		for(e in data.exprMembers) {
-			result += "\t" + TranspileModule_Expression.transpile(e) + "\n";
+			result += "\t" + TranspileModule_Expression.transpileExprMember(e, transpiler.context) + "\n";
 		}
 		result += "}";
-		return result;
+		
+		transpiler.addSourceContent(result);
 	}
 }

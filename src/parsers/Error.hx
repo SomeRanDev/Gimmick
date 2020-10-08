@@ -114,7 +114,7 @@ class Error {
 		result += formattedLine.rtrim() + "\n";
 
 		result += repeatChar(" ", lineNumberOffset) + "| ";
-		result += repeatChar(" ", start) + repeatChar("^", end - start);
+		result += repeatChar(" ", start) + repeatChar("^", Std.int(Math.max(1, end - start)));
 		result += " " + formatString(err.getErrorLabel(), params) + "\n";
 
 		return result;

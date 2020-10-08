@@ -1,11 +1,21 @@
 package transpiler.modules;
 
 import ast.typing.Type;
+import ast.typing.Type.TypeType;
 import ast.typing.NumberType;
 
 class TranspileModule_Type {
 	public static function transpile(type: Type): String {
-		switch(type.type) {
+		var result = "";
+		if(type.isConst) {
+			result += "const ";
+		}
+		result += transpileInternal(type.type);
+		return result;
+	}
+
+	public static function transpileInternal(typeType: TypeType): String {
+		switch(typeType) {
 			case Void: {
 				return "void";
 			}

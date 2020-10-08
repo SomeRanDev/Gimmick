@@ -204,7 +204,7 @@ class LiteralParser {
 
 	public function parseNextVarNameLiteral(): Null<Literal> {
 		final result = parser.parseNextVarName();
-		return result == null ? null : Name(result);
+		return result == null ? null : Name(result, null);
 	}
 
 	public function parseNextMultilineString(): Null<Literal> {

@@ -82,7 +82,10 @@ class ParserModule_Variable extends ParserModule {
 				return null;
 			}
 
-			return Variable(new VariableMember(name, type == null ? Type.Unknown() : type, word == "static", typedExpr));
+			final finalType =  type == null ? Type.Unknown() : type;
+			final isStatic = word == "static";
+			final varMemberType = TopLevel(parser.scope.currentNamespaceStack());
+			return Variable(new VariableMember(name, finalType, isStatic, typedExpr, varMemberType));
 		}
 
 		return null;

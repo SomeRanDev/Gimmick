@@ -155,7 +155,7 @@ class Type {
 			case Literal.Tuple(exprs): {
 				var types: Array<Type> = [];
 				for(e in exprs) {
-					final t = e.getType();//ExpressionHelper.getType(e, scope, false).getType();
+					final t = e.getType();
 					if(t != null) {
 						types.push(t);
 					} else {
@@ -165,13 +165,11 @@ class Type {
 				}
 				types == null ? null : Type.Tuple(types);
 			}
-			case Literal.Name(name): {
-				final result = scope.findTypeFromName(name);
-				if(result == null) {
-					Type.UnknownNamed(name);
-				} else {
-					result;
-				};
+			case Literal.Name(name, namespaces): {
+				Type.UnknownNamed(name);
+			}
+			case Literal.TypeName(type): {
+				Type.TypeSelf(type);
 			}
 			default: null;
 		}

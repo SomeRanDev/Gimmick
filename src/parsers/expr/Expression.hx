@@ -68,6 +68,7 @@ class ExpressionHelper {
 			case Value(literal, pos): {
 				var result = Type.fromLiteral(literal, scope);
 				if(result != null) {
+					var replacement: Null<Literal> = null;
 					var varName: Null<String> = null;
 					switch(result.type) {
 						case UnknownNamed(name): {
@@ -76,6 +77,12 @@ class ExpressionHelper {
 								final member = scope.findMember(name);
 								if(member != null) {
 									result = member.getType();
+									switch(member) {
+										case ScopeMember.Variable(varMember): {
+											replacement = Name(name, varMember.get().getNamespaces());
+										}
+										default: {}
+									}
 								} else {
 									result = null;
 								}
@@ -87,7 +94,7 @@ class ExpressionHelper {
 					}
 
 					if(result != null) {
-						return Value(literal, pos, result);
+						return Value(replacement == null ? literal : replacement, pos, result);
 					} else if(!isPrelim) {
 						if(accessor == null) {
 							Error.addErrorFromPos(ErrorType.UnknownVariable, pos, [varName == null ? "" : varName]);

@@ -115,6 +115,17 @@ class Scope {
 		return !namespaceStack.isEmpty();
 	}
 
+	public function currentNamespaceStack(): Null<Array<String>> {
+		if(namespacesExist()) {
+			final result = [];
+			for(n in namespaceStack) {
+				result.push(n.name);
+			}
+			return result;
+		}
+		return null;
+	}
+
 	public function addMember(member: ScopeMember) {
 		// add to existing namespace if at top-level
 		if(stackSize == 1) {

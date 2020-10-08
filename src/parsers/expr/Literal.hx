@@ -6,7 +6,7 @@ import ast.typing.Type;
 import ast.typing.NumberType;
 
 enum Literal {
-	Name(name: String);
+	Name(name: String, namespaces: Null<Array<String>>);
 	Null;
 	Boolean(value: Bool);
 	Number(number: String, format: NumberLiteralFormat, type: NumberType);

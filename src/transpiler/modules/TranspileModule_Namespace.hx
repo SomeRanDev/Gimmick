@@ -9,9 +9,16 @@ import transpiler.Transpiler;
 class TranspileModule_Namespace {
 	public static function transpile(namespace: Ref<NamespaceMember>, transpiler: Transpiler) {
 		final sourceFile = @:privateAccess transpiler.sourceFile;
-		sourceFile.addContent("namespace " + namespace.get().name + " {");
+		final name = namespace.get().name;
+		sourceFile.addContent("namespace " + name + " {\n");
+		transpiler.context.pushNamespace(name);
 		final t = Transpiler.extend(namespace.get().members, transpiler);
+		t.setInitialMemberIndex(1);
 		t.transpile();
-		sourceFile.addContent("}");
+		transpiler.context.popNamespace();
+		if(t.finalMemberIndex() != 1) {
+			sourceFile.addContent("\n");
+		}
+		sourceFile.addContent("}\n");
 	}
 }

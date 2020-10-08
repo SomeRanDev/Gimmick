@@ -1,26 +1,42 @@
 package transpiler;
 
+using haxe.EnumTools;
+
 import parsers.modules.Module;
 
 import ast.scope.ScopeMember;
 import ast.scope.ScopeMemberCollection;
 
+import transpiler.TranspilerContext;
 import transpiler.modules.*;
 
 class Transpiler {
+	public var headerFile(default, null): OutputHeaderFile;
+	public var sourceFile(default, null): OutputSourceFile;
+	public var context(default, null): TranspilerContext;
+
 	var members: ScopeMemberCollection;
 
-	var headerFile: OutputHeaderFile;
-	var sourceFile: OutputSourceFile;
+	var lastTranspileMemberIndex: Int;
 
-	public function new(members: ScopeMemberCollection, headerFile: OutputHeaderFile, sourceFile: OutputSourceFile) {
+	public function new(members: ScopeMemberCollection, headerFile: OutputHeaderFile, sourceFile: OutputSourceFile, context: Null<TranspilerContext> = null) {
 		this.members = members;
 		this.headerFile = headerFile;
 		this.sourceFile = sourceFile;
+		this.context = context == null ? new TranspilerContext() : context;
+		lastTranspileMemberIndex = -1;
+	}
+
+	public function setInitialMemberIndex(index: Int) {
+		lastTranspileMemberIndex = index;
+	}
+
+	public function finalMemberIndex(): Int {
+		return lastTranspileMemberIndex;
 	}
 
 	public static function extend(members: ScopeMemberCollection, transpiler: Transpiler): Transpiler {
-		return new Transpiler(members, transpiler.headerFile, transpiler.sourceFile);
+		return new Transpiler(members, transpiler.headerFile, transpiler.sourceFile, transpiler.context);
 	}
 
 	public function transpile() {
@@ -30,23 +46,40 @@ class Transpiler {
 	}
 
 	function transpileMember(member: ScopeMember) {
+		final newIndex = member.getIndex();
+		if(lastTranspileMemberIndex == -1) {
+			lastTranspileMemberIndex = newIndex;
+		}
+		if(lastTranspileMemberIndex != newIndex) {
+			lastTranspileMemberIndex = newIndex;
+			addSourceContent("");
+		}
+
 		switch(member) {
 			case Include(path, brackets): {
-				sourceFile.addContent(TranspileModule_Include.transpile(path, brackets));
+				TranspileModule_Include.transpile(path, brackets, this);
 			}
 			case Namespace(namespace): {
 				TranspileModule_Namespace.transpile(namespace, this);
 			}
 			case Variable(variable): {
-				sourceFile.addContent(TranspileModule_Variable.transpile(variable));
+				TranspileModule_Variable.transpile(variable, this);
 			}
 			case Function(func): {
-				sourceFile.addContent(TranspileModule_Function.transpile(func));
+				TranspileModule_Function.transpile(func, this);
 			}
 			case Expression(expr): {
-				sourceFile.addContent(TranspileModule_Expression.transpile(expr));
+				TranspileModule_Expression.transpile(expr, this);
 			}
 			default: {}
 		}
+	}
+
+	public function addHeaderContent(content: String) {
+		headerFile.addContent(content + "\n");
+	}
+
+	public function addSourceContent(content: String) {
+		sourceFile.addContent(content + "\n");
 	}
 }

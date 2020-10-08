@@ -10,4 +10,8 @@ class OutputHeaderFile {
 	public function getContent(): String {
 		return content;
 	}
+
+	public function addContent(str: String) {
+		content += str;
+	}
 }

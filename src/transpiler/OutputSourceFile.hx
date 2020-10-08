@@ -7,11 +7,11 @@ class OutputSourceFile {
 		content = "";
 	}
 
-	public function addContent(str: String) {
-		content += str + "\n\n";
-	}
-
 	public function getContent(): String {
 		return content;
+	}
+
+	public function addContent(str: String) {
+		content += str;
 	}
 }
