@@ -14,4 +14,12 @@ class Position {
 		this.startIndex = startIndex;
 		this.endIndex = endIndex;
 	}
+
+	public function clone(): Position {
+		return new Position(file, line, startIndex, endIndex);
+	}
+
+	public static function empty(file: SourceFile): Position {
+		return new Position(file, 0, 0, 0);
+	}
 }

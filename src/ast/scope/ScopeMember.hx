@@ -33,7 +33,7 @@ class ScopeMemberHelper {
 				return variable.get().type;
 			}
 			case Function(func): {
-				return func.get().type.get().returnType;
+				return Type.Function(func.get().type, null);
 			}
 			case Namespace(namespace): {
 				return Type.Namespace(namespace);

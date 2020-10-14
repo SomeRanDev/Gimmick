@@ -2,6 +2,7 @@ package parsers.expr;
 
 import ast.typing.Type;
 import ast.typing.FunctionType;
+import ast.typing.FunctionArgument;
 
 import parsers.Parser;
 
@@ -162,7 +163,7 @@ class TypeParser {
 			if(returnType == null) {
 				returnType = Type.Void();
 			}
-			final funcType = new FunctionType(params, null, returnType);
+			final funcType = new FunctionType(params.map(p -> new FunctionArgument("", p, null)), returnType);
 			return Type.Function(funcType.getRef(), null);
 		}
 		return null;

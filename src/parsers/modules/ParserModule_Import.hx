@@ -3,6 +3,7 @@ package parsers.modules;
 import basic.Ref;
 
 import ast.scope.Scope;
+import ast.scope.members.FunctionMember;
 
 import parsers.Error;
 import parsers.ErrorType;
@@ -29,11 +30,21 @@ class ParserModule_Import extends ParserModule {
 				}
 			}
 
-			if(hitSemicolon) {
-				parser.parsePossibleCharacter(";");
+			var result: Null<Ref<FunctionMember>> = null;
+			if(file != null && file.scope != null) {
+				final mainFunc: Null<FunctionMember> = file.scope.getMainFunction();
+				if(mainFunc != null) {
+					final bla: FunctionMember = mainFunc;
+					result = new Ref(bla);
+				}
 			}
 
-			return Import(path, null);
+			if(!parser.parseNextExpressionEnd()) {
+				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+				return null;
+			}
+			
+			return Import(path, result);
 		}
 		return null;
 	}

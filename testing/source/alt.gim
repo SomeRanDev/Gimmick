@@ -1,10 +1,10 @@
 
-import###fdsd###main;
+import###fdsd###main
 
 start namespace A
 
 var athing = 1
 
-const qweqweq = (athing, 1111);
+const qweqweq = (athing, 1111)
 
 end namespace

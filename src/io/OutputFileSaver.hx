@@ -7,6 +7,7 @@ import sys.io.File;
 
 import ast.SourceFile;
 
+import transpiler.Language;
 import transpiler.OutputFile;
 
 class OutputFileSaver {
@@ -22,14 +23,14 @@ class OutputFileSaver {
 		files = files.concat(newFiles);
 	}
 
-	public function transpile() {
+	public function transpile(language: Language) {
 		for(file in files) {
-			transpileFile(file);
+			transpileFile(file, language);
 		}
 	}
 
-	function transpileFile(file: SourceFile) {
-		final outputFile = new OutputFile(file);
+	function transpileFile(file: SourceFile, language: Language) {
+		final outputFile = new OutputFile(file, language);
 		saveToPaths(outputFile.output());
 	}
 

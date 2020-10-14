@@ -9,6 +9,18 @@ import parsers.ErrorType;
 
 import parsers.expr.Position;
 
+class TabReformatResult {
+	public var line: String;
+	public var start: Int;
+	public var end: Int;
+
+	public function new(line: String, start: Int, end: Int) {
+		this.line = line;
+		this.start = start;
+		this.end = end;
+	}
+}
+
 class Error {
 	public var errorType(default, null): ErrorType;
 	public var lineStr(default, null): String;
@@ -102,10 +114,11 @@ class Error {
 		final lineNumberOffset = Std.string(lineNumber).length + 1;
 
 		final tabSize = 4;
-		final formattedLine = reformatTabs(line, tabSize, end);
+		final result = reformatTabs(line, tabSize, start, end);
+		final formattedLine = result.line;
 		final difference = formattedLine.length - line.length;
-		start += difference;
-		end += difference;
+		start = result.start;
+		end = result.end;
 
 		var result = "";
 		result += repeatChar(" ", lineNumberOffset) + "|\n";
@@ -120,18 +133,24 @@ class Error {
 		return result;
 	}
 
-	static function reformatTabs(input: String, tabSize: Int, end: Int): String {
+	static function reformatTabs(input: String, tabSize: Int, start: Int, end: Int): TabReformatResult {
 		final tabReplacement = repeatChar(" ", tabSize);
 		var result = "";
+		var startResult = start;
+		var endResult = end;
 		for(i in 0...input.length) {
 			final char = input.charAt(i);
 			if(i < end && char == "\t") {
+				if(i < start) {
+					startResult += tabSize - 1;
+				}
+				endResult += tabSize - 1;
 				result += tabReplacement;
 			} else {
 				result += char;
 			}
 		}
-		return result;
+		return new TabReformatResult(result, startResult, endResult);
 	}
 
 	static function repeatChar(str: String, amount: Int): String {

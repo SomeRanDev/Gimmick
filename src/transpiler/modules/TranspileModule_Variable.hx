@@ -10,22 +10,47 @@ import transpiler.modules.TranspileModule_Type;
 
 class TranspileModule_Variable {
 	public static function transpile(variable: Ref<VariableMember>, transpiler: Transpiler) {
+		final result = transpileVariableSource(variable, transpiler.context);
+		transpiler.addSourceContent(result);
+
+		final member = variable.get();
+		transpiler.addHeaderContent("extern " + TranspileModule_Type.transpile(member.type) + " " + member.name + ";");
+	}
+
+	public static function transpileVariableSource(variable: Ref<VariableMember>, context: TranspilerContext) {
 		final member = variable.get();
 		var result = "";
-		if(member.isStatic) {
-			result += "static ";
-		}
-		result += TranspileModule_Type.transpile(member.type) + " ";
+		result += makeVariablePrefix(member, context);
 		result += member.name;
 		final assignment = TranspileModule_Type.getDefaultAssignment(member.type);
 		final expression = member.expression;
 		if(expression != null) {
-			result += " = " + TranspileModule_Expression.transpileExpr(expression, transpiler.context);
+			result += " = " + TranspileModule_Expression.transpileExpr(expression, context);
 		} else if(assignment != null) {
 			result += " = " + assignment;
 		}
 		result += ";";
+		return result;
+	}
 
-		transpiler.addSourceContent(result);
+	public static function makeVariablePrefix(member: VariableMember, context: TranspilerContext): String {
+		var result = "";
+		if(context.isCpp()) {
+			if(member.isStatic) {
+				result += "static ";
+			}
+			result += TranspileModule_Type.transpile(member.type) + " ";
+		} else if(context.isJs()) {
+			final prefix = getVariableAndNamespacePrefixJs(context);
+			result += prefix == null ? "var " : prefix;
+		}
+		return result;
+	}
+
+	public static function getVariableAndNamespacePrefixJs(context: TranspilerContext): Null<String> {
+		if(context.isTopLevel() && context.hasNamespace()) {
+			return context.constructNamespace() + ".";
+		}
+		return null;
 	}
 }

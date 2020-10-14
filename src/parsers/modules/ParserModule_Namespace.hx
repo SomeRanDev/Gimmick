@@ -28,10 +28,19 @@ class ParserModule_Namespace extends ParserModule {
 						return null;
 					}
 
+					if(!parser.parseNextExpressionEnd()) {
+						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+						return null;
+					}
+
 					return NamespaceStart(names);
 				} else if(word == "end") {
 					if(!parser.scope.namespacesExist()) {
 						Error.addError(ErrorType.NoNamespaceToEnd, parser, startOfModule);
+						return null;
+					}
+					if(!parser.parseNextExpressionEnd()) {
+						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
 						return null;
 					}
 					return NamespaceEnd;

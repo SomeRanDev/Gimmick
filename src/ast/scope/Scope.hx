@@ -7,6 +7,7 @@ import basic.Multi;
 
 import ast.SourceFile;
 import ast.scope.ExpressionMember;
+import ast.scope.members.VariableMember;
 import ast.scope.members.FunctionMember;
 import ast.scope.members.NamespaceMember;
 
@@ -14,9 +15,15 @@ import ast.typing.Type;
 import ast.typing.NumberType;
 import ast.typing.FunctionType;
 
+import parsers.Parser;
+import parsers.expr.TypedExpression;
+import parsers.expr.Literal;
+import parsers.expr.Position;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
+import parsers.expr.CallOperator;
+import parsers.expr.CallOperator.CallOperators;
 
 class Scope {
 	public var file(default, null): SourceFile;
@@ -126,37 +133,101 @@ class Scope {
 		return null;
 	}
 
-	public function addMember(member: ScopeMember) {
-		// add to existing namespace if at top-level
-		if(stackSize == 1) {
-			final nameFirst = namespaceStack.first();
-			if(nameFirst != null) {
-				nameFirst.add(member);
-				return;
-			}
-		}
+	public function isTopLevel(): Bool {
+		return stackSize == 1;
+	}
 
-		// otherwise, add to current scope
+	public function addMember(member: ScopeMember) {
+		if(isTopLevel()) {
+			addTopLevelMember(member);
+		} else {
+			addMemberToCurrentScope(member);
+		}
+	}
+
+	public function addMemberToCurrentScope(member: ScopeMember) {
 		final first = stack.first();
 		if(first != null) {
 			first.add(member);
 		}
 	}
 
+	public function addTopLevelMember(member: ScopeMember) {
+		// If a variable is assigned a non-const expression
+		// at the top level, we need to split it into two.
+		// One for the declaration, and one for the assignment
+		// in the main function itself.
+		var splitVarMember: Null<VariableMember> = null;
+		switch(member) {
+			case Variable(variable): {
+				if(variable.get().shouldSplitAssignment()) {
+					splitVarMember = variable.get();
+				}
+			}
+			default: {}
+		}
+		if(splitVarMember != null) {
+			addVarWithAssignTopLevelMember(splitVarMember);
+		} else {
+			addNormalTopLevelMember(member);
+		}
+		
+	}
+
+	public function addNormalTopLevelMember(member: ScopeMember) {
+		// add to existing namespace if at top-level
+		final nameFirst = namespaceStack.first();
+		if(nameFirst != null) {
+			nameFirst.add(member);
+			return;
+		}
+
+		// otherwise, add to current scope
+		addMemberToCurrentScope(member);
+	}
+
+	public function addVarWithAssignTopLevelMember(member: VariableMember) {
+		addNormalTopLevelMember(Variable(new Ref(member.cloneWithoutExpression())));
+		final expr = member.constructAssignementExpression();
+		if(expr != null) {
+			addExpressionMember(expr);
+		}
+	}
+
 	public function addExpressionMember(member: ExpressionMember) {
-		if(stackSize == 1) {
+		if(stackSize == 1 && file.usesMainFunction()) {
 			if(mainFunction == null) {
-				final funcType = new FunctionType([], null, Type.Number(Int));
-				mainFunction = new FunctionMember("main", funcType.getRef());
+				final funcType = new FunctionType([], Type.Number(Int));
+				mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef());
+				if(file.isMain) {
+					mainFunction.incrementCallCount();
+				}
 			}
 			mainFunction.addMember(member);
+		} else {
+			addMember(Expression(member));
 		}
+	}
+
+	public function addFunctionCallExpression(func: Ref<FunctionMember>, parser: Parser) {
+		func.get().incrementCallCount();
+		final literal = Literal.Name(func.get().name, null);
+		final val = TypedExpression.Value(literal, parser.emptyPosition(), Type.Function(func.get().type, null, false, false));
+		final expr = TypedExpression.Call(CallOperators.Call, val, [], parser.emptyPosition(), func.get().type.get().returnType);
+		addExpressionMember(Basic(expr));
 	}
 
 	public function commitMainFunction() {
 		if(mainFunction != null) {
+			final literal = Literal.Number("0", Decimal, NumberType.Int);
+			final value = TypedExpression.Value(literal, Position.empty(file), Type.Number(NumberType.Int));
+			mainFunction.addMember(ExpressionMember.ReturnStatement(value));
 			addMember(Function(mainFunction.getRef()));
 		}
+	}
+
+	public function getMainFunction(): Null<FunctionMember> {
+		return mainFunction;
 	}
 
 	public function existInCurrentScope(varName: String): Bool {

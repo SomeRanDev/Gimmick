@@ -1,8 +1,15 @@
-#include "main.hpp"
+#include "alt.h"
+
+#include "main.h"
 
 namespace A {
 
 int athing = 1;
-const std::tuple<int, int> qweqweq = std::make_tuple(athing, 1111);
+std::tuple<int, int> qweqweq;
 
+}
+
+int main_alt() {
+	A::qweqweq = std::make_tuple(A::athing, 1111);
+	return 0;
 }

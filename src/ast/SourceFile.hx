@@ -1,5 +1,7 @@
 package ast;
 
+using StringTools;
+
 import basic.Ref;
 
 import sys.io.File;
@@ -14,22 +16,33 @@ import parsers.Error;
 import parsers.modules.Module;
 
 import ast.scope.ScopeMemberCollection;
-
 import ast.scope.Scope;
+import ast.typing.Type;
+import ast.extras.RequiredCppInclude;
+import ast.extras.RequiredCppInclude.RequiredCppIncludeCollection;
+
+using transpiler.Language;
 
 class SourceFile {
+	public var isMain(default, null): Bool;
 	public var source(default, null): String;
 	public var pathInfo(default, null): SourceFilePathInfo;
 	public var folderInfo(default, null): SourceFolderInfo;
 	public var scope(default, null): Null<Scope>;
 	public var members(default, null): Null<ScopeMemberCollection>;
+	public var language(default, null): Language;
+
+	public var requiredIncludes(default, null): RequiredCppIncludeCollection;
 
 	var isParsed = 0;
 
-	public function new(pathInfo: SourceFilePathInfo, folderInfo: SourceFolderInfo) {
+	public function new(isMain: Bool, pathInfo: SourceFilePathInfo, folderInfo: SourceFolderInfo, language: Language) {
 		source = "";
+		this.isMain = isMain;
 		this.pathInfo = pathInfo;
 		this.folderInfo = folderInfo;
+		this.language = language;
+		requiredIncludes = new RequiredCppIncludeCollection();
 		loadSourceFromFile();
 	}
 
@@ -50,7 +63,7 @@ class SourceFile {
 		if(isParsed == 0 || (isParsed == 1 && !isPrelim)) {
 			final errorCount = Error.errorCount();
 			final parser = new Parser(source, manager, this, isPrelim);
-			parser.setMode_SourceFile();
+			parser.setupForSourceFile();
 			parser.beginParse();
 			members = parser.scope.getTopScope();
 			scope = parser.scope;
@@ -74,10 +87,47 @@ class SourceFile {
 	}
 
 	public function getSourceOutputFile(): String {
-		return generateOutputFile(".cpp");
+		return generateOutputFile(language.sourceFileExtension());
 	}
 
 	public function getHeaderOutputFile(): String {
-		return generateOutputFile(".hpp");
+		return generateOutputFile(language.headerFileExtension());
+	}
+
+	public function usesMainFunction(): Bool {
+		return true;
+	}
+
+	public function getMainFunctionName(): String {
+		if(isMain) {
+			return "main";
+		}
+		var name = "main_" + pathInfo.importPath;
+		name = removeInvalidNameSymbols(name.replace("/", "_"));
+		return name;
+	}
+
+	public function macroGuardName(): String {
+		var headerMacroName = getHeaderOutputFile();
+		headerMacroName = headerMacroName.replace("/", "_").replace(".", "_").toUpperCase();
+		headerMacroName = removeInvalidNameSymbols(headerMacroName);
+		return headerMacroName;
+	}
+
+	function removeInvalidNameSymbols(input: String): String {
+		final regex = ~/[^a-zA-Z0-9_]/g;
+		return regex.replace(input, "");
+	}
+
+	public function onTypeUsed(type: Type, header: Bool = false) {
+		switch(type.type) {
+			case String: requiredIncludes.add("string", header, true);
+			case Tuple(_): requiredIncludes.add("tuple", header, true);
+			default: {}
+		}
+	}
+
+	public function getRequiredIncludes(): Array<RequiredCppInclude> {
+		return requiredIncludes.collection;
 	}
 }

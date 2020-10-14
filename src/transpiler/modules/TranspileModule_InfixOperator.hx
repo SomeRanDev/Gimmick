@@ -21,10 +21,18 @@ class TranspileModule_InfixOperator {
 	public static function transpileAccess(lexpr: TypedExpression, rexpr: TypedExpression, context: TranspilerContext): String {
 		final type = lexpr.getType();
 		var opText = ".";
-		switch(type.type) {
-			case Namespace(_) | TypeSelf(_): opText = "::";
-			case Pointer(_): opText = "->";
-			default: {}
+		if(context.isCpp()) {
+			switch(type.type) {
+				case Namespace(_) | TypeSelf(_): opText = "::";
+				case Pointer(_): opText = "->";
+				default: {}
+			}
+		} else if(context.isJs()) {
+			switch(type.type) {
+				case Pointer(_): opText = ".ptr.";
+				case Reference(_): opText = ".ref.";
+				default: {}
+			}
 		}
 		final left = TranspileModule_Expression.transpileExpr(lexpr, context);
 		final right = TranspileModule_Expression.transpileExpr(rexpr, context);

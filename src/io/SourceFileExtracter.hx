@@ -32,8 +32,10 @@ class SourceFileExtracter {
 					final path = new Path(filePath);
 					final ext = path.ext;
 					if(ext != null && fileExtensions.contains(ext)) {
-						final importPath = relativePath.substring(0, relativePath.length - (ext.length + 1));
-						sourceFiles.push(new SourceFilePathInfo(filePath, relativePath, importPath));
+						final extLength = (ext.length + 1);
+						final importPath = relativePath.substring(0, relativePath.length - extLength);
+						final fileName = file.substring(0, file.length - extLength);
+						sourceFiles.push(new SourceFilePathInfo(filePath, relativePath, importPath, fileName));
 					}
 				}
 			}

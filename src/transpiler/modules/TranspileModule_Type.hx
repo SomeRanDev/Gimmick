@@ -66,7 +66,7 @@ class TranspileModule_Type {
 			case Function(func, typeParams): {
 				final argStr = [];
 				for(a in func.get().arguments) {
-					argStr.push(transpile(a));
+					argStr.push(transpile(a.type));
 				}
 				return "std::function<" + transpile(func.get().returnType) + "(" + argStr.join(", ") + ")>";
 			}

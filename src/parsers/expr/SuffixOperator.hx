@@ -31,8 +31,8 @@ class SuffixOperator extends Operator {
 }
 
 enum abstract SuffixOperators(SuffixOperator) from SuffixOperator to SuffixOperator {
-	static var Increment = new SuffixOperator("++", 0xf000);
-	static var Decrement = new SuffixOperator("--", 0xf000);
+	public static var Increment = new SuffixOperator("++", 0xf000);
+	public static var Decrement = new SuffixOperator("--", 0xf000);
 
 	public static function all(): Array<SuffixOperator> {
 		return [Increment, Decrement];

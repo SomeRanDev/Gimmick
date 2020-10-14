@@ -49,6 +49,10 @@ class Type {
 		this.isOptional = isOptional;
 	}
 
+	public function clone(): Type {
+		return new Type(type, isConst, isOptional);
+	}
+
 	public function baseTypesEqual(other: Type): Bool {
 		return type.equals(other.type);
 	}
@@ -57,8 +61,8 @@ class Type {
 		return baseTypesEqual(other) && isConst == other.isConst && isOptional == other.isOptional;
 	}
 
-	public function setConst() {
-		isConst = true;
+	public function setConst(v: Bool = true) {
+		isConst = v;
 	}
 
 	public function setOptional() {
@@ -171,6 +175,9 @@ class Type {
 			case Literal.TypeName(type): {
 				Type.TypeSelf(type);
 			}
+			case Literal.EnclosedExpression(expr): {
+				return expr.getType();
+			}
 			default: null;
 		}
 	}
@@ -227,15 +234,23 @@ class Type {
 		}
 	}
 
-	public function findAccessorMember(name: String): Null<Type> {
+	public function findAccessorMember(name: String): Null<ScopeMember> {
 		switch(type) {
 			case TypeType.Namespace(namespace): {
 				final member = namespace.get().members.find(name);
 				if(member != null) {
-					return member.getType();
+					return member;
 				}
 			}
 			default: {}
+		}
+		return null;
+	}
+
+	public function findAccessorMemberType(name: String): Null<Type> {
+		final result = findAccessorMember(name);
+		if(result != null) {
+			return result.getType();
 		}
 		return null;
 	}
@@ -260,7 +275,7 @@ class Type {
 			}
 			case TypeType.Function(func, typeParams): {
 				final funcType = func.get();
-				final argStr = funcType.arguments.map((p) -> p.toString()).join(", ");
+				final argStr = funcType.arguments.map((p) -> p.type.toString()).join(", ");
 				result += "func(" + argStr + ") -> " + funcType.returnType.toString();
 			}
 			case TypeType.Class(cls, typeParams): {

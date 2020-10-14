@@ -54,14 +54,14 @@ class PrefixOperator extends Operator {
 }
 
 enum abstract PrefixOperators(PrefixOperator) from PrefixOperator to PrefixOperator {
-	static var Plus = new PrefixOperator("+", 0xe000);
-	static var Minus = new PrefixOperator("-", 0xe000);
-	static var Not = new PrefixOperator("!", 0xe000);
-	static var BitNot = new PrefixOperator("~", 0xe000);
-	static var Increment = new PrefixOperator("++", 0xe000);
-	static var Decrement = new PrefixOperator("--", 0xe000);
-	static var Dereference = new PrefixOperator("*", 0xe000);
-	static var Address = new PrefixOperator("&", 0xe000);
+	public static var Plus = new PrefixOperator("+", 0xe000);
+	public static var Minus = new PrefixOperator("-", 0xe000);
+	public static var Not = new PrefixOperator("!", 0xe000);
+	public static var BitNot = new PrefixOperator("~", 0xe000);
+	public static var Increment = new PrefixOperator("++", 0xe000);
+	public static var Decrement = new PrefixOperator("--", 0xe000);
+	public static var Dereference = new PrefixOperator("*", 0xe000);
+	public static var Address = new PrefixOperator("&", 0xe000);
 
 	public static function all(): Array<PrefixOperator> {
 		return [Plus, Minus, Not, BitNot, Increment, Decrement, Dereference, Address];

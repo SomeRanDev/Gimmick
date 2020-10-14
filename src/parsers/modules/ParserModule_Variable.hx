@@ -8,6 +8,8 @@ import ast.typing.Type;
 import parsers.Error;
 import parsers.ErrorType;
 import parsers.modules.ParserModule;
+
+import parsers.expr.Position;
 using parsers.expr.Expression;
 using parsers.expr.TypedExpression;
 
@@ -17,6 +19,7 @@ class ParserModule_Variable extends ParserModule {
 	public override function parse(parser: Parser): Null<Module> {
 		final isPrelim = parser.isPreliminary();
 		final word = parser.parseMultipleWords(["var", "const", "static"]);
+		final startIndex = parser.getIndex();
 		if(word != null) {
 			parser.parseWhitespaceOrComments();
 
@@ -52,7 +55,7 @@ class ParserModule_Variable extends ParserModule {
 			var typedExpr = null;
 			var exprType: Null<Type> = null;
 			if(expr != null) {
-				typedExpr = expr.getType(parser.scope, isPrelim);
+				typedExpr = expr.getType(parser, isPrelim);
 				if(typedExpr != null) {
 					exprType = typedExpr.getType();
 					if(isPrelim && exprType == null) {
@@ -82,10 +85,19 @@ class ParserModule_Variable extends ParserModule {
 				return null;
 			}
 
+			if(!parser.parseNextExpressionEnd()) {
+				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+				return null;
+			}
+
 			final finalType =  type == null ? Type.Unknown() : type;
 			final isStatic = word == "static";
+			final position = parser.makePosition(startIndex);
 			final varMemberType = TopLevel(parser.scope.currentNamespaceStack());
-			return Variable(new VariableMember(name, finalType, isStatic, typedExpr, varMemberType));
+
+			parser.onTypeUsed(finalType, parser.scope.isTopLevel());
+
+			return Variable(new VariableMember(name, finalType, isStatic, position, typedExpr, varMemberType));
 		}
 
 		return null;

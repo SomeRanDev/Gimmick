@@ -11,22 +11,25 @@ import parsers.expr.Operator;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
+import parsers.expr.CallOperator;
 
 enum Expression {
 	Prefix(op: PrefixOperator, expr: Expression, pos: Position);
 	Suffix(op: SuffixOperator, expr: Expression, pos: Position);
 	Infix(op: InfixOperator, lexpr: Expression, rexpr: Expression, pos: Position);
+	Call(op: CallOperator, expr: Expression, params: Array<Expression>, pos: Position);
 	Value(literal: Literal, pos: Position);
 }
 
 class ExpressionHelper {
-	public static function getType(expression: Expression, scope: Scope, isPrelim: Bool, accessor: Null<Type> = null): Null<TypedExpression> {
+	public static function getType(expression: Expression, parser: Parser, isPrelim: Bool, accessor: Null<Type> = null, incrementCall: Bool = false): Null<TypedExpression> {
 		switch(expression) {
 			case Prefix(op, expr, pos): {
-				final typedExpr = getType(expr, scope, isPrelim);
+				final typedExpr = getType(expr, parser, isPrelim);
 				if(typedExpr != null) {
 					final result = op.findReturnType(typedExpr.getType());
 					if(result != null) {
+						parser.onTypeUsed(result);
 						return Prefix(op, typedExpr, pos, result);
 					} else if(!isPrelim) {
 						Error.addErrorFromPos(ErrorType.InvalidPrefixOperator, pos, [typedExpr.getType().toString()]);
@@ -35,11 +38,12 @@ class ExpressionHelper {
 				return null;
 			}
 			case Suffix(op, expr, pos): {
-				final typedExpr = getType(expr, scope, isPrelim);
+				final typedExpr = getType(expr, parser, isPrelim);
 				if(typedExpr != null) {
 					final type = typedExpr.getType();
 					final result = op.findReturnType(type);
 					if(result != null) {
+						parser.onTypeUsed(result);
 						return Suffix(op, typedExpr, pos, result);
 					} else if(!isPrelim) {
 						Error.addErrorFromPos(ErrorType.InvalidSuffixOperator, pos, [type.toString()]);
@@ -48,14 +52,15 @@ class ExpressionHelper {
 				return null;
 			}
 			case Infix(op, lexpr, rexpr, pos): {
-				final lexprTyped = getType(lexpr, scope, isPrelim);
+				final lexprTyped = getType(lexpr, parser, isPrelim);
 				if(lexprTyped != null) {
-					final rexprTyped = getType(rexpr, scope, isPrelim, op.isAccessor() ? lexprTyped.getType() : null);
+					final rexprTyped = getType(rexpr, parser, isPrelim, op.isAccessor() ? lexprTyped.getType() : null);
 					if(rexprTyped != null) {
 						final rType = rexprTyped.getType();
 						final lType = lexprTyped.getType();
 						final result = op.isAccessor() ? rType : op.findReturnType(lType, rType);
 						if(result != null) {
+							parser.onTypeUsed(result);
 							return Infix(op, lexprTyped, rexprTyped, pos, result);
 						} else if(!isPrelim) {
 							Error.addErrorFromPos(ErrorType.InvalidInfixOperator, pos, [lType.toString(), rType.toString()]);
@@ -65,8 +70,31 @@ class ExpressionHelper {
 				
 				return null;
 			}
+			case Call(op, expr, params, pos): {
+				final typedExpr = getType(expr, parser, isPrelim, null, op == CallOperators.Call);
+				if(typedExpr != null) {
+
+					final typedParams: Array<TypedExpression> = [];
+					for(p in params) {
+						final r = getType(p, parser, isPrelim);
+						if(r != null) {
+							typedParams.push(r);
+						}
+					}
+
+					final type = typedExpr.getType();
+					final result = op.findReturnType(type, typedParams.map(p -> p.getType()));
+					if(result != null) {
+						parser.onTypeUsed(result);
+						return Call(op, typedExpr, typedParams, pos, result);
+					} else if(!isPrelim) {
+						Error.addErrorFromPos(ErrorType.InvalidCallOperator, pos, [type.toString()]);
+					}
+				}
+				return null;
+			}
 			case Value(literal, pos): {
-				var result = Type.fromLiteral(literal, scope);
+				var result = Type.fromLiteral(literal, parser.scope);
 				if(result != null) {
 					var replacement: Null<Literal> = null;
 					var varName: Null<String> = null;
@@ -74,12 +102,17 @@ class ExpressionHelper {
 						case UnknownNamed(name): {
 							varName = name;
 							if(accessor == null) {
-								final member = scope.findMember(name);
+								final member = parser.scope.findMember(name);
 								if(member != null) {
 									result = member.getType();
 									switch(member) {
 										case ScopeMember.Variable(varMember): {
 											replacement = Name(name, varMember.get().getNamespaces());
+										}
+										case ScopeMember.Function(funcMember): {
+											if(incrementCall) {
+												funcMember.get().incrementCallCount();
+											}
 										}
 										default: {}
 									}
@@ -87,13 +120,14 @@ class ExpressionHelper {
 									result = null;
 								}
 							} else {
-								result = accessor.findAccessorMember(name);
+								result = accessor.findAccessorMemberType(name);
 							}
 						}
 						default: {}
 					}
 
 					if(result != null) {
+						parser.onTypeUsed(result);
 						return Value(replacement == null ? literal : replacement, pos, result);
 					} else if(!isPrelim) {
 						if(accessor == null) {
@@ -116,6 +150,7 @@ class ExpressionHelper {
 			case Suffix(_, _, pos): pos;
 			case Infix(_, _, _, pos): pos;
 			case Value(_, pos): pos;
+			case Call(_, _, _, pos): pos;
 		};
 	}
 }

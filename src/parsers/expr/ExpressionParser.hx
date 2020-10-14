@@ -10,6 +10,8 @@ import parsers.expr.SuffixOperator;
 import parsers.expr.SuffixOperator.SuffixOperators;
 import parsers.expr.InfixOperator;
 import parsers.expr.InfixOperator.InfixOperators;
+import parsers.expr.CallOperator;
+import parsers.expr.CallOperator.CallOperators;
 import parsers.expr.Position;
 
 enum ExpressionParserMode {
@@ -23,6 +25,7 @@ enum ExpressionParserPiece {
 	Prefix(op: PrefixOperator, pos: Position);
 	Value(literal: Literal, pos: Position);
 	Suffix(op: SuffixOperator, pos: Position);
+	Call(op: CallOperator, params: Array<Expression>, pos: Position);
 	Infix(op: InfixOperator, pos: Position);
 	ExpressionPlaceholder(expression: Expression);
 }
@@ -35,6 +38,7 @@ class ExpressionParser {
 
 	var startingIndex: Int;
 	var foundExpectedString: Bool;
+	var foundString: Null<String>;
 
 	public function printAll() {
 		for(p in pieces) {
@@ -42,6 +46,7 @@ class ExpressionParser {
 				case Prefix(op, pos): trace(op.op);
 				case Value(str, pos): trace(str);
 				case Suffix(op, pos): trace(op.op);
+				case Call(op, params, pos): trace(op.op + op.endOp);
 				case Infix(op, pos): trace(op.op);
 				case ExpressionPlaceholder(expr): trace(expr);
 			}
@@ -84,7 +89,7 @@ class ExpressionParser {
 					}
 				}
 				case Suffix: {
-					if(!parseSuffix()) {
+					if(!parseSuffixOrCall()) {
 						mode = Infix;
 					}
 				}
@@ -112,6 +117,7 @@ class ExpressionParser {
 			parser.parseWhitespaceOrComments();
 			for(str in expectedEndStrings) {
 				if(parser.checkAhead(str)) {
+					foundString = str;
 					foundExpectedString = true;
 				}
 			}
@@ -142,12 +148,52 @@ class ExpressionParser {
 		return false;
 	}
 
+	function parseSuffixOrCall(): Bool {
+		if(!parseSuffix()) {
+			return parseCall();
+		}
+		return true;
+	}
+
 	function parseSuffix(): Bool {
 		final startIndex = parser.getIndex();
 		final op = checkForOperators(cast SuffixOperators.all());
 		if(op != null) {
 			pieces.push(ExpressionParserPiece.Suffix(cast op, parser.makePosition(startIndex)));
 			parser.incrementIndex(op.op.length);
+			return true;
+		}
+		return false;
+	}
+
+	function parseCall(): Bool {
+		final startIndex = parser.getIndex();
+		final op: CallOperator = cast checkForOperators(cast CallOperators.all());
+		if(op != null) {
+			parser.incrementIndex(op.op.length);
+
+			final exprs: Array<Expression> = [];
+			while(true) {
+				final exprParser = new ExpressionParser(parser, [",", op.endOp]);
+				if(exprParser.successful()) {
+					final result = exprParser.buildExpression();
+					if(result != null) {
+						exprs.push(result);
+					}
+					if(op.endOp == exprParser.foundString) {
+						break;
+					} else if(exprParser.foundString != null) {
+						parser.incrementIndex(exprParser.foundString.length);
+						parser.parseWhitespaceOrComments();
+					}
+				} else {
+					break;
+				}
+			}
+
+			parser.incrementIndex(op.endOp.length);
+			pieces.push(ExpressionParserPiece.Call(op, exprs, parser.makePosition(startIndex)));
+
 			return true;
 		}
 		return false;
@@ -213,6 +259,21 @@ class ExpressionParser {
 							final expr = expressionPieceToExpression(piece);
 							if(expr != null) {
 								parts.insert(index, ExpressionPlaceholder(Suffix(op, expr, pos)));
+							} else {
+								error = true;
+								break;
+							}
+						} else {
+							error = true;
+							break;
+						}
+					}
+					case Call(op, params, pos): {
+						final piece = removeFromArray(parts, index - 1);
+						if(piece != null) {
+							final expr = expressionPieceToExpression(piece);
+							if(expr != null) {
+								parts.insert(index, ExpressionPlaceholder(Call(op, expr, params, pos)));
 							} else {
 								error = true;
 								break;
@@ -304,6 +365,9 @@ class ExpressionParser {
 				return op.priority;
 			}
 			case Infix(op, pos): {
+				return op.priority;
+			}
+			case Call(op, params, pos): {
 				return op.priority;
 			}
 			default: {

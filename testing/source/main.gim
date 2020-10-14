@@ -37,3 +37,17 @@ var bla = test.aa2.qqq.aas
 var atestaagin = (12, 43)
 const blablaabla = ("qreewq", "fdklskflds")
 
+var newthing = (32)
+
+def bla4343 -> int:
+	var bla = 12
+	bla++
+
+bla++
+
+bla++
+
+def fjdklsfjs(): var fdsfs = 32; fdsfs--;
+
+bla4343()
+

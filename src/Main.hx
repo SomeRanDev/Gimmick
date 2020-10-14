@@ -7,6 +7,9 @@ import io.OutputFileSaver;
 
 import parsers.Error;
 
+import transpiler.Language;
+import transpiler.TranspilerOptions;
+
 class Main {
 	static function main() {
 		final args = #if (sys || hxnodejs) Sys.args() #else [] #end;
@@ -15,10 +18,13 @@ class Main {
 			return haxe.Log.trace("<TODO: write help stuff here>", null);
 		}
 
+		TranspilerOptions.init(argParser);
+
 		final sourcePaths = SourceFileExtracter.getSourceFolders(argParser);
 		final outputPaths = OutputFileSaver.getOutputFolders(argParser);
 
-		final manager = new SourceFileManager();
+		final language = LanguageHelper.getLanguage(argParser);
+		final manager = new SourceFileManager(language, argParser.getValue("main"));
 		for(path in sourcePaths) {
 			manager.addPath(path);
 		}

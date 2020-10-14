@@ -13,7 +13,8 @@ import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
 
 class ScopeMemberCollection {
-	var members: Array<ScopeMember>;
+	public var length(get, never): Int;
+	public var members(default, null): Array<ScopeMember>;
 
 	public function new() {
 		members = [];
@@ -21,6 +22,10 @@ class ScopeMemberCollection {
 
 	public function add(member: ScopeMember) {
 		members.push(member);
+	}
+
+	public function get_length(): Int {
+		return members.length;
 	}
 
 	public function iterator() {
@@ -99,7 +104,7 @@ class ScopeMemberCollection {
 				case InfixOperator(suffix, func): {
 					if(suffix.op == op.op) {
 						final args = func.get().type.get().arguments;
-						if(args.length > 0 && args[0] == inputType) {
+						if(args.length > 0 && args[0].type == inputType) {
 							return func;
 						}
 					}

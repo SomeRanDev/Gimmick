@@ -5,17 +5,23 @@ import ast.SourceFile;
 import io.OutputFileSaver;
 import io.SourceFolderInfo;
 
+import transpiler.Language;
+
 class SourceFileManager {
 	var pathList: Array<String>;
 	var sourceFiles: Map<String, Array<SourceFile>>;
 	var currPath: Null<String>;
 	var parsingHistory: Array<SourceFile>;
+	var language: Language;
+	var mainPath: String;
 
-	public function new() {
+	public function new(language: Language, mainPath: String) {
 		pathList = [];
 		sourceFiles = [];
 		currPath = null;
 		parsingHistory = [];
+		this.language = language;
+		this.mainPath = mainPath;
 	}
 
 	public function addPath(pathInfo: SourceFolderInfo) {
@@ -34,7 +40,13 @@ class SourceFileManager {
 		for(file in srcParser.getFiles()) {
 			var l = sourceFiles[path];
 			if(l != null) {
-				l.push(new SourceFile(file, pathInfo));
+				final isMain = file.importPath == mainPath;
+				final file = new SourceFile(isMain, file, pathInfo, language);
+				if(isMain) {
+					l.insert(0, file);
+				} else {
+					l.push(file);
+				}
 			}
 		}
 	}
@@ -105,6 +117,6 @@ class SourceFileManager {
 				saver.addFiles(files);
 			}
 		}
-		saver.transpile();
+		saver.transpile(language);
 	}
 }

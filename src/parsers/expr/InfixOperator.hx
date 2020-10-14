@@ -72,47 +72,47 @@ class InfixOperator extends Operator {
 }
 
 class InfixOperators {
-	static var DotAccess = new InfixOperator(".", 0xf000);
-	static var ArrowAccess = new InfixOperator("->", 0xf000);
+	public static var DotAccess = new InfixOperator(".", 0xf000);
+	public static var ArrowAccess = new InfixOperator("->", 0xf000);
 
-	static var Multiply = new InfixOperator("*", 0xd000);
-	static var Divide = new InfixOperator("/", 0xd000);
-	static var Mod = new InfixOperator("%", 0xd000);
+	public static var Multiply = new InfixOperator("*", 0xd000);
+	public static var Divide = new InfixOperator("/", 0xd000);
+	public static var Mod = new InfixOperator("%", 0xd000);
 
-	static var Add = new InfixOperator("+", 0xc000);
-	static var Subtract = new InfixOperator("-", 0xc000);
+	public static var Add = new InfixOperator("+", 0xc000);
+	public static var Subtract = new InfixOperator("-", 0xc000);
 
-	static var BitLeft = new InfixOperator("<<", 0xb000);
-	static var BitRight = new InfixOperator(">>", 0xb000);
+	public static var BitLeft = new InfixOperator("<<", 0xb000);
+	public static var BitRight = new InfixOperator(">>", 0xb000);
 
-	static var ThreeWayComp = new InfixOperator("<=>", 0xa000);
+	public static var ThreeWayComp = new InfixOperator("<=>", 0xa000);
 
-	static var LessThan = new InfixOperator("<", 0x9000);
-	static var LessThanEqual = new InfixOperator("<=", 0x9000);
-	static var GreaterThan = new InfixOperator(">", 0x9000);
-	static var GreaterThanEqual = new InfixOperator(">=", 0x9000);
+	public static var LessThan = new InfixOperator("<", 0x9000);
+	public static var LessThanEqual = new InfixOperator("<=", 0x9000);
+	public static var GreaterThan = new InfixOperator(">", 0x9000);
+	public static var GreaterThanEqual = new InfixOperator(">=", 0x9000);
 
-	static var Equals = new InfixOperator("==", 0x8000);
-	static var NotEquals = new InfixOperator("!=", 0x8000);
+	public static var Equals = new InfixOperator("==", 0x8000);
+	public static var NotEquals = new InfixOperator("!=", 0x8000);
 
-	static var BitAnd = new InfixOperator("&", 0x7000);
-	static var BitXOr = new InfixOperator("^", 0x6000);
-	static var BitOr = new InfixOperator("|", 0x5000);
+	public static var BitAnd = new InfixOperator("&", 0x7000);
+	public static var BitXOr = new InfixOperator("^", 0x6000);
+	public static var BitOr = new InfixOperator("|", 0x5000);
 
-	static var LogicAnd = new InfixOperator("&&", 0x4000);
-	static var LogicOr = new InfixOperator("||", 0x3000);
+	public static var LogicAnd = new InfixOperator("&&", 0x4000);
+	public static var LogicOr = new InfixOperator("||", 0x3000);
 
-	static var Assignment = new InfixOperator("=", 0x2000);
-	static var AddAssign = new InfixOperator("+=", 0x2000);
-	static var SubAssign = new InfixOperator("-=", 0x2000);
-	static var MultAssign = new InfixOperator("*=", 0x2000);
-	static var DivAssign = new InfixOperator("/=", 0x2000);
-	static var ModAssign = new InfixOperator("%=", 0x2000);
-	static var LeftBitAssign = new InfixOperator("<<=", 0x2000);
-	static var RightBitAssign = new InfixOperator(">>=", 0x2000);
-	static var AndBitAssign = new InfixOperator("&=", 0x2000);
-	static var XOrBitAssign = new InfixOperator("^=", 0x2000);
-	static var OrBitAssign = new InfixOperator("|=", 0x2000);
+	public static var Assignment = new InfixOperator("=", 0x2000);
+	public static var AddAssign = new InfixOperator("+=", 0x2000);
+	public static var SubAssign = new InfixOperator("-=", 0x2000);
+	public static var MultAssign = new InfixOperator("*=", 0x2000);
+	public static var DivAssign = new InfixOperator("/=", 0x2000);
+	public static var ModAssign = new InfixOperator("%=", 0x2000);
+	public static var LeftBitAssign = new InfixOperator("<<=", 0x2000);
+	public static var RightBitAssign = new InfixOperator(">>=", 0x2000);
+	public static var AndBitAssign = new InfixOperator("&=", 0x2000);
+	public static var XOrBitAssign = new InfixOperator("^=", 0x2000);
+	public static var OrBitAssign = new InfixOperator("|=", 0x2000);
 
 	public static function all(): Array<InfixOperator> {
 		return [

@@ -38,7 +38,7 @@ class LiteralParser {
 				case 0: result = parseNextNull();
 				case 1: result = parseNextBoolean();
 				case 2: result = parseArrayLiteral();
-				case 3: result = parseTupleLiteral();
+				case 3: result = parseTupleOrEnclosedLiteral();
 				case 4: result = parseNextMultilineString();
 				case 5: result = parseNextString();
 				case 6: result = parseNextNumber();
@@ -295,8 +295,11 @@ class LiteralParser {
 		return exprs == null ? null : List(exprs);
 	}
 
-	public function parseTupleLiteral(): Null<Literal> {
+	public function parseTupleOrEnclosedLiteral(): Null<Literal> {
 		final exprs = parseListType(tupleOperatorStart, tupleOperatorEnd);
+		if(exprs != null && exprs.length == 1) {
+			return EnclosedExpression(exprs[0]);
+		}
 		return exprs == null ? null : Tuple(exprs);
 	}
 
@@ -311,7 +314,7 @@ class LiteralParser {
 				parser.parseWhitespaceOrComments();
 				final expr = parser.parseExpression();
 				if(expr != null) {
-					final typedExpr = expr.getType(parser.scope, parser.isPreliminary());
+					final typedExpr = expr.getType(parser, parser.isPreliminary());
 					if(typedExpr != null) {
 						result.push(typedExpr);
 						parser.parseNextContent(listSeparatorOperator);

@@ -43,18 +43,29 @@ class TranspileModule_Expression {
 			case Infix(op, lexpr, rexpr, pos, type): {
 				return TranspileModule_InfixOperator.transpileInfix(op, lexpr, rexpr, context);
 			}
+			case Call(op, expr, params, pos, type): {
+				final paramStrings: Array<String> = params.map(p -> transpileExpr(p, context));
+				return transpileExpr(expr, context) + op.op + paramStrings.join(", ") + op.endOp;
+			}
 			case Value(literal, pos, type): {
 				switch(literal) {
 					case Name(name, namespaces): {
+						final nsAccessOp = context.isJs() ? "." : "::";
+						if(context.isJs()) {
+							// Always must use "namespaces" when referencing variables in JS.
+							if(namespaces != null && context.matchesNamespace(namespaces)) {
+								return context.reverseJoinArray(namespaces, nsAccessOp) + nsAccessOp + name;
+							}
+						}
 						// If this "variable" is outside the namespace declaration, add them.
 						// Usually it shouldn't be, but there are exceptions such as main functions.
 						if(namespaces != null && !context.matchesNamespace(namespaces)) {
-							return namespaces.join("::") + "::" + name;
+							return context.reverseJoinArray(namespaces, nsAccessOp) + nsAccessOp + name;
 						}
 						return name;
 					}
 					case Null: {
-						return "nullptr";
+						return context.isJs() ? "null" : "nullptr";
 					}
 					case Boolean(value): {
 						return value ? "true" : "false";
@@ -77,17 +88,28 @@ class TranspileModule_Expression {
 						for(e in expressions) {
 							result.push(transpileExpr(e, context));
 						}
-						return "{ " + result.join(", ") + "}";
+						final resultStr = result.join(", ");
+						if(context.isJs()) {
+							return "[" + resultStr + "]";
+						}
+						return "{" + resultStr + "}";
 					}
 					case Tuple(expressions): {
 						final result = [];
 						for(e in expressions) {
 							result.push(transpileExpr(e, context));
 						}
-						return "std::make_tuple(" + result.join(", ") + ")";
+						final resultStr = result.join(", ");
+						if(context.isJs()) {
+							return "[" + resultStr + "]";
+						}
+						return "std::make_tuple(" + resultStr + ")";
 					}
 					case TypeName(type): {
 						return TranspileModule_Type.transpile(type);
+					}
+					case EnclosedExpression(expr): {
+						return "(" + transpileExpr(expr, context) + ")";
 					}
 				}
 			}

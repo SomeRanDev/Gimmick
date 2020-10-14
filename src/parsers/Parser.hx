@@ -2,6 +2,8 @@ package parsers;
 
 using StringTools;
 
+import haxe.ds.GenericStack;
+
 import io.SourceFileManager;
 
 import ast.SourceFile;
@@ -10,6 +12,7 @@ import ast.typing.Type;
 
 import parsers.Error;
 import parsers.ErrorType;
+import parsers.ParserLevel;
 
 import parsers.expr.Literal;
 import parsers.expr.Expression;
@@ -24,6 +27,7 @@ import parsers.modules.ParserModule_Import;
 import parsers.modules.ParserModule_Variable;
 import parsers.modules.ParserModule_Expression;
 import parsers.modules.ParserModule_Namespace;
+import parsers.modules.ParserModule_Function;
 
 class Parser {
 	public var content(default, null): String;
@@ -36,11 +40,16 @@ class Parser {
 
 	public var hitCharFlag(default, null): Bool;
 
-	var preliminary: Bool;
+	var levels: Array<ParserLevel>;
+	var lineIndent: String;
+
 	var moduleParsers: Array<ParserModule>;
 	var modules: Array<Module>;
+
 	var file: SourceFile;
 	var currLineIndex: Int;
+	var preliminary: Bool;
+	var touchedContentOnThisLine: Bool;
 
 	public static final singleCommentOperator = "#";
 	public static final multilineCommentOperatorStart = "###";
@@ -58,11 +67,14 @@ class Parser {
 
 		hitCharFlag = false;
 
-		this.preliminary = preliminary;
+		levels = [];
+		lineIndent = "";
 		moduleParsers = [];
 		modules = [];
 		this.file = file;
 		currLineIndex = 0;
+		this.preliminary = preliminary;
+		touchedContentOnThisLine = false;
 	}
 
 	public function beginParse() {
@@ -76,8 +88,28 @@ class Parser {
 		endParse();
 	}
 
-	function parse() {
+	public function parseUntilLevelEnd(): Array<Module> {
+		final oldModules = modules;
+		modules = [];
+		while(true) {
+			final oldIndex = index;
+			if(parse()) {
+				break;
+			}
+			if(oldIndex == index || indexOutsideParser()) {
+				break;
+			}
+		}
+		final result = modules;
+		modules = oldModules;
+		return result;
+	}
+
+	function parse(): Bool {
 		parseWhitespaceOrComments();
+		if(checkIndentation()) {
+			return true;
+		}
 		for(mod in moduleParsers) {
 			final module = mod.parse(this);
 			if(module != null) {
@@ -86,6 +118,44 @@ class Parser {
 				break;
 			}
 		}
+		return false;
+	}
+
+	function checkIndentation(): Bool {
+		if(levels.length > 1) {
+			final first = levels[levels.length - 1];
+			if(first != null) {
+				if(first.popOnNewline != null) {
+					if(first.popOnNewline != lineNumber) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+			}
+
+			final indents = [];
+			var curr = "";
+			for(i in 0...levels.length) {
+				curr += levels[i].spacing;
+				indents.push(curr);
+			}
+
+			var newLevel = -1;
+			for(j in 0...indents.length) {
+				final i = indents.length - j - 1;
+				if(indents[i] == lineIndent) {
+					newLevel = i;
+				}
+			}
+
+			if(newLevel == -1) {
+				Error.addError(ErrorType.InconsistentIndent, this, 0);
+			} else if(newLevel < indents.length - 1) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	function onModuleAdd(module: Module) {
@@ -108,6 +178,11 @@ class Parser {
 			}
 			case Expression(exprMember): {
 				scope.addExpressionMember(exprMember);
+			}
+			case Import(_, func): {
+				if(func != null && func.get().callCount == 0) {
+					scope.addFunctionCallExpression(func, this);
+				}
 			}
 			default: {}
 		}
@@ -154,6 +229,10 @@ class Parser {
 		return new Position(file, lineNumber, start, index);
 	}
 
+	public function emptyPosition() {
+		return new Position(file, 0, 0, 0);
+	}
+
 	public function isPreliminary(): Bool {
 		return preliminary;
 	}
@@ -166,13 +245,59 @@ class Parser {
 		return modules;
 	}
 
-	public function setMode_SourceFile() {
-		moduleParsers = [
+	public function setupForSourceFile() {
+		pushLevel(getMode_SourceFile());
+	}
+
+	public function pushLevel(moduleParsers: Array<ParserModule>) {
+		pushLevelInternal(moduleParsers, lineIndent, null);
+	}
+
+	public function pushLevelOnSameLine(moduleParsers: Array<ParserModule>) {
+		pushLevelInternal(moduleParsers, "", lineNumber);
+	}
+
+	function pushLevelInternal(moduleParsers: Array<ParserModule>, indent: String, popOnNewline: Null<Int>) {
+		levels.push(new ParserLevel(moduleParsers, indent, popOnNewline));
+		this.moduleParsers = moduleParsers;
+	}
+
+	public function popLevel(): Bool {
+		if(levels.length > 1) {
+			levels.pop();
+			final first = levels[levels.length - 1];
+			if(first != null) {
+				moduleParsers = first.parsers;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public function getMode_SourceFile() {
+		return [
 			ParserModule_Import.it,
 			ParserModule_Namespace.it,
+			ParserModule_Function.it,
 			ParserModule_Variable.it,
 			ParserModule_Expression.it
 		];
+	}
+
+	public function getMode_Function() {
+		return [
+			ParserModule_Function.it,
+			ParserModule_Variable.it,
+			ParserModule_Expression.it
+		];
+	}
+
+	// ======================================================
+	// * Meta
+	// ======================================================
+
+	public function onTypeUsed(type: Type, header: Bool = false) {
+		file.onTypeUsed(type, header);
 	}
 
 	// ======================================================
@@ -334,11 +459,28 @@ class Parser {
 		return false;
 	}
 
-	public function parseWhitespace(): Bool {
+	public function parseNextExpressionEnd(): Bool {
+		parseWhitespaceOrComments(true);
+		if(parseNextContent(";")) {
+			return true;
+		}
+		return charCodeIsNewLine(currentCharCode()) || touchedContentOnThisLine;
+	}
+
+	public function parseWhitespace(untilNewline: Bool = false): Bool {
 		final start = index;
+		var hitNewLine = false;
 		while(content.isSpace(index)) {
 			if(charCodeIsNewLine(charCodeAt(index))) {
+				if(untilNewline) {
+					return true;
+				}
+				touchedContentOnThisLine = false;
+				lineIndent = "";
+				hitNewLine = true;
 				incrementLine();
+			} else if(hitNewLine) {
+				lineIndent += currentChar();
 			}
 			if(incrementIndex(1)) {
 				break;
@@ -347,11 +489,11 @@ class Parser {
 		return start != index;
 	}
 
-	public function parseWhitespaceOrComments(): Bool {
+	public function parseWhitespaceOrComments(untilNewline: Bool = false): Bool {
 		final start = index;
 		while(index < content.length) {
 			final preParseIndex = index;
-			parseWhitespace();
+			parseWhitespace(untilNewline);
 			parseMultilineComment();
 			parseComment();
 			if(preParseIndex == index) {
@@ -361,8 +503,11 @@ class Parser {
 		return start != index;
 	}
 
-	public function incrementIndex(amount: Int): Bool {
+	public function incrementIndex(amount: Int, incrementedSpace: Bool = false): Bool {
 		index += amount;
+		if(!incrementedSpace) {
+			touchedContentOnThisLine = true;
+		}
 		if(index >= content.length) {
 			ended = true;
 			return true;

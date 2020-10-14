@@ -1,6 +1,6 @@
 package parsers.expr;
 
-import parsers.expr.TypedExpression;
+using parsers.expr.TypedExpression;
 
 import ast.typing.Type;
 import ast.typing.NumberType;
@@ -14,10 +14,38 @@ enum Literal {
 	List(expressions: Array<TypedExpression>);
 	Tuple(expressions: Array<TypedExpression>);
 	TypeName(type: Type);
+	EnclosedExpression(expression: TypedExpression);
 }
 
 enum NumberLiteralFormat {
 	Decimal;
 	Hex;
 	Binary;
+}
+
+class LiteralHelper {
+	public static function isConst(literal: Literal): Bool {
+		switch(literal) {
+			case Null | Boolean(_) | Number(_, _, _) | String(_, _, _): {
+				return true;
+			}
+			case List(exprs): {
+				for(e in exprs) {
+					if(!e.isConst()) return false;
+				}
+				return true;
+			}
+			case Tuple(exprs): {
+				for(e in exprs) {
+					if(!e.isConst()) return false;
+				}
+				return true;
+			}
+			case EnclosedExpression(expression): {
+				return expression.isConst();
+			}
+			default: {}
+		}
+		return false;
+	}
 }

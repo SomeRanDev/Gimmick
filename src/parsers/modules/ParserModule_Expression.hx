@@ -13,11 +13,15 @@ class ParserModule_Expression extends ParserModule {
 
 	public override function parse(parser: Parser): Null<Module> {
 		final result = parser.parseExpression();
+		if(!parser.parseNextExpressionEnd()) {
+			Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+			return null;
+		}
 		if(parser.isPreliminary()) {
 			return null;
 		}
 		if(result != null) {
-			final typed = result.getType(parser.scope, false);
+			final typed = result.getType(parser, false);
 			if(typed != null) {
 				return Expression(Basic(typed));
 			}
