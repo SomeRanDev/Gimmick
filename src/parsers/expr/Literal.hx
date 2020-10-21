@@ -4,6 +4,9 @@ using parsers.expr.TypedExpression;
 
 import ast.typing.Type;
 import ast.typing.NumberType;
+import ast.scope.members.VariableMember;
+import ast.scope.members.FunctionMember;
+import ast.scope.members.GetSetMember;
 
 enum Literal {
 	Name(name: String, namespaces: Null<Array<String>>);
@@ -15,6 +18,9 @@ enum Literal {
 	Tuple(expressions: Array<TypedExpression>);
 	TypeName(type: Type);
 	EnclosedExpression(expression: TypedExpression);
+	Variable(member: VariableMember);
+	Function(member: FunctionMember);
+	GetSet(member: GetSetMember);
 }
 
 enum NumberLiteralFormat {
@@ -43,6 +49,9 @@ class LiteralHelper {
 			}
 			case EnclosedExpression(expression): {
 				return expression.isConst();
+			}
+			case Variable(member): {
+				return member.type.isConst;
 			}
 			default: {}
 		}

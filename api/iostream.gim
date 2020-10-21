@@ -1,0 +1,17 @@
+# =================================================
+# * IOStream
+#
+# Quick bindings for the C++ standard <iostream>.
+# =================================================
+
+###
+extern class ostream:
+	op <<(input: string);
+
+extern var cout: ostream;
+extern var cerr: ostream;
+extern var clog: ostream;
+extern var endl: string;
+
+end namespace
+###

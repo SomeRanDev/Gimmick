@@ -105,14 +105,18 @@ class ExpressionHelper {
 								final member = parser.scope.findMember(name);
 								if(member != null) {
 									result = member.getType();
-									switch(member) {
-										case ScopeMember.Variable(varMember): {
-											replacement = Name(name, varMember.get().getNamespaces());
+									switch(member.type) {
+										case ScopeMemberType.Variable(varMember): {
+											replacement = Variable(varMember.get());
 										}
-										case ScopeMember.Function(funcMember): {
+										case ScopeMemberType.Function(funcMember): {
+											replacement = Function(funcMember.get());
 											if(incrementCall) {
 												funcMember.get().incrementCallCount();
 											}
+										}
+										case ScopeMemberType.GetSet(varMember): {
+											replacement = GetSet(varMember.get());
 										}
 										default: {}
 									}

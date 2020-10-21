@@ -34,7 +34,7 @@ class ScopeMemberCollection {
 
 	public function find(name: String): Null<ScopeMember> {
 		for(member in members) {
-			switch(member) {
+			switch(member.type) {
 				case Variable(variable): {
 					if(variable.get().name == name) {
 						return member;
@@ -42,6 +42,11 @@ class ScopeMemberCollection {
 				}
 				case Function(func): {
 					if(func.get().name == name) {
+						return member;
+					}
+				}
+				case GetSet(getset): {
+					if(getset.get().name == name) {
 						return member;
 					}
 				}
@@ -58,7 +63,7 @@ class ScopeMemberCollection {
 
 	public function findClassType(name: String): Null<Ref<ClassType>> {
 		for(member in members) {
-			switch(member) {
+			switch(member.type) {
 				case Class(cls): {
 					if(cls.get().name == name) {
 						return cls;
@@ -72,7 +77,7 @@ class ScopeMemberCollection {
 
 	public function findPrefixOperator(op: PrefixOperator): Null<Ref<FunctionMember>> {
 		for(member in members) {
-			switch(member) {
+			switch(member.type) {
 				case PrefixOperator(prefix, func): {
 					if(prefix.op == op.op) {
 						return func;
@@ -86,7 +91,7 @@ class ScopeMemberCollection {
 
 	public function findSuffixOperator(op: SuffixOperator): Null<Ref<FunctionMember>> {
 		for(member in members) {
-			switch(member) {
+			switch(member.type) {
 				case SuffixOperator(suffix, func): {
 					if(suffix.op == op.op) {
 						return func;
@@ -100,7 +105,7 @@ class ScopeMemberCollection {
 
 	public function findInfixOperator(op: InfixOperator, inputType: Type): Null<Ref<FunctionMember>> {
 		for(member in members) {
-			switch(member) {
+			switch(member.type) {
 				case InfixOperator(suffix, func): {
 					if(suffix.op == op.op) {
 						final args = func.get().type.get().arguments;

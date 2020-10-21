@@ -1,6 +1,8 @@
 package ast.typing;
 
 enum NumberType {
+	Any;
+
 	Char;
 	Short;
 	Int;

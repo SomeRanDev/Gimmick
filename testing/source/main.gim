@@ -40,8 +40,26 @@ const blablaabla = ("qreewq", "fdklskflds")
 var newthing = (32)
 
 def bla4343 -> int:
-	var bla = 12
-	bla++
+	var bla = 12;
+	bla++;
+	if bla == 13:
+		var fdhjsfdsk = 4343
+		bla--
+	else if bla == 14:
+		bla++
+	else:
+		bla++
+	scope:
+		var bla = 12;
+		bla++
+		bla++
+
+	loop:
+		bla++
+
+	while bla < 300: bla--; bla--
+
+	return(0);
 
 bla++
 
@@ -51,3 +69,26 @@ def fjdklsfjs(): var fdsfs = 32; fdsfs--;
 
 bla4343()
 
+get aaaa -> int:
+	var fds = 32;
+	return 32;
+
+set aaaa(i: int) -> double:
+	return 32
+
+var fkd = aaaa = 2
+
+import attributes/basic
+
+@if(js == false) scope:
+	var fdsfsd = 342
+
+###
+modify number:
+	@RequireInclude(cmath.h, true)
+	inject def floor -> number:
+		@if(cpp) @untyped scope:
+			return floor(self);
+		@elseif(js) @untyped scope:
+			return Math.floor(self);
+###

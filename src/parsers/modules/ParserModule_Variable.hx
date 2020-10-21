@@ -2,8 +2,9 @@ package parsers.modules;
 
 using haxe.EnumTools;
 
-import ast.scope.members.VariableMember;
 import ast.typing.Type;
+import ast.scope.members.VariableMember;
+import ast.scope.members.MemberLocation;
 
 import parsers.Error;
 import parsers.ErrorType;
@@ -30,7 +31,8 @@ class ParserModule_Variable extends ParserModule {
 				return null;
 			}
 
-			if(parser.scope.existInCurrentScope(name)) {
+			final existingMember = parser.scope.existInCurrentScope(name);
+			if(existingMember != null) {
 				Error.addError(ErrorType.VariableNameAlreadyUsedInCurrentScope, parser, varNameStart);
 				return null;
 			}

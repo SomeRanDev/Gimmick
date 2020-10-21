@@ -13,7 +13,7 @@ extern int aaa;
 extern int aas;
 extern const int bla;
 extern int bla2;
-extern int dasa;
+extern const int dasa;
 extern std::string blastring;
 
 }
@@ -30,6 +30,11 @@ extern int newthing;
 int bla4343();
 
 void fjdklsfjs();
+
+int get_aaaa();
+double set_aaaa(int i);
+
+extern int fkd;
 
 int main();
 

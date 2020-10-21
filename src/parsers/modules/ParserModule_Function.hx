@@ -4,7 +4,10 @@ using haxe.EnumTools;
 
 import basic.Ref;
 
+using ast.scope.ScopeMember;
 import ast.scope.members.FunctionMember;
+import ast.scope.members.GetSetMember;
+import ast.scope.members.MemberLocation;
 import ast.typing.Type;
 import ast.typing.FunctionArgument;
 import ast.typing.FunctionType;
@@ -27,6 +30,9 @@ class ParserModule_Function extends ParserModule {
 		if(word != null) {
 			parser.parseWhitespaceOrComments();
 
+			final isGet = word == "get";
+			final isSet = word == "set";
+
 			final funcNameStart = parser.getIndexFromLine();
 			final name = parser.parseNextVarName();
 			if(name == null) {
@@ -34,20 +40,38 @@ class ParserModule_Function extends ParserModule {
 				return null;
 			}
 
-			if(parser.scope.existInCurrentScope(name)) {
+			final existingMember = parser.scope.existInCurrentScope(name);
+			if(existingMember != null && (!existingMember.isGetSet() || (!isGet && !isSet))) {
 				Error.addError(ErrorType.VariableNameAlreadyUsedInCurrentScope, parser, funcNameStart);
 				return null;
 			}
 
+			var existingGetSet: Null<GetSetMember> = null;
+			if(existingMember != null && existingMember.isGetSet() && (isGet || isSet)) {
+				switch(existingMember.type) {
+					case GetSet(getset): {
+						existingGetSet = getset.get();
+						if((isGet && !getset.get().isGetAvailable()) || (isSet && !getset.get().isSetAvailable())) {
+							Error.addError(ErrorType.VariableNameAlreadyUsedInCurrentScope, parser, funcNameStart);
+							return null;
+						}
+					}
+					default: {}
+				}
+			}
+
 			parser.parseWhitespaceOrComments();
 
+			final argListStart = parser.getIndexFromLine();
 			final arguments: Array<FunctionArgument> = [];
 			if(parser.parseNextContent("(")) {
 				var indexTracker = 0;
+				var argTracker = 0;
 				while(true) {
 					parser.parseWhitespaceOrComments();
 
 					indexTracker = parser.getIndex();
+					argTracker = arguments.length;
 
 					if(parser.parseNextContent(")")) {
 						break;
@@ -89,11 +113,21 @@ class ParserModule_Function extends ParserModule {
 						}
 					}
 
-					if(indexTracker != parser.getIndex()) {
+					if(indexTracker != parser.getIndex() && argTracker == arguments.length) {
 						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
 						return null;
 					}
 				}
+			}
+
+			if(isGet && arguments.length > 0) {
+				Error.addError(ErrorType.GetRequiresNoArguments, parser, argListStart);
+				return null;
+			}
+
+			if(isSet && arguments.length != 1) {
+				Error.addError(ErrorType.SetRequiresOneArgument, parser, argListStart);
+				return null;
 			}
 
 			parser.parseWhitespaceOrComments();
@@ -105,76 +139,28 @@ class ParserModule_Function extends ParserModule {
 			}
 
 			if(returnType == null) {
+				if(isGet) {
+					Error.addError(ErrorType.GetRequiresAReturn, parser, parser.getIndexFromLine());
+					return null;
+				}
 				returnType = Type.Void();
 			}
 
-			//parser.parseWhitespaceOrComments();
-			/*
-			var type = null;
-			if(parser.parseNextContent(":")) {
-				parser.parseWhitespaceOrComments();
-				type = parser.parseType();
-			}
-
 			parser.parseWhitespaceOrComments();
 
-			var expr = null;
-			var equalsPos = parser.makePosition(parser.getIndex());
-			if(parser.parseNextContent("=")) {
-				parser.parseWhitespaceOrComments();
-				expr = parser.parseExpression();
+			var functionName = name;
+
+			if(isGet) {
+				functionName = GetSetMember.generateGetFunctionName(name, parser.scope);
+			} else if(isSet) {
+				functionName = GetSetMember.generateSetFunctionName(name, parser.scope);
 			}
 
-			var typedExpr = null;
-			var exprType: Null<Type> = null;
-			if(expr != null) {
-				typedExpr = expr.getType(parser, isPrelim);
-				if(typedExpr != null) {
-					exprType = typedExpr.getType();
-					if(isPrelim && exprType == null) {
-						exprType = Type.Unknown();
-					}
-				}
-			}
-
-			if(type == null) {
-				type = exprType;
-			} else if(!isPrelim && exprType != null) {
-				final err = type.canBeAssigned(exprType);
-				if(err != null) {
-					final typeStr = type == null ? "" : type.toString();
-					final exprStr = exprType == null ? "" : exprType.toString();
-					Error.addErrorFromPos(err, equalsPos, [exprStr, typeStr]);
-					return null;
-				}
-			}
-
-			if(type != null && word == "const") {
-				type.setConst();
-			}
-
-			if(type == null && expr == null) {
-				Error.addError(ErrorType.CannotDetermineVariableType, parser, varNameStart);
-				return null;
-			}
-			*/
-
-			parser.parseWhitespaceOrComments();
-
-			final funcMember = new FunctionMember(name, new Ref(new FunctionType(arguments, returnType)));
+			final memberLocation = TopLevel(parser.scope.currentNamespaceStack());
+			final funcMember = new FunctionMember(functionName, new Ref(new FunctionType(arguments, returnType)), memberLocation);
 
 			if(parser.parseNextContent(":")) {
-				final currLine = parser.getLineNumber();
-				parser.parseWhitespaceOrComments();
-				if(currLine != parser.getLineNumber()) {
-					parser.pushLevel(parser.getMode_Function());
-				} else {
-					parser.pushLevelOnSameLine(parser.getMode_Function());
-				}
-				parser.scope.push();
-				final functionModules = parser.parseUntilLevelEnd();
-				parser.popLevel();
-				final members = parser.scope.pop();
+				final members = parser.parseNextLevelContent();
 				if(members != null) {
 					funcMember.setAllMembers(members);
 				}
@@ -188,6 +174,22 @@ class ParserModule_Function extends ParserModule {
 				parser.onTypeUsed(arg.type, true);
 			}
 			parser.onTypeUsed(returnType, true);
+
+			if(existingGetSet != null) {
+				if(isGet) {
+					existingGetSet.setGetter(funcMember);
+					return null;
+				} else if(isSet) {
+					existingGetSet.setSetter(funcMember);
+					return null;
+				}
+			} else {
+				if(isGet) {
+					return GetSet(new GetSetMember(name, funcMember, null));
+				} else if(isSet) {
+					return GetSet(new GetSetMember(name, null, funcMember));
+				}
+			}
 
 			return Function(funcMember);
 		}

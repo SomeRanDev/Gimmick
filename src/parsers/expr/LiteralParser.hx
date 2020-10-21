@@ -93,7 +93,7 @@ class LiteralParser {
 
 		var numberFlags = 0;
 		var invalidChars = false;
-		var charStart = null;
+		var charStart: Null<Int> = null;
 		var gotDot = false;
 
 		var result = null;

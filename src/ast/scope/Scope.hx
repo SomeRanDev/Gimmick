@@ -10,6 +10,7 @@ import ast.scope.ExpressionMember;
 import ast.scope.members.VariableMember;
 import ast.scope.members.FunctionMember;
 import ast.scope.members.NamespaceMember;
+import ast.scope.members.AttributeMember;
 
 import ast.typing.Type;
 import ast.typing.NumberType;
@@ -25,12 +26,16 @@ import parsers.expr.InfixOperator;
 import parsers.expr.CallOperator;
 import parsers.expr.CallOperator.CallOperators;
 
+import parsers.modules.Module;
+
 class Scope {
 	public var file(default, null): SourceFile;
 
 	var stack: GenericStack<ScopeMemberCollection>;
 	var namespaceStack: GenericStack<NamespaceMember>;
 	var namespaceStackCounter: GenericStack<Int>;
+	var attributes: Array<AttributeMember>;
+	var attributeInstances: GenericStack<Array<Module>>;
 	var imports: Array<Ref<Scope>>;
 
 	var ref: Null<Ref<Scope>>;
@@ -45,6 +50,8 @@ class Scope {
 		stack = new GenericStack();
 		namespaceStack = new GenericStack();
 		namespaceStackCounter = new GenericStack();
+		attributes = [];
+		attributeInstances = new GenericStack();
 		imports = [];
 		stackSize = 0;
 	}
@@ -66,12 +73,14 @@ class Scope {
 
 	public function push() {
 		stack.add(new ScopeMemberCollection());
+		attributeInstances.add([]);
 		stackSize++;
 	}
 
 	public function pop(): Null<ScopeMemberCollection> {
 		if(stackSize > 1) {
 			stackSize--;
+			attributeInstances.pop();
 			return stack.pop();
 		}
 		return null;
@@ -79,7 +88,7 @@ class Scope {
 
 	public function addImport(imp: Ref<Scope>) {
 		imports.push(imp);
-		addMember(Include(imp.get().file.getHeaderOutputFile(), false));
+		addMember(new ScopeMember(Include(imp.get().file.getHeaderOutputFile(), false)));
 	}
 
 	public function pushNamespace(name: String) {
@@ -108,7 +117,7 @@ class Scope {
 	public function popOneNamespace() {
 		final namespace = namespaceStack.pop();
 		if(namespace != null) {
-			addMember(Namespace(namespace.getRef()));
+			addMember(new ScopeMember(Namespace(namespace.getRef())));
 		}
 	}
 
@@ -138,10 +147,29 @@ class Scope {
 	}
 
 	public function addMember(member: ScopeMember) {
+		attachAttributesToMember(member);
 		if(isTopLevel()) {
 			addTopLevelMember(member);
 		} else {
 			addMemberToCurrentScope(member);
+		}
+	}
+
+	public function attachAttributesToMember(member: ScopeMember) {
+		final first = attributeInstances.first();
+		if(first != null) {
+			if(first.length != 0) {
+				for(a in first) {
+					switch(a) {
+						case AttributeInstance(instanceOf, params): {
+							member.addAttributeInstance(instanceOf, params);
+						}
+						default: {}
+					}
+				}
+				attributeInstances.pop();
+				attributeInstances.add([]);
+			}
 		}
 	}
 
@@ -158,7 +186,7 @@ class Scope {
 		// One for the declaration, and one for the assignment
 		// in the main function itself.
 		var splitVarMember: Null<VariableMember> = null;
-		switch(member) {
+		switch(member.type) {
 			case Variable(variable): {
 				if(variable.get().shouldSplitAssignment()) {
 					splitVarMember = variable.get();
@@ -187,7 +215,7 @@ class Scope {
 	}
 
 	public function addVarWithAssignTopLevelMember(member: VariableMember) {
-		addNormalTopLevelMember(Variable(new Ref(member.cloneWithoutExpression())));
+		addNormalTopLevelMember(new ScopeMember(Variable(new Ref(member.cloneWithoutExpression()))));
 		final expr = member.constructAssignementExpression();
 		if(expr != null) {
 			addExpressionMember(expr);
@@ -198,14 +226,16 @@ class Scope {
 		if(stackSize == 1 && file.usesMainFunction()) {
 			if(mainFunction == null) {
 				final funcType = new FunctionType([], Type.Number(Int));
-				mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef());
+				mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null));
 				if(file.isMain) {
 					mainFunction.incrementCallCount();
 				}
 			}
-			mainFunction.addMember(member);
+			final scopeMember = new ScopeMember(Expression(member));
+			attachAttributesToMember(scopeMember);
+			mainFunction.addMember(scopeMember);
 		} else {
-			addMember(Expression(member));
+			addMember(new ScopeMember(Expression(member)));
 		}
 	}
 
@@ -221,8 +251,8 @@ class Scope {
 		if(mainFunction != null) {
 			final literal = Literal.Number("0", Decimal, NumberType.Int);
 			final value = TypedExpression.Value(literal, Position.empty(file), Type.Number(NumberType.Int));
-			mainFunction.addMember(ExpressionMember.ReturnStatement(value));
-			addMember(Function(mainFunction.getRef()));
+			mainFunction.addMember(new ScopeMember(Expression(ExpressionMember.ReturnStatement(value))));
+			addMember(new ScopeMember(Function(mainFunction.getRef())));
 		}
 	}
 
@@ -230,12 +260,46 @@ class Scope {
 		return mainFunction;
 	}
 
-	public function existInCurrentScope(varName: String): Bool {
+	public function existInCurrentScope(varName: String): Null<ScopeMember> {
 		final top = stack.first();
 		if(top != null) {
-			return top.find(varName) != null;
+			return top.find(varName);
 		}
-		return false;
+		return null;
+	}
+
+	public function addAttribute(attribute: AttributeMember) {
+		attributes.push(attribute);
+	}
+
+	public function attributeExistInCurrentScope(attributeName: String): Bool {
+		return findAttributeFromName(attributeName, false) != null;	
+	}
+
+	public function findAttributeFromName(attributeName: String, checkImports: Bool = true): Null<AttributeMember> {
+		for(a in attributes) {
+			if(a.name == attributeName) {
+				return a;
+			}
+		}
+
+		if(checkImports) {
+			for(imp in imports) {
+				final attr = imp.get().findAttributeFromName(attributeName, false);
+				if(attr != null) {
+					return attr;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	public function addAttributeInstance(attr: Module) {
+		final first = attributeInstances.first();
+		if(first != null) {
+			first.push(attr);
+		}
 	}
 
 	public function findTypeFromName(name: String, checkImports: Bool = true): Null<Type> {
@@ -385,10 +449,12 @@ class Scope {
 
 	function findPrimitiveType(name: String): Null<Type> {
 		switch(name) {
+			case "raw": return Type.Any();
 			case "void": return Type.Void();
 			case "bool": return Type.Boolean();
 			case "ptr": return Type.Pointer(Type.Void());
 			case "ref": return Type.Reference(Type.Void());
+			case "string": return Type.String();
 			case "func": return Type.UnknownFunction();
 			case "ext": return Type.External(null, null);
 			case "unknown": return Type.Unknown();

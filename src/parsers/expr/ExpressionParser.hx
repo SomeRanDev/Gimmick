@@ -273,7 +273,7 @@ class ExpressionParser {
 						if(piece != null) {
 							final expr = expressionPieceToExpression(piece);
 							if(expr != null) {
-								parts.insert(index, ExpressionPlaceholder(Call(op, expr, params, pos)));
+								parts.insert(index - 1, ExpressionPlaceholder(Call(op, expr, params, pos)));
 							} else {
 								error = true;
 								break;

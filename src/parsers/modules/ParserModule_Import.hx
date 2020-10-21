@@ -17,7 +17,7 @@ class ParserModule_Import extends ParserModule {
 			parser.parseWhitespaceOrComments();
 
 			final pathStart = parser.getIndexFromLine();
-			final path = parser.parseContentUntilCharOrNewLine(";");
+			final path = parser.parseContentUntilCharOrNewLine([";"]);
 			final hitSemicolon = parser.hitCharFlag;
 			final file = parser.manager.beginParseFromPath(path);
 			if(file == null) {

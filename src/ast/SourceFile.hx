@@ -60,6 +60,7 @@ class SourceFile {
 	}
 
 	public function parseFile(manager: SourceFileManager, isPrelim: Bool) {
+		if(source.length == 0) return;
 		if(isParsed == 0 || (isParsed == 1 && !isPrelim)) {
 			final errorCount = Error.errorCount();
 			final parser = new Parser(source, manager, this, isPrelim);

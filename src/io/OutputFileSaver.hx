@@ -40,6 +40,9 @@ class OutputFileSaver {
 			for(filePath in content.keys()) {
 				final c = content[filePath];
 				if(c != null) {
+					if(c.length == 0 && !FileSystem.exists(filePath)) {
+						continue;
+					}
 					final filePath = Path.join([path, filePath]);
 					final dir = Path.directory(filePath);
 					if(!FileSystem.exists(dir)) {

@@ -8,11 +8,14 @@ import io.SourceFileManager;
 
 import ast.SourceFile;
 import ast.scope.Scope;
+import ast.scope.ScopeMember;
+import ast.scope.ScopeMemberCollection;
 import ast.typing.Type;
 
 import parsers.Error;
 import parsers.ErrorType;
 import parsers.ParserLevel;
+import parsers.ParserMode;
 
 import parsers.expr.Literal;
 import parsers.expr.Expression;
@@ -28,6 +31,7 @@ import parsers.modules.ParserModule_Variable;
 import parsers.modules.ParserModule_Expression;
 import parsers.modules.ParserModule_Namespace;
 import parsers.modules.ParserModule_Function;
+import parsers.modules.ParserModule_Attribute;
 
 class Parser {
 	public var content(default, null): String;
@@ -39,6 +43,7 @@ class Parser {
 	public var scope(default, null): Scope;
 
 	public var hitCharFlag(default, null): Bool;
+	public var lastWordParsed(default, null): String;
 
 	var levels: Array<ParserLevel>;
 	var lineIndent: String;
@@ -66,6 +71,7 @@ class Parser {
 		scope.push();
 
 		hitCharFlag = false;
+		lastWordParsed = "";
 
 		levels = [];
 		lineIndent = "";
@@ -81,7 +87,11 @@ class Parser {
 		while(true) {
 			final oldIndex = index;
 			parse();
-			if(oldIndex == index || indexOutsideParser()) {
+			if(indexOutsideParser()) {
+				break;
+			}
+			if(oldIndex == index) {
+				Error.addError(UnexpectedContent, this, getIndexFromLine());
 				break;
 			}
 		}
@@ -96,7 +106,11 @@ class Parser {
 			if(parse()) {
 				break;
 			}
-			if(oldIndex == index || indexOutsideParser()) {
+			if(indexOutsideParser()) {
+				break;
+			}
+			if(oldIndex == index) {
+				Error.addError(UnexpectedContent, this, getIndexFromLine());
 				break;
 			}
 		}
@@ -165,10 +179,13 @@ class Parser {
 	function updateScope(module: Module) {
 		switch(module) {
 			case Variable(variable): {
-				scope.addMember(Variable(variable.getRef()));
+				scope.addMember(new ScopeMember(Variable(variable.getRef())));
 			}
 			case Function(func): {
-				scope.addMember(Function(func.getRef()));
+				scope.addMember(new ScopeMember(Function(func.getRef())));
+			}
+			case GetSet(getset): {
+				scope.addMember(new ScopeMember(GetSet(getset.getRef())));
 			}
 			case NamespaceStart(names): {
 				scope.pushMutlipleNamespaces(names);
@@ -182,6 +199,16 @@ class Parser {
 			case Import(_, func): {
 				if(func != null && func.get().callCount == 0) {
 					scope.addFunctionCallExpression(func, this);
+				}
+			}
+			case Attribute(attr): {
+				scope.addAttribute(attr);
+			}
+			case AttributeInstance(attr, params): {
+				if(attr.compiler) {
+					scope.addMember(new ScopeMember(CompilerAttribute(attr)));
+				} else {
+					scope.addAttributeInstance(module);
 				}
 			}
 			default: {}
@@ -229,6 +256,10 @@ class Parser {
 		return new Position(file, lineNumber, start, index);
 	}
 
+	public function makePositionEx(line: Int, start: Int, end: Int) {
+		return new Position(file, line, start, end);
+	}
+
 	public function emptyPosition() {
 		return new Position(file, 0, 0, 0);
 	}
@@ -249,8 +280,16 @@ class Parser {
 		pushLevel(getMode_SourceFile());
 	}
 
-	public function pushLevel(moduleParsers: Array<ParserModule>) {
-		pushLevelInternal(moduleParsers, lineIndent, null);
+	public function pushLevel(moduleParsers: Array<ParserModule>): Bool {
+		var currLevel = "";
+		for(l in levels) {
+			currLevel += l.spacing;
+		}
+		if((lineIndent.length == 0 && currLevel.length == 0) || lineIndent.length > currLevel.length) {
+			pushLevelInternal(moduleParsers, lineIndent.substring(currLevel.length), null);
+			return true;
+		}
+		return false;
 	}
 
 	public function pushLevelOnSameLine(moduleParsers: Array<ParserModule>) {
@@ -274,8 +313,9 @@ class Parser {
 		return false;
 	}
 
-	public function getMode_SourceFile() {
+	public function getMode_SourceFile(): Array<ParserModule> {
 		return [
+			ParserModule_Attribute.it,
 			ParserModule_Import.it,
 			ParserModule_Namespace.it,
 			ParserModule_Function.it,
@@ -284,11 +324,18 @@ class Parser {
 		];
 	}
 
-	public function getMode_Function() {
+	public function getMode_Function(): Array<ParserModule> {
 		return [
+			ParserModule_Attribute.it,
 			ParserModule_Function.it,
 			ParserModule_Variable.it,
 			ParserModule_Expression.it
+		];
+	}
+
+	public function getMode_CompilerAttribute(): Array<ParserModule> {
+		return [
+			ParserModule_Function.it
 		];
 	}
 
@@ -445,6 +492,7 @@ class Parser {
 	public function parseMultipleWords(words: Array<String>): Null<String> {
 		for(word in words) {
 			if(parseWord(word)) {
+				lastWordParsed = word;
 				return word;
 			}
 		}
@@ -465,6 +513,30 @@ class Parser {
 			return true;
 		}
 		return charCodeIsNewLine(currentCharCode()) || touchedContentOnThisLine;
+	}
+
+	public function parseNextLevelContent(mode: ParserMode = Function): Null<ScopeMemberCollection> {
+		final modules: Array<ParserModule> = switch(mode) {
+			case SourceFile: getMode_SourceFile();
+			case Function: getMode_Function();
+			case CompilerAttribute: getMode_CompilerAttribute();
+		}
+		final currLine = getLineNumber();
+		parseWhitespaceOrComments();
+		var successful = true;
+		if(currLine != getLineNumber()) {
+			successful = pushLevel(modules);
+		} else {
+			pushLevelOnSameLine(modules);
+		}
+		if(successful) {
+			scope.push();
+			final functionModules = parseUntilLevelEnd();
+			popLevel();
+			return scope.pop();
+		} else {
+			return new ScopeMemberCollection();
+		}
 	}
 
 	public function parseWhitespace(untilNewline: Bool = false): Bool {
@@ -515,11 +587,15 @@ class Parser {
 		return false;
 	}
 
-	public function parseContentUntilSemiNewLineOrComment(): String {
-		return parseContentUntilCharOrNewLine(";");
+	public function parseContentUntilChar(c: Array<String>): String {
+		return parseContentUntilCharOrNewLine(c, false);
 	}
 
-	public function parseContentUntilCharOrNewLine(c: String): String {
+	public function parseContentUntilSemiNewLineOrComment(): String {
+		return parseContentUntilCharOrNewLine([";"]);
+	}
+
+	public function parseContentUntilCharOrNewLine(c: Array<String>, newline: Bool = true): String {
 		hitCharFlag = false;
 		var result = "";
 		var isComment = false;
@@ -527,11 +603,11 @@ class Parser {
 		final singleExists = singleCommentOperator.length > 0;
 		while(index < content.length) {
 			final char = charAt(index);
-			if(char == "\n" || char == "\r") {
+			if(newline && (char == "\n" || char == "\r")) {
 				break;
 			}
 			if(!isComment) {
-				if(char == c) {
+				if(char != null && c.contains(char)) {
 					hitCharFlag = true;
 					break;
 				}

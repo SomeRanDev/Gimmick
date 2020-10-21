@@ -11,7 +11,7 @@ int aaa = 1;
 int aas = 12;
 const int bla = 12;
 int bla2 = 23;
-int dasa = 0;
+const int dasa = bla + 1;
 std::string blastring = "";
 
 }
@@ -28,6 +28,27 @@ int newthing = (32);
 int bla4343() {
 	int bla = 12;
 	bla++;
+	if(bla == 13) {
+		int fdhjsfdsk = 4343;
+		bla--;
+	} else if(bla == 14) {
+		bla++;
+	} else {
+		bla++;
+	}
+	{
+		int bla = 12;
+		bla++;
+		bla++;
+	}
+	while(true) {
+		bla++;
+	}
+	while(bla < 300) {
+		bla--;
+		bla--;
+	}
+	return (0);
 }
 
 void fjdklsfjs() {
@@ -35,10 +56,22 @@ void fjdklsfjs() {
 	fdsfs--;
 }
 
+int get_aaaa() {
+	int fds = 32;
+	return 32;
+}
+
+double set_aaaa(int i) {
+	return 32;
+}
+
+int fkd = 0;
+
+#include "api/attributes/basic.h"
+
 int main() {
 	main_alt();
 	test::aa2::qqq::fd = 23 + A::athing;
-	test::aa2::qqq::dasa = test::aa2::qqq::bla + 1;
 	test::aa2::qqq::aas = 1 + 12;
 	test::aa2::qqq::aas = 1;
 	test::aa2::qqq::aas = 2;
@@ -49,5 +82,9 @@ int main() {
 	bla++;
 	bla++;
 	bla4343();
+	fkd = set_aaaa(2);
+	{
+		int fdsfsd = 342;
+	}
 	return 0;
 }

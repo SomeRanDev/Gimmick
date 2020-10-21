@@ -11,12 +11,16 @@ enum abstract ErrorType(Int) from Int to Int {
 
 	var ExpectedVariableName = 4000;
 	var ExpectedNamespaceName = 4001;
+	var ExpectedAttributeName = 4002;
 	var VariableNameAlreadyUsedInCurrentScope = 4010;
+	var AttributeNameAlreadyUsedInCurrentScope = 4011;
 	var NoNamespaceToEnd = 4020;
 
 	var UnexpectedCharacter = 5000;
 	var UnexpectedCharacterExpectedThis = 5001;
 	var UnexpectedCharacterExpectedThisOrThat = 5002;
+	var UnexpectedContent = 5100;
+
 	var InvalidTypeParameter = 6000;
 	var ExpectedExternalName = 7000;
 	var UnknownType = 8000;
@@ -38,6 +42,17 @@ enum abstract ErrorType(Int) from Int to Int {
 
 	var InconsistentIndent = 14000;
 
+	var ExpectedCondition = 15000;
+
+	var GetRequiresNoArguments = 16000;
+	var GetRequiresAReturn = 16100;
+	var SetRequiresOneArgument = 16200;
+
+	var ExpectedType = 17000;
+	var InvalidTypeForAttribute = 17010;
+	var UnknownAttribute = 17020;
+	var AttributeArgumentsMismatch = 17030;
+
 	public function getErrorMessage(): String {
 		switch(this) {
 			case UnknownImportPath: return "Could not find source file based on path.";
@@ -48,12 +63,16 @@ enum abstract ErrorType(Int) from Int to Int {
 
 			case ExpectedVariableName: return "Variable name expected.";
 			case ExpectedNamespaceName: return "Namespace name or path expected.";
+			case ExpectedAttributeName: return "Attribute name expected.";
 			case VariableNameAlreadyUsedInCurrentScope: return "Name already in use.";
+			case AttributeNameAlreadyUsedInCurrentScope: return "Attribute name already in use.";
 			case NoNamespaceToEnd: return "No namespace to end.";
 
 			case UnexpectedCharacter: return "Unexpected character encountered.";
 			case UnexpectedCharacterExpectedThis: return "Unexpected character. Expected '%1'.";
 			case UnexpectedCharacterExpectedThisOrThat: return "Unexpected character. Expected '%1' or '%2'.";
+			case UnexpectedContent: return "Unexpected content encountered in scope.";
+
 			case InvalidTypeParameter: return "Invalid type parameter setup.";
 			case ExpectedExternalName: return "Expected name for external type.";
 			case UnknownType: return "Unknown type found.";
@@ -74,6 +93,17 @@ enum abstract ErrorType(Int) from Int to Int {
 			case ExpectedFunctionParameterName: return "Expected function parameter name.";
 
 			case InconsistentIndent: return "Inconsistent indent.";
+
+			case ExpectedCondition: return "Expected condition expression.";
+
+			case GetRequiresNoArguments: return "Get function cannot accept arguments.";
+			case GetRequiresAReturn: return "Get function requires a return type.";
+			case SetRequiresOneArgument: return "Set function requires exactly one argument.";
+		
+			case ExpectedType: return "Expected type.";
+			case InvalidTypeForAttribute: return "Invalid type for attribute.";
+			case UnknownAttribute: return "Unknown attribute.";
+			case AttributeArgumentsMismatch: return "Invalid arguments for attribute.";
 		}
 		return "";
 	}
@@ -88,12 +118,16 @@ enum abstract ErrorType(Int) from Int to Int {
 
 			case ExpectedVariableName: return "expected variable name";
 			case ExpectedNamespaceName: return "expected namespace name";
+			case ExpectedAttributeName: return "expected attribute name";
 			case VariableNameAlreadyUsedInCurrentScope: return "name already in use";
+			case AttributeNameAlreadyUsedInCurrentScope: return "attribute name already in use";
 			case NoNamespaceToEnd: return "no namespaces to end";
 
 			case UnexpectedCharacter: return "unexpected character";
 			case UnexpectedCharacterExpectedThis: return "unexpected character";
 			case UnexpectedCharacterExpectedThisOrThat: return "unexpected character";
+			case UnexpectedContent: return "unexpected content";
+
 			case InvalidTypeParameter: return "type parameters cannot be used on primitives";
 			case ExpectedExternalName: return "external name expected";
 			case UnknownType: return "type name expected here";
@@ -114,6 +148,17 @@ enum abstract ErrorType(Int) from Int to Int {
 			case ExpectedFunctionParameterName: return "expected name here";
 
 			case InconsistentIndent: return "inconsistent indent";
+
+			case ExpectedCondition: return "expected condition";
+
+			case GetRequiresNoArguments: return "cannot accept arguments";
+			case GetRequiresAReturn: return "return type required";
+			case SetRequiresOneArgument: return "exactly one argument required";
+
+			case ExpectedType: return "expected type here";
+			case InvalidTypeForAttribute: return "invalid type for attribute";
+			case UnknownAttribute: return "unknown attribute";
+			case AttributeArgumentsMismatch: return "invalid arguments";
 		}
 		return "";
 	}

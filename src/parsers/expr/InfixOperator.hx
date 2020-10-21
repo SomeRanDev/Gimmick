@@ -57,6 +57,13 @@ class InfixOperator extends Operator {
 		if(ltype.bothSameAndNotNull(rtype)) {
 			final defaultsTest = switch(ltype.type) {
 				case Number(numType): ltype;
+				case String: {
+					if(op == "+") {
+						ltype;
+					} else {
+						null;
+					}
+				}
 				default: null;
 			}
 

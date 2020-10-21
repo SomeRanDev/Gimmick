@@ -44,18 +44,20 @@ class Transpiler {
 
 	public function transpile() {
 		for(mem in members) {
-			transpileMember(mem);
+			if(mem.shouldTranspile(context)) {
+				transpileMember(mem);
+			}
 		}
 	}
 
 	function transpileMember(member: ScopeMember) {
-		final newIndex = member.getIndex();
+		final newIndex = member.type.getIndex();
 		if(lastTranspileMemberIndex != newIndex || alwaysCreateNewLine(newIndex)) {
 			lastTranspileMemberIndex = newIndex;
 			addSourceAndHeaderContent("");
 		}
 
-		switch(member) {
+		switch(member.type) {
 			case Include(path, brackets): {
 				TranspileModule_Include.transpile(path, brackets, this);
 			}
@@ -66,7 +68,17 @@ class Transpiler {
 				TranspileModule_Variable.transpile(variable, this);
 			}
 			case Function(func): {
-				TranspileModule_Function.transpile(func, this);
+				TranspileModule_Function.transpile(func.get(), this);
+			}
+			case GetSet(getset): {
+				final gs = getset.get();
+				if(gs.get != null) {
+					TranspileModule_Function.transpile(gs.get, this);
+				}
+				addSourceContent("");
+				if(gs.set != null) {
+					TranspileModule_Function.transpile(gs.set, this);
+				}
 			}
 			case Expression(expr): {
 				TranspileModule_Expression.transpile(expr, this);

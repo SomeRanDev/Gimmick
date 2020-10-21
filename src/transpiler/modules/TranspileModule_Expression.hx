@@ -1,9 +1,12 @@
 package transpiler.modules;
 
 import parsers.expr.TypedExpression;
+import parsers.expr.CallOperator.CallOperators;
 
 import ast.typing.Type;
-import ast.scope.ExpressionMember;
+
+using ast.scope.ScopeMember;
+using ast.scope.ExpressionMember;
 
 import transpiler.TranspilerContext;
 import transpiler.modules.TranspileModule_Type;
@@ -11,25 +14,65 @@ import transpiler.modules.TranspileModule_InfixOperator;
 
 class TranspileModule_Expression {
 	public static function transpile(expr: ExpressionMember, transpiler: Transpiler) {
-		transpiler.addSourceContent(transpileExprMember(expr, transpiler.context));
+		transpiler.addSourceContent(transpileExprMember(expr, transpiler.context, 0));
 	}
 
-	public static function transpileExprMember(expr: ExpressionMember, context: TranspilerContext): String {
+	public static function transpileExprMember(expr: ExpressionMember, context: TranspilerContext, tabLevel: Int): String {
 		switch(expr) {
 			case Basic(expr): {
 				return transpileExpr(expr, context) + ";";
 			}
+			case Pass: return "";
+			case Break: return "break;";
+			case Continue: return "continue;";
+			case Scope(exprs): {
+				return transpileScope(exprs, context, tabLevel);
+			}
+			case Loop(expr, subExpressions, checkTrue): {
+				if(expr == null) {
+					return "while(true) " + transpileScope(subExpressions, context, tabLevel);
+				} else {
+					return "while(" + transpileExpr(expr, context) + ") " + transpileScope(subExpressions, context, tabLevel);
+				}
+			}
 			case IfStatement(expr, subExpressions, checkTrue): {
-				var result = "if(" + transpileExpr(expr, context) + ") {\n";
-				for(e in subExpressions) {
-					result += "\t" + transpileExprMember(e, context) + "\n";
+				var result = "if(" + transpileExpr(expr, context) + ") " + transpileScope(subExpressions, context, tabLevel);
+				return result;
+			}
+			case IfElseStatement(ifExpr, subExpressions): {
+				var result = transpileExprMember(ifExpr, context, tabLevel);
+				result += " else " + transpileScope(subExpressions, context, tabLevel);
+				return result;
+			}
+			case IfElseIfChain(ifExprs, elseExpressions): {
+				var result = "";
+				for(i in 0...ifExprs.length) {
+					result += transpileExprMember(ifExprs[i], context, tabLevel);
+					if(i < ifExprs.length - 1) result += " else ";
+				}
+				if(elseExpressions != null) {
+					result += " else " + transpileScope(elseExpressions, context, tabLevel);
 				}
 				return result;
 			}
 			case ReturnStatement(expr): {
 				return "return " + transpileExpr(expr, context) + ";";
 			}
+			default: {}
 		}
+		return "";
+	}
+
+	public static function transpileScope(exprs: Array<ScopeMember>, context: TranspilerContext, tabLevel: Int): String {
+		var result = "{\n";
+		var tabs = "";
+		for(i in 0...tabLevel) tabs += "\t";
+		for(e in exprs) {
+			if(e.isPass()) continue;
+			result += tabs + "\t" + TranspileModule_Function.transpileFunctionMember(e, context, tabLevel) + "\n";
+		}
+		result += tabs + "}";
+		return result;
 	}
 
 	public static function transpileExpr(expr: TypedExpression, context: TranspilerContext): String {
@@ -63,6 +106,22 @@ class TranspileModule_Expression {
 							return context.reverseJoinArray(namespaces, nsAccessOp) + nsAccessOp + name;
 						}
 						return name;
+					}
+					case Variable(varMember): {
+						return transpileExpr(Value(Name(varMember.name, varMember.getNamespaces()), pos, type), context);
+					}
+					case Function(funcMember): {
+						return transpileExpr(Value(Name(funcMember.name, funcMember.getNamespaces()), pos, type), context);
+					}
+					case GetSet(getsetMember): {
+						final getFunc = getsetMember.get;
+						if(getFunc != null) {
+							final valueType = Type.Function(getFunc.type, null);
+							final setFuncLiteral = TypedExpression.Value(Literal.Function(getFunc), pos, valueType);
+							final returnType = getFunc.type.get().returnType;
+							final callExpr = Call(CallOperators.Call, setFuncLiteral, [], pos, returnType);
+							return TranspileModule_Expression.transpileExpr(callExpr, context);
+						}
 					}
 					case Null: {
 						return context.isJs() ? "null" : "nullptr";

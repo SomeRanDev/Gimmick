@@ -2,6 +2,8 @@ package transpiler;
 
 import haxe.ds.GenericStack;
 
+import interpreter.Variant;
+
 using transpiler.Language;
 
 enum OutputContext {
@@ -14,11 +16,15 @@ class TranspilerContext {
 	var namespaceStack: GenericStack<String>;
 	var language: Language;
 	var context: GenericStack<OutputContext>;
+	var values: Map<String, Variant>;
 
 	public function new(language: Language) {
 		namespaceStack = new GenericStack();
 		context = new GenericStack();
 		this.language = language;
+		values = [];
+		values.set("cpp", Bool(isCpp()));
+		values.set("js", Bool(isJs()));
 	}
 
 	public function isCpp(): Bool {
@@ -27,6 +33,10 @@ class TranspilerContext {
 
 	public function isJs(): Bool {
 		return language.isJs();
+	}
+
+	public function getValues(): Map<String, Variant> {
+		return values;
 	}
 
 	public function getContext(): OutputContext {

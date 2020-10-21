@@ -27,6 +27,8 @@ class TranspileModule_Type {
 			}
 			case Number(numType): {
 				switch(numType) {
+					case Any: return "int";
+
 					case Char: return "char";
 					case Short: return "short";
 					case Int: return "int";
@@ -121,6 +123,8 @@ class TranspileModule_Type {
 			}
 			case Number(numType): {
 				switch(numType) {
+					case Any: return "0";
+
 					case Char: return "0";
 					case Short: return "0";
 					case Int: return "0";

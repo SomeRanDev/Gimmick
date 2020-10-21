@@ -1,0 +1,56 @@
+# =================================================
+# * C++ Attributes
+#
+# Attributes related to C++ transpiling.
+# =================================================
+
+import attributes/basic;
+
+attribute cppRequireInclude(content: raw, useBrackets: bool);
+
+compiler attribute cppInject(content: raw):
+	def toCpp -> string:
+		return content;
+
+compiler attribute cppDefine(content: raw, value: raw):
+	def toCpp -> string:
+		return "#define " + content + " " + value;
+
+compiler attribute cppUndef(content: raw):
+	def toCpp -> string:
+		return "#undef " + content;
+
+compiler attribute cppIfDef(name: raw):
+	def toCpp -> string:
+		return "#ifdef " + name;
+
+compiler attribute cppIfNDef(name: raw):
+	def toCpp -> string:
+		return "#ifndef " + name;
+
+compiler attribute cppIf(cond: raw):
+	def toCpp -> string:
+		return "#if " + cond;
+
+compiler attribute cppElif(cond: raw):
+	def toCpp -> string:
+		return "#elif " + cond;
+
+compiler attribute cppElse:
+	def toCpp -> string:
+		return "#else";
+
+compiler attribute cppEndIf:
+	def toCpp -> string:
+		return "#endif";
+
+compiler attribute cppPragma(param: raw):
+	def toCpp -> string:
+		return "#pragma " + param;
+
+compiler attribute myTets(param: raw):
+	def bla -> string:
+		return "test"
+
+	def toCpp -> string:
+		return bla() + "test"

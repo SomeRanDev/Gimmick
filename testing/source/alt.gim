@@ -8,3 +8,13 @@ var athing = 1
 const qweqweq = (athing, 1111)
 
 end namespace
+
+var bla = 32;
+
+def bla2 -> string:
+	return toCpp()
+
+def toCpp -> string:
+	return bla2() + "test"
+
+
