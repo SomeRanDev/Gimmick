@@ -27,16 +27,17 @@ abstract QuantumExpression(QuantumExpressionInternal) from QuantumExpressionInte
 	}
 
 	public function typeExpression(parser: Parser): Null<QuantumExpression> {
-		switch(this) {
+		return switch(this) {
 			case Untyped(e): {
 				final typed = e.getType(parser, false);
 				if(typed != null) {
-					return fromTyped(typed);
+					fromTyped(typed);
+				} else {
+					null;
 				}
 			}
-			default: {}
+			case Typed(e): e;
 		}
-		return null;
 	}
 
 	public function getPosition(): Position {

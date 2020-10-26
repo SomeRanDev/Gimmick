@@ -7,6 +7,7 @@ import ast.scope.members.MemberLocation;
 import parsers.expr.Position;
 import parsers.expr.QuantumExpression;
 using parsers.expr.TypedExpression;
+using parsers.expr.Expression;
 import parsers.expr.InfixOperator.InfixOperators;
 
 import ast.typing.Type;
@@ -49,11 +50,10 @@ class VariableMember {
 		if(expression == null) {
 			return false;
 		}
-		final texpr = switch(expression) {
-			case Untyped(_): null;
-			case Typed(texpr): texpr;
+		return switch(expression) {
+			case Untyped(expr): expr != null;
+			case Typed(texpr): texpr != null && !texpr.isConst();
 		}
-		return texpr != null && !texpr.isConst();
 	}
 
 	public function cloneWithoutExpression(): VariableMember {
@@ -66,20 +66,22 @@ class VariableMember {
 		if(expression == null) {
 			return null;
 		}
-		final texpr = switch(expression) {
-			case Untyped(_): null;
-			case Typed(texpr): texpr;
-		}
-		if(texpr == null) {
-			return null;
-		}
 		var namespaces = null;
 		switch(memberLocation) {
 			case TopLevel(n): namespaces = n;
 			default: {}
 		}
-		final lexpr = TypedExpression.Value(Literal.Name(name, namespaces), position, Type.Unknown());
-		final assign = TypedExpression.Infix(InfixOperators.Assignment, lexpr, texpr, position, type);
-		return ExpressionMember.Basic(assign);
+		return switch(expression) {
+			case Untyped(expr): {
+				final lexpr = Expression.Value(Literal.Name(name, namespaces), position);
+				final assign = Expression.Infix(InfixOperators.Assignment, lexpr, expr, position);
+				ExpressionMember.Basic(assign);
+			}
+			case Typed(texpr): {
+				final lexpr = TypedExpression.Value(Literal.Name(name, namespaces), position, Type.Unknown());
+				final assign = TypedExpression.Infix(InfixOperators.Assignment, lexpr, texpr, position, type);
+				ExpressionMember.Basic(assign);
+			}
+		}
 	}
 }

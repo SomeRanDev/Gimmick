@@ -5,4 +5,6 @@
 
 void print(std::string a);
 
+int main_print();
+
 #endif

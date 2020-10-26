@@ -1,40 +1,8 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include <string>
-#include <tuple>
-
-namespace test {
-namespace aa2 {
-namespace qqq {
-
-extern int fd;
-extern int aaa;
-extern int aas;
-extern const int bla;
-extern int bla2;
-extern const int dasa;
-extern std::string blastring;
-
-}
-}
-}
-
-extern int ttt;
-extern int bla43;
-extern int bla;
-extern std::tuple<int, int> atestaagin;
-extern const std::tuple<std::string, std::string> blablaabla;
-extern int newthing;
-
-int bla4343();
-
-void fjdklsfjs();
-
-int get_aaaa();
-double set_aaaa(int i);
-
-extern int fkd;
+extern int a;
+extern int b;
 
 int main();
 

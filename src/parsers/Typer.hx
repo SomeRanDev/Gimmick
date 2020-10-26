@@ -15,8 +15,6 @@ using parsers.expr.QuantumExpression;
 class Typer {
 	public var parser(default, null): Parser;
 
-	var mainFunction: Null<FunctionMember>;
-
 	public function new(parser: Parser) {
 		this.parser = parser;
 		@:privateAccess for(attr in parser.scope.attributes) {
@@ -41,9 +39,10 @@ class Typer {
 	public function typeScopeCollection(members: ScopeMemberCollection, addMainFunction: Bool) {
 		@:privateAccess members.members = typeScopeNoPush(members.members);
 		if(addMainFunction) {
-			if(mainFunction != null) {
-				members.members.push(new ScopeMember(Function(mainFunction.getRef())));
-			}
+			parser.scope.commitMainFunction();
+			/*if(parser.scope.mainFunction != null) {
+				members.members.push(new ScopeMember(Function(parser.scope.mainFunction.getRef())));
+			}*/
 		}
 	}
 
@@ -74,14 +73,16 @@ class Typer {
 					final file = parser.scope.file;
 					@:privateAccess member.type = Expression(typedExpr);
 					@:privateAccess if(parser.scope.stackSize == 1 && file.usesMainFunction()) {
-						if(mainFunction == null) {
+						/*if(parser.scope.mainFunction == null) {
 							final funcType = new FunctionType([], Type.Number(Int));
-							mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null));
+							parser.scope.mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null));
 							if(file.isMain) {
-								mainFunction.incrementCallCount();
+								parser.scope.mainFunction.incrementCallCount();
 							}
+						}*/
+						if(parser.scope.mainFunction != null) {
+							parser.scope.mainFunction.addMember(member);
 						}
-						mainFunction.addMember(member);
 						return null;
 					} else {
 						return member;

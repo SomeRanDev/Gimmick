@@ -217,7 +217,7 @@ class Parser {
 
 	function endParse() {
 		scope.popAllNamespaces();
-		scope.commitMainFunction();
+		//scope.commitMainFunction();
 	}
 
 	function indexOutsideParser(): Bool {

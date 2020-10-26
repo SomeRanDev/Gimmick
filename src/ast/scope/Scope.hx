@@ -43,7 +43,7 @@ class Scope {
 
 	var stackSize: Int;
 
-	var mainFunction: Null<FunctionMember>;
+	public var mainFunction: Null<FunctionMember>;
 
 	static var globalScope: Array<GlobalScopeMember> = [];
 
@@ -246,6 +246,12 @@ class Scope {
 		} else {
 			addMember(new ScopeMember(Expression(member)));
 		}*/
+
+		if(mainFunction == null) {
+			final funcType = new FunctionType([], Type.Number(Int));
+			mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null));
+		}
+
 		final scopeMember = new ScopeMember(Expression(member));
 		attachAttributesToMember(scopeMember);
 		addMember(scopeMember);
