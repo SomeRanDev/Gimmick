@@ -7,6 +7,7 @@ import basic.Multi;
 
 import ast.SourceFile;
 import ast.scope.ExpressionMember;
+import ast.scope.GlobalScopeMember;
 import ast.scope.members.VariableMember;
 import ast.scope.members.FunctionMember;
 import ast.scope.members.NamespaceMember;
@@ -34,7 +35,7 @@ class Scope {
 	var stack: GenericStack<ScopeMemberCollection>;
 	var namespaceStack: GenericStack<NamespaceMember>;
 	var namespaceStackCounter: GenericStack<Int>;
-	var attributes: Array<AttributeMember>;
+	var attributes: Array<ScopeMember>;
 	var attributeInstances: GenericStack<Array<Module>>;
 	var imports: Array<Ref<Scope>>;
 
@@ -43,7 +44,8 @@ class Scope {
 	var stackSize: Int;
 
 	var mainFunction: Null<FunctionMember>;
-	var currentFunction: Null<FunctionMember>;
+
+	static var globalScope: Array<GlobalScopeMember> = [];
 
 	public function new(file: SourceFile) {
 		this.file = file;
@@ -155,7 +157,7 @@ class Scope {
 		}
 	}
 
-	public function attachAttributesToMember(member: ScopeMember) {
+	public function attachAttributesToMember(member: ScopeMember, clear: Bool = true) {
 		final first = attributeInstances.first();
 		if(first != null) {
 			if(first.length != 0) {
@@ -167,8 +169,10 @@ class Scope {
 						default: {}
 					}
 				}
-				attributeInstances.pop();
-				attributeInstances.add([]);
+				if(clear) {
+					attributeInstances.pop();
+					attributeInstances.add([]);
+				}
 			}
 		}
 	}
@@ -215,7 +219,12 @@ class Scope {
 	}
 
 	public function addVarWithAssignTopLevelMember(member: VariableMember) {
-		addNormalTopLevelMember(new ScopeMember(Variable(new Ref(member.cloneWithoutExpression()))));
+		// add variable init
+		final varMember = new ScopeMember(Variable(new Ref(member.cloneWithoutExpression())));
+		attachAttributesToMember(varMember, false);
+		addNormalTopLevelMember(varMember);
+
+		// add expression
 		final expr = member.constructAssignementExpression();
 		if(expr != null) {
 			addExpressionMember(expr);
@@ -223,7 +232,7 @@ class Scope {
 	}
 
 	public function addExpressionMember(member: ExpressionMember) {
-		if(stackSize == 1 && file.usesMainFunction()) {
+		/*if(stackSize == 1 && file.usesMainFunction()) {
 			if(mainFunction == null) {
 				final funcType = new FunctionType([], Type.Number(Int));
 				mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null));
@@ -236,7 +245,10 @@ class Scope {
 			mainFunction.addMember(scopeMember);
 		} else {
 			addMember(new ScopeMember(Expression(member)));
-		}
+		}*/
+		final scopeMember = new ScopeMember(Expression(member));
+		attachAttributesToMember(scopeMember);
+		addMember(scopeMember);
 	}
 
 	public function addFunctionCallExpression(func: Ref<FunctionMember>, parser: Parser) {
@@ -269,25 +281,37 @@ class Scope {
 	}
 
 	public function addAttribute(attribute: AttributeMember) {
-		attributes.push(attribute);
+		final result = new ScopeMember(Attribute(attribute));
+		attachAttributesToMember(result);
+		attributes.push(result);
 	}
 
 	public function attributeExistInCurrentScope(attributeName: String): Bool {
 		return findAttributeFromName(attributeName, false) != null;	
 	}
 
-	public function findAttributeFromName(attributeName: String, checkImports: Bool = true): Null<AttributeMember> {
+	public function findAttributeFromName(attributeName: String, checkImports: Bool = true, checkGlobals: Bool = true): Null<AttributeMember> {
 		for(a in attributes) {
-			if(a.name == attributeName) {
-				return a;
+			if(a.toAttribute().name == attributeName) {
+				return a.toAttribute();
 			}
 		}
 
 		if(checkImports) {
 			for(imp in imports) {
-				final attr = imp.get().findAttributeFromName(attributeName, false);
+				final attr = imp.get().findAttributeFromName(attributeName, false, false);
 				if(attr != null) {
 					return attr;
+				}
+			}
+		}
+
+		if(checkGlobals) {
+			for(g in globalScope) {
+				for(a in g.attributes) {
+					if(a.toAttribute().name == attributeName) {
+						return a.toAttribute();
+					}
 				}
 			}
 		}
@@ -302,7 +326,42 @@ class Scope {
 		}
 	}
 
-	public function findTypeFromName(name: String, checkImports: Bool = true): Null<Type> {
+	public function checkForGlobalScopeInclusion() {
+		final globalMembers = [];
+		final globalAttributes = [];
+		final topScope = getTopScope();
+
+		if(topScope != null) {
+			var globalAll = false;
+			for(scope in topScope) {
+				switch(scope.type) {
+					case CompilerAttribute(attr, _): {
+						if(attr.name == "globalAll") {
+							globalAll = true;
+						}
+					}
+					default: {}
+				}
+			}
+			for(attr in attributes) {
+				if(globalAll || attr.isGlobal()) {
+					globalAttributes.push(attr);
+				}
+			}
+			for(scope in topScope) {
+				if(globalAll || scope.isGlobal()) {
+					globalMembers.push(scope);
+				}
+			}
+		}
+
+		if(globalMembers.length > 0 || globalAttributes.length > 0) {
+			final global = new GlobalScopeMember(globalMembers, globalAttributes, this);
+			globalScope.push(global);
+		}
+	}
+
+	public function findTypeFromName(name: String, checkImports: Bool = true, includeGlobals: Bool = true): Null<Type> {
 		final primitiveType = findPrimitiveType(name);
 		if(primitiveType != null) {
 			return primitiveType;
@@ -329,8 +388,18 @@ class Scope {
 
 		if(checkImports) {
 			for(imp in imports) {
-				final type = imp.get().findTypeFromName(name, false);
+				final type = imp.get().findTypeFromName(name, false, false);
 				if(type != null) {
+					return type;
+				}
+			}
+		}
+
+		if(includeGlobals) {
+			for(g in globalScope) {
+				final type = g.scope.findTypeFromName(name, false, false);
+				if(type != null) {
+					file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
 					return type;
 				}
 			}
@@ -339,7 +408,7 @@ class Scope {
 		return null;
 	}
 
-	public function findMember(name: String, checkImports: Bool = true): Null<ScopeMember> {
+	public function findMember(name: String, checkImports: Bool = true, includeGlobals: Bool = true): Null<ScopeMember> {
 		for(namespace in namespaceStack) {
 			final member = namespace.members.find(name);
 			if(member != null) {
@@ -356,8 +425,18 @@ class Scope {
 
 		if(checkImports) {
 			for(imp in imports) {
-				final type = imp.get().findMember(name, false);
+				final type = imp.get().findMember(name, false, false);
 				if(type != null) {
+					return type;
+				}
+			}
+		}
+
+		if(includeGlobals) {
+			for(g in globalScope) {
+				final type = g.scope.findMember(name, false, false);
+				if(type != null) {
+					file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
 					return type;
 				}
 			}

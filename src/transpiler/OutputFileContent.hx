@@ -1,10 +1,12 @@
 package transpiler;
 
-class OutputSourceFile {
+class OutputFileContent {
 	var content: String;
+	var startingLength: Int;
 
 	public function new() {
 		content = "";
+		startingLength = -1;
 	}
 
 	public function getContent(): String {
@@ -23,3 +25,4 @@ class OutputSourceFile {
 		return content.length >= 2 && getLastChar() == "\n" && content.charAt(content.length - 2) == "\n";
 	}
 }
+

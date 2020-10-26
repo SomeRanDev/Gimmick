@@ -1,5 +1,7 @@
 package interpreter;
 
+import ast.typing.Type;
+
 enum Variant {
 	Bool(b: Bool);
 	Num(n: Float);
@@ -7,6 +9,23 @@ enum Variant {
 }
 
 class VariantHelper {
+	public static function typeToVariantDefault(type: Type): Null<Variant> {
+		return switch(type.type) {
+			case Boolean: Bool(false);
+			case Number(_): Num(0.0);
+			case String: Str("");
+			default: null;
+		}
+	}
+
+	public static function typeString(v: Variant): String {
+		return switch(v) {
+			case Bool(_): "bool";
+			case Num(_): "number";
+			case Str(_): "string";
+		}
+	}
+
 	public static function isBool(v: Variant): Bool {
 		return switch(v) {
 			case Bool(_): true;

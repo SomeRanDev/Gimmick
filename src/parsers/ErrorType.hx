@@ -53,6 +53,9 @@ enum abstract ErrorType(Int) from Int to Int {
 	var UnknownAttribute = 17020;
 	var AttributeArgumentsMismatch = 17030;
 
+	var InterpreterUnknownLiteral = 20000;
+	var InterpreterMustReturnBool = 20100;
+
 	public function getErrorMessage(): String {
 		switch(this) {
 			case UnknownImportPath: return "Could not find source file based on path.";
@@ -104,6 +107,9 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidTypeForAttribute: return "Invalid type for attribute.";
 			case UnknownAttribute: return "Unknown attribute.";
 			case AttributeArgumentsMismatch: return "Invalid arguments for attribute.";
+
+			case InterpreterUnknownLiteral: return "Unknown value encountered.";
+			case InterpreterMustReturnBool: return "Expression should return bool, not '%1'.";
 		}
 		return "";
 	}
@@ -159,6 +165,9 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidTypeForAttribute: return "invalid type for attribute";
 			case UnknownAttribute: return "unknown attribute";
 			case AttributeArgumentsMismatch: return "invalid arguments";
+
+			case InterpreterUnknownLiteral: return "unknown value";
+			case InterpreterMustReturnBool: return "expression doesn't return bool";
 		}
 		return "";
 	}

@@ -15,7 +15,8 @@ import ast.typing.AttributeArgument.AttributeArgumentValue;
 
 import ast.scope.members.AttributeMember;
 
-import interpreter.Interpreter;
+import interpreter.ExpressionInterpreter;
+import interpreter.RuntimeScope;
 using interpreter.Variant;
 
 import parsers.expr.PrefixOperator;
@@ -35,7 +36,8 @@ enum ScopeMemberType {
 	SuffixOperator(op: SuffixOperator, func: Ref<FunctionMember>);
 	InfixOperator(op: InfixOperator, func: Ref<FunctionMember>);
 	Expression(expr: ExpressionMember);
-	CompilerAttribute(attr: AttributeMember);
+	Attribute(attr: AttributeMember);
+	CompilerAttribute(attr: AttributeMember, params: Null<Array<AttributeArgumentValue>>);
 }
 
 class ScopeMemberAttribute {
@@ -67,7 +69,7 @@ class ScopeMember {
 				if(a.parameters != null && a.parameters.length > 0) {
 					switch(a.parameters[0]) {
 						case Value(expr, type): {
-							final result = Interpreter.interpret(expr, context.getValues());
+							final result = ExpressionInterpreter.interpret(expr, RuntimeScope.fromMap(context.getValues()));
 							if(result != null) {
 								return result.toBool();
 							}
@@ -78,6 +80,15 @@ class ScopeMember {
 			}
 		}
 		return true;
+	}
+
+	public function isGlobal(): Bool {
+		for(a in attributes) {
+			if(a.instanceOf.name == "global") {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public function getType(): Null<Type> {
@@ -126,6 +137,13 @@ class ScopeMember {
 		switch(type) {
 			case GetSet(_): return true;
 			default: return false;
+		}
+	}
+
+	public function toAttribute(): AttributeMember {
+		switch(type) {
+			case Attribute(attr): return attr;
+			default: throw "Not an attribute!!";
 		}
 	}
 }

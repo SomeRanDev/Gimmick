@@ -7,16 +7,14 @@
 namespace A {
 
 extern int athing;
-extern std::tuple<int, int> qweqweq;
+extern const std::tuple<int, int> qweqweq;
 
 }
 
 extern int bla;
 
-std::string bla2();
+int bla2();
 
 std::string toCpp();
-
-int main_alt();
 
 #endif

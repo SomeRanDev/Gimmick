@@ -4,6 +4,8 @@ import basic.Ref;
 
 import ast.scope.members.VariableMember;
 
+import parsers.expr.QuantumExpression;
+
 import transpiler.Transpiler;
 import transpiler.modules.TranspileModule_Expression;
 import transpiler.modules.TranspileModule_Type;
@@ -23,7 +25,11 @@ class TranspileModule_Variable {
 		result += makeVariablePrefix(member, context);
 		result += member.name;
 		final assignment = TranspileModule_Type.getDefaultAssignment(member.type);
-		final expression = member.expression;
+		final expression = switch(member.expression) {
+			case null: null;
+			case Untyped(_): null;
+			case Typed(texpr): texpr;
+		}
 		if(expression != null) {
 			result += " = " + TranspileModule_Expression.transpileExpr(expression, context);
 		} else if(assignment != null) {

@@ -22,4 +22,8 @@ class Position {
 	public static function empty(file: SourceFile): Position {
 		return new Position(file, 0, 0, 0);
 	}
+
+	public function toString(): String {
+		return file + " " + line + " " + startIndex + " " + endIndex;
+	}
 }

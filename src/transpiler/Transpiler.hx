@@ -12,21 +12,24 @@ import transpiler.TranspilerContext;
 import transpiler.modules.*;
 
 class Transpiler {
-	public var headerFile(default, null): OutputHeaderFile;
-	public var sourceFile(default, null): OutputSourceFile;
+	public var headerFile(default, null): OutputFileContent;
+	public var sourceFile(default, null): OutputFileContent;
 	public var language(default, null): Language;
 	public var context(default, null): TranspilerContext;
+
+	public var transpileCount(default, null): Int;
 
 	var members: ScopeMemberCollection;
 
 	var lastTranspileMemberIndex: Int;
 
-	public function new(members: ScopeMemberCollection, headerFile: OutputHeaderFile, sourceFile: OutputSourceFile, language: Language, context: Null<TranspilerContext> = null) {
+	public function new(members: ScopeMemberCollection, headerFile: OutputFileContent, sourceFile: OutputFileContent, language: Language, context: Null<TranspilerContext> = null) {
 		this.members = members;
 		this.headerFile = headerFile;
 		this.sourceFile = sourceFile;
 		this.language = language;
 		this.context = context == null ? new TranspilerContext(language) : context;
+		transpileCount = 0;
 		lastTranspileMemberIndex = -1;
 	}
 
@@ -45,12 +48,14 @@ class Transpiler {
 	public function transpile() {
 		for(mem in members) {
 			if(mem.shouldTranspile(context)) {
-				transpileMember(mem);
+				if(transpileMember(mem)) {
+					transpileCount++;
+				}
 			}
 		}
 	}
 
-	function transpileMember(member: ScopeMember) {
+	function transpileMember(member: ScopeMember): Bool {
 		final newIndex = member.type.getIndex();
 		if(lastTranspileMemberIndex != newIndex || alwaysCreateNewLine(newIndex)) {
 			lastTranspileMemberIndex = newIndex;
@@ -60,6 +65,7 @@ class Transpiler {
 		switch(member.type) {
 			case Include(path, brackets): {
 				TranspileModule_Include.transpile(path, brackets, this);
+				return false;
 			}
 			case Namespace(namespace): {
 				TranspileModule_Namespace.transpile(namespace, this);
@@ -83,8 +89,12 @@ class Transpiler {
 			case Expression(expr): {
 				TranspileModule_Expression.transpile(expr, this);
 			}
-			default: {}
+			case CompilerAttribute(attr, params): {
+				return TranspileModule_CompilerAttribute.transpile(attr, params, this);
+			}
+			default: return false;
 		}
+		return true;
 	}
 
 	function alwaysCreateNewLine(index: Int): Bool {

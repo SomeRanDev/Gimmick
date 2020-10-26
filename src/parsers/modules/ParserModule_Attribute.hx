@@ -104,7 +104,6 @@ class ParserModule_Attribute extends ParserModule {
 			}
 
 			final arguments: Array<AttributeArgument> = [];
-			final positions: Array<Position> = [];
 			if(parser.parseNextContent("(")) {
 				var indexTracker = 0;
 				var argTracker = 0;
@@ -119,10 +118,10 @@ class ParserModule_Attribute extends ParserModule {
 					} else {
 						final line = parser.getLineNumber();
 						final startArgIndex = parser.getIndexFromLine();
-						final attr = parseAttributeArugment(parser);
+						final pos = parser.makePositionEx(line, startArgIndex, parser.getIndexFromLine());
+						final attr = parseAttributeArugment(parser, pos);
 						if(attr != null) {
 							arguments.push(attr);
-							positions.push(parser.makePositionEx(line, startArgIndex, parser.getIndexFromLine()));
 						} else {
 							return null;
 						}
@@ -140,26 +139,22 @@ class ParserModule_Attribute extends ParserModule {
 
 			final isCompilerAttribute = initialWord == "compiler";
 
+			final attrMember = new AttributeMember(name, arguments, isCompilerAttribute);
+
 			if(isCompilerAttribute) {
 				if(parser.parseNextContent(":")) {
 					parser.scope.push();
-					var index = 0;
-					for(arg in arguments) {
-						final v = new VariableMember(arg.name, arg.getType(), true, positions[index], null, ClassMember);
-						parser.scope.addMemberToCurrentScope(new ScopeMember(Variable(v.getRef())));
-						index++;
-					}
 					final members = parser.parseNextLevelContent(CompilerAttribute);
 					if(members != null) {
 						for(m in members) {
 							switch(m.type) {
 								case Function(func): {
-									trace(func.get().name);
+									//trace(func.get().name);
 								}
 								default: {}
 							}
 						}
-						//funcMember.setAllMembers(members);
+						attrMember.setAllMembers(members);
 					}
 					parser.scope.pop();
 				} else if(parser.parseNextContent(";")) {
@@ -169,13 +164,13 @@ class ParserModule_Attribute extends ParserModule {
 				}
 			}
 
-			return Attribute(new AttributeMember(name, arguments, isCompilerAttribute));
+			return Attribute(attrMember);
 		}
 
 		return null;
 	}
 
-	public static function parseAttributeArugment(parser: Parser): Null<AttributeArgument> {
+	public static function parseAttributeArugment(parser: Parser, position: Position): Null<AttributeArgument> {
 		final argNameStart = parser.getIndexFromLine();
 		final argName = parser.parseNextVarName();
 		if(argName == null) {
@@ -211,7 +206,7 @@ class ParserModule_Attribute extends ParserModule {
 			expr = parser.parseExpression();
 		}
 
-		return new AttributeArgument(argName, argType, argRealType.isOptional, expr);
+		return new AttributeArgument(argName, argType, argRealType.isOptional, position, expr);
 	}
 
 	public static function convertTypeToAttributeType(type: TypeType, recursive: Bool = false): Null<AttributeArgumentType> {

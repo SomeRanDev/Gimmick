@@ -78,10 +78,12 @@ set aaaa(i: int) -> double:
 
 var fkd = aaaa = 2
 
-import attributes/basic
-
-@if(js == false) scope:
+@if(!!js != false) scope:
 	var fdsfsd = 342
+
+@cppInject(fjdklsfjds)
+
+print("fdsfds")
 
 ###
 modify number:

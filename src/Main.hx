@@ -35,6 +35,9 @@ class Main {
 			Error.printAllErrors();
 		} else {
 			manager.exportFiles(outputPaths);
+			if(Error.hasErrors()) {
+				Error.printAllErrors();
+			}
 		}
 	}
 }

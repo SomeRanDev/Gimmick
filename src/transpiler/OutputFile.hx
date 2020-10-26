@@ -7,23 +7,22 @@ import ast.scope.ScopeMemberCollection;
 
 using transpiler.Language;
 import transpiler.Transpiler;
-import transpiler.OutputSourceFile;
-import transpiler.OutputHeaderFile;
+import transpiler.OutputFileContent;
 import transpiler.TranspilerOptions;
 
 class OutputFile {
 	var source: SourceFile;
 	var transpiler: Transpiler;
 
-	var headerFile: OutputHeaderFile;
-	var sourceFile: OutputSourceFile;
+	var headerFile: OutputFileContent;
+	var sourceFile: OutputFileContent;
 
 	public function new(source: SourceFile, language: Language) {
 		this.source = source;
 
 		final members = source.members;
-		headerFile = new OutputHeaderFile();
-		sourceFile = new OutputSourceFile();
+		headerFile = new OutputFileContent();
+		sourceFile = new OutputFileContent();
 		transpiler = new Transpiler(members == null ? new ScopeMemberCollection() : members, headerFile, sourceFile, language);
 
 		preTranspile(language);
@@ -90,6 +89,9 @@ class OutputFile {
 	}
 
 	public function output(): Map<String,String> {
+		if(!shouldOutput()) {
+			return [];
+		}
 		if(hasHeader()) {
 			return [
 				source.getSourceOutputFile() => getSource(),
@@ -100,6 +102,10 @@ class OutputFile {
 				source.getSourceOutputFile() => getSource()
 			];
 		}
+	}
+
+	public function shouldOutput(): Bool {
+		return transpiler.transpileCount > 0;
 	}
 
 	public function hasHeader(): Bool {

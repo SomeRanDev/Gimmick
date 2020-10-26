@@ -1,26 +1,54 @@
 package interpreter;
 
 using interpreter.Variant;
+import interpreter.RuntimeScope;
+
+import parsers.Error;
+import parsers.ErrorType;
 
 import parsers.expr.Expression;
+import parsers.expr.TypedExpression;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
 import parsers.expr.CallOperator;
 import parsers.expr.Literal;
+import parsers.expr.Position;
+import parsers.expr.QuantumExpression;
 
-class Interpreter {
-	public static function interpret(expr: Expression, data: Map<String,Variant>): Null<Variant> {
+class ExpressionInterpreter {
+	public static function interpret(expr: QuantumExpression, data: RuntimeScope): Null<Variant> {
 		return switch(expr) {
-			case Prefix(op, expr, _): interpretPrefix(op, expr, data);
-			case Suffix(op, expr, _): interpretSuffix(op, expr, data);
-			case Infix(op, lexpr, rexpr, _): interpretInfix(op, lexpr, rexpr, data);
-			case Value(literal, _): interpretLiteral(literal, data);
+			case Untyped(e): {
+				return interpretUntyped(e, data);
+			}
+			case Typed(e): {
+				return interpretTyped(e, data);
+			}
+		}
+	}
+
+	public static function interpretTyped(expr: TypedExpression, data: RuntimeScope): Null<Variant> {
+		return switch(expr) {
+			case Prefix(op, expr, pos, _): interpretPrefix(op, expr, pos, data);
+			case Suffix(op, expr, pos, _): interpretSuffix(op, expr, pos, data);
+			case Infix(op, lexpr, rexpr, pos, _): interpretInfix(op, lexpr, rexpr, pos, data);
+			case Value(literal, pos, _): interpretLiteral(literal, pos, data);
 			default: null;
 		}
 	}
 
-	public static function interpretPrefix(op: PrefixOperator, expr: Expression, data: Map<String,Variant>): Null<Variant> {
+	public static function interpretUntyped(expr: Expression, data: RuntimeScope): Null<Variant> {
+		return switch(expr) {
+			case Prefix(op, expr, pos): interpretPrefix(op, expr, pos, data);
+			case Suffix(op, expr, pos): interpretSuffix(op, expr, pos, data);
+			case Infix(op, lexpr, rexpr, pos): interpretInfix(op, lexpr, rexpr, pos, data);
+			case Value(literal, pos): interpretLiteral(literal, pos, data);
+			default: null;
+		}
+	}
+
+	public static function interpretPrefix(op: PrefixOperator, expr: QuantumExpression, pos: Position, data: RuntimeScope): Null<Variant> {
 		final e = interpret(expr, data);
 		if(e == null) return null;
 		switch(op.op) {
@@ -55,10 +83,11 @@ class Interpreter {
 				}
 			}
 		}
+		Error.addErrorFromPos(ErrorType.InvalidPrefixOperator, pos, [e.typeString()]);
 		return null;
 	}
 
-	public static function interpretSuffix(op: SuffixOperator, expr: Expression, data: Map<String,Variant>): Null<Variant> {
+	public static function interpretSuffix(op: SuffixOperator, expr: QuantumExpression, pos: Position, data: RuntimeScope): Null<Variant> {
 		final e = interpret(expr, data);
 		if(e == null) return null;
 		switch(op.op) {
@@ -73,10 +102,11 @@ class Interpreter {
 				}
 			}
 		}
+		Error.addErrorFromPos(ErrorType.InvalidSuffixOperator, pos, [e.typeString()]);
 		return null;
 	}
 
-	public static function interpretInfix(op: InfixOperator, lexpr: Expression, rexpr: Expression, data: Map<String,Variant>): Null<Variant> {
+	public static function interpretInfix(op: InfixOperator, lexpr: QuantumExpression, rexpr: QuantumExpression, pos: Position, data: RuntimeScope): Null<Variant> {
 		final l = interpret(lexpr, data);
 		final r = interpret(rexpr, data);
 		if(l == null || r == null) return null;
@@ -178,15 +208,23 @@ class Interpreter {
 				}
 			}
 		}
+		Error.addErrorFromPos(ErrorType.InvalidInfixOperator, pos, [l.typeString(), r.typeString()]);
 		return null;
 	}
 
-	public static function interpretLiteral(literal: Literal, data: Map<String,Variant>): Null<Variant> {
+	public static function interpretLiteral(literal: Literal, pos: Position, data: RuntimeScope): Null<Variant> {
 		switch(literal) {
 			case Name(name, _): {
-				if(data.exists(name)) {
-					return data[name];
+				final val = data.find(name);
+				if(val != null) {
+					return val;
+				} else {
+					Error.addErrorFromPos(ErrorType.UnknownVariable, pos);
+					return null;
 				}
+			}
+			case Variable(mem): {
+				return interpretLiteral(Name(mem.name, null), pos, data);
 			}
 			case Boolean(value): {
 				return Bool(value);
@@ -199,6 +237,7 @@ class Interpreter {
 			}
 			default: {}
 		}
+		Error.addErrorFromPos(ErrorType.InterpreterUnknownLiteral, pos);
 		return null;
 	}
 }

@@ -4,18 +4,19 @@ import ast.scope.ScopeMember;
 import ast.typing.Type;
 
 import parsers.expr.TypedExpression;
+import parsers.expr.QuantumExpression;
 
 enum ExpressionMember {
-	Basic(expr: TypedExpression);
+	Basic(expr: QuantumExpression);
 	Pass;
 	Break;
 	Continue;
 	Scope(subExpressions: Array<ScopeMember>);
-	IfStatement(expr: TypedExpression, subExpressions: Array<ScopeMember>, checkTrue: Bool);
+	IfStatement(expr: QuantumExpression, subExpressions: Array<ScopeMember>, checkTrue: Bool);
 	IfElseStatement(ifStatement: ExpressionMember, elseExpressions: Array<ScopeMember>);
 	IfElseIfChain(ifStatements: Array<ExpressionMember>, elseExpressions: Null<Array<ScopeMember>>);
-	Loop(expr: Null<TypedExpression>, subExpressions: Array<ScopeMember>, checkTrue: Bool);
-	ReturnStatement(expr: TypedExpression);
+	Loop(expr: Null<QuantumExpression>, subExpressions: Array<ScopeMember>, checkTrue: Bool);
+	ReturnStatement(expr: QuantumExpression);
 }
 
 class ExpressionMemberHelper {

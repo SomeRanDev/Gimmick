@@ -32,6 +32,18 @@ class ScopeMemberCollection {
 		return members.iterator();
 	}
 
+	public function at(index: Int): ScopeMember {
+		return members[index];
+	}
+
+	public function replace(index: Int, scopeMember: ScopeMember): Bool {
+		if(index >= 0 && index < members.length) {
+			members[index] = scopeMember;
+			return true;
+		}
+		return false;
+	}
+
 	public function find(name: String): Null<ScopeMember> {
 		for(member in members) {
 			switch(member.type) {

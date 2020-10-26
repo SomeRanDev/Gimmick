@@ -206,7 +206,7 @@ class Parser {
 			}
 			case AttributeInstance(attr, params): {
 				if(attr.compiler) {
-					scope.addMember(new ScopeMember(CompilerAttribute(attr)));
+					scope.addMember(new ScopeMember(CompilerAttribute(attr, params)));
 				} else {
 					scope.addAttributeInstance(module);
 				}

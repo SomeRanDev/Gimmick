@@ -4,22 +4,17 @@
 
 namespace A {
 
-int athing = 1;
-std::tuple<int, int> qweqweq;
+int athing = 0;
+const std::tuple<int, int> qweqweq;
 
 }
 
-int bla = 32;
+int bla = 0;
 
-std::string bla2() {
-	return "test";
+int bla2() {
+	return toCpp();
 }
 
 std::string toCpp() {
-	return bla2() + "test";
-}
-
-int main_alt() {
-	A::qweqweq = std::make_tuple(A::athing, 1111);
-	return 0;
+	return bla2();
 }

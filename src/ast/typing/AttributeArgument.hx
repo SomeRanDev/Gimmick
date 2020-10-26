@@ -3,6 +3,7 @@ package ast.typing;
 import ast.typing.Type;
 
 import parsers.expr.Expression;
+import parsers.expr.Position;
 
 enum AttributeArgumentType {
 	Raw;
@@ -23,11 +24,13 @@ class AttributeArgument {
 	public var type(default, null): AttributeArgumentType;
 	public var optional(default, null): Bool;
 	public var expr(default, null): Null<Expression>;
+	public var position(default, null): Position;
 
-	public function new(name: String, type: AttributeArgumentType, optional: Bool, expr: Null<Expression>) {
+	public function new(name: String, type: AttributeArgumentType, optional: Bool, position: Position, expr: Null<Expression>) {
 		this.name = name;
 		this.type = type;
 		this.optional = optional;
+		this.position = position;
 		this.expr = expr;
 	}
 

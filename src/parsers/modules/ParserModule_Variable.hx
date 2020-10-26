@@ -57,7 +57,7 @@ class ParserModule_Variable extends ParserModule {
 			var typedExpr = null;
 			var exprType: Null<Type> = null;
 			if(expr != null) {
-				typedExpr = expr.getType(parser, isPrelim);
+				typedExpr = expr.getType(parser, true);
 				if(typedExpr != null) {
 					exprType = typedExpr.getType();
 					if(isPrelim && exprType == null) {
@@ -68,7 +68,7 @@ class ParserModule_Variable extends ParserModule {
 
 			if(type == null) {
 				type = exprType;
-			} else if(!isPrelim && exprType != null) {
+			}/* else if(!isPrelim && exprType != null) {
 				final err = type.canBeAssigned(exprType);
 				if(err != null) {
 					final typeStr = type == null ? "" : type.toString();
@@ -76,16 +76,16 @@ class ParserModule_Variable extends ParserModule {
 					Error.addErrorFromPos(err, equalsPos, [exprStr, typeStr]);
 					return null;
 				}
-			}
+			}*/
 
 			if(type != null && word == "const") {
 				type.setConst();
 			}
 
-			if(type == null && expr == null) {
+			/*if(type == null && expr == null) {
 				Error.addError(ErrorType.CannotDetermineVariableType, parser, varNameStart);
 				return null;
-			}
+			}*/
 
 			if(!parser.parseNextExpressionEnd()) {
 				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
@@ -99,7 +99,7 @@ class ParserModule_Variable extends ParserModule {
 
 			parser.onTypeUsed(finalType, parser.scope.isTopLevel());
 
-			return Variable(new VariableMember(name, finalType, isStatic, position, typedExpr, varMemberType));
+			return Variable(new VariableMember(name, finalType, isStatic, position, expr, varMemberType));
 		}
 
 		return null;

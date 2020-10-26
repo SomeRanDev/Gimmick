@@ -15,10 +15,6 @@ attribute RequireInclude(content: raw, useBrackets: bool);
 ###
 compiler attribute globalAll;
 
-compiler attribute bla:
-	def bla -> int:
-		return 0;
-
 @globalAll;
 
 attribute untyped;

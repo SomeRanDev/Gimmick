@@ -5,6 +5,7 @@ import basic.Ref;
 import ast.scope.members.MemberLocation;
 
 import parsers.expr.Position;
+import parsers.expr.QuantumExpression;
 using parsers.expr.TypedExpression;
 import parsers.expr.InfixOperator.InfixOperators;
 
@@ -16,12 +17,12 @@ class VariableMember {
 	public var type(default, null): Type;
 	public var isStatic(default, null): Bool;
 	public var position(default, null): Position;
-	public var expression(default, null): Null<TypedExpression>;
+	public var expression(default, null): Null<QuantumExpression>;
 	public var memberLocation(default, null): MemberLocation;
 
 	var ref: Null<Ref<VariableMember>>;
 
-	public function new(name: String, type: Type, isStatic: Bool, position: Position, expression: Null<TypedExpression>, memberLocation: MemberLocation) {
+	public function new(name: String, type: Type, isStatic: Bool, position: Position, expression: Null<QuantumExpression>, memberLocation: MemberLocation) {
 		this.name = name;
 		this.type = type;
 		this.isStatic = isStatic;
@@ -45,7 +46,14 @@ class VariableMember {
 	}
 
 	public function shouldSplitAssignment(): Bool {
-		return expression != null && !expression.isConst();
+		if(expression == null) {
+			return false;
+		}
+		final texpr = switch(expression) {
+			case Untyped(_): null;
+			case Typed(texpr): texpr;
+		}
+		return texpr != null && !texpr.isConst();
 	}
 
 	public function cloneWithoutExpression(): VariableMember {
@@ -58,13 +66,20 @@ class VariableMember {
 		if(expression == null) {
 			return null;
 		}
+		final texpr = switch(expression) {
+			case Untyped(_): null;
+			case Typed(texpr): texpr;
+		}
+		if(texpr == null) {
+			return null;
+		}
 		var namespaces = null;
 		switch(memberLocation) {
 			case TopLevel(n): namespaces = n;
 			default: {}
 		}
 		final lexpr = TypedExpression.Value(Literal.Name(name, namespaces), position, Type.Unknown());
-		final assign = TypedExpression.Infix(InfixOperators.Assignment, lexpr, expression, position, type);
+		final assign = TypedExpression.Infix(InfixOperators.Assignment, lexpr, texpr, position, type);
 		return ExpressionMember.Basic(assign);
 	}
 }

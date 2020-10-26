@@ -2,6 +2,7 @@ package transpiler.modules;
 
 import parsers.expr.TypedExpression;
 import parsers.expr.CallOperator.CallOperators;
+import parsers.expr.QuantumExpression.QuantumExpressionInternal;
 
 import ast.typing.Type;
 
@@ -20,7 +21,10 @@ class TranspileModule_Expression {
 	public static function transpileExprMember(expr: ExpressionMember, context: TranspilerContext, tabLevel: Int): String {
 		switch(expr) {
 			case Basic(expr): {
-				return transpileExpr(expr, context) + ";";
+				return switch(expr) {
+					case Untyped(_): "";
+					case Typed(texpr): transpileExpr(texpr, context) + ";";
+				}
 			}
 			case Pass: return "";
 			case Break: return "break;";
@@ -32,11 +36,21 @@ class TranspileModule_Expression {
 				if(expr == null) {
 					return "while(true) " + transpileScope(subExpressions, context, tabLevel);
 				} else {
-					return "while(" + transpileExpr(expr, context) + ") " + transpileScope(subExpressions, context, tabLevel);
+					final exprStr = switch(expr) {
+						case Untyped(_): null;
+						case Typed(texpr): transpileExpr(texpr, context);
+					}
+					if(exprStr == null) return "";
+					return "while(" + exprStr + ") " + transpileScope(subExpressions, context, tabLevel);
 				}
 			}
 			case IfStatement(expr, subExpressions, checkTrue): {
-				var result = "if(" + transpileExpr(expr, context) + ") " + transpileScope(subExpressions, context, tabLevel);
+				final exprStr = switch(expr) {
+					case Untyped(_): null;
+					case Typed(texpr): transpileExpr(texpr, context);
+				}
+				if(exprStr == null) return "";
+				var result = "if(" + exprStr + ") " + transpileScope(subExpressions, context, tabLevel);
 				return result;
 			}
 			case IfElseStatement(ifExpr, subExpressions): {
@@ -56,7 +70,12 @@ class TranspileModule_Expression {
 				return result;
 			}
 			case ReturnStatement(expr): {
-				return "return " + transpileExpr(expr, context) + ";";
+				final exprStr = switch(expr) {
+					case Untyped(_): null;
+					case Typed(texpr): transpileExpr(texpr, context);
+				}
+				if(exprStr == null) return "";
+				return "return " + exprStr + ";";
 			}
 			default: {}
 		}

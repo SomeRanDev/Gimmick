@@ -51,6 +51,15 @@ class ParserModule_Expression extends ParserModule {
 		return null;
 	}
 
+	function getNextExpression(parser: Parser): Null<Expression> {
+		parser.parseWhitespaceOrComments();
+		final result = parser.parseExpression();
+		if(result != null) {
+			return result;
+		}
+		return null;
+	}
+
 	function getNextTypedExpression(parser: Parser): Null<TypedExpression> {
 		parser.parseWhitespaceOrComments();
 		final result = parser.parseExpression();
@@ -64,7 +73,7 @@ class ParserModule_Expression extends ParserModule {
 	}
 
 	function parseExpression(parser: Parser): Null<ExpressionMember> {
-		final expr = getNextTypedExpression(parser);
+		final expr = getNextExpression(parser);//getNextTypedExpression(parser);
 		if(expr != null) {
 			return Basic(expr);
 		}
@@ -88,7 +97,7 @@ class ParserModule_Expression extends ParserModule {
 	}
 
 	function parseReturn(parser: Parser): Null<ExpressionMember> {
-		final expr = getNextTypedExpression(parser);
+		final expr = getNextExpression(parser);//getNextTypedExpression(parser);
 		if(expr != null) {
 			return ReturnStatement(expr);
 		}
@@ -117,10 +126,10 @@ class ParserModule_Expression extends ParserModule {
 		final word = parser.parseMultipleWords(["loop", "while", "until"]);
 		final startIndex = parser.getIndex();
 		if(word != null) {
-			var expr: Null<TypedExpression> = null;
+			var expr: Null<Expression> = null;
 			if(word != "loop") {
 				final startCond = parser.getIndexFromLine();
-				expr = getNextTypedExpression(parser);
+				expr = getNextExpression(parser);//getNextTypedExpression(parser);
 				if(expr == null) {
 					Error.addError(ErrorType.ExpectedCondition, parser, startCond);
 					return null;
@@ -147,7 +156,7 @@ class ParserModule_Expression extends ParserModule {
 			parser.parseWhitespaceOrComments();
 
 			final startCond = parser.getIndexFromLine();
-			final cond = getNextTypedExpression(parser);
+			final cond = getNextExpression(parser);//getNextTypedExpression(parser);
 			if(cond == null) {
 				Error.addError(ErrorType.ExpectedCondition, parser, startCond);
 				return null;
@@ -188,10 +197,10 @@ class ParserModule_Expression extends ParserModule {
 
 				parser.parseWhitespaceOrComments();
 
-				var cond: Null<TypedExpression> = null;
+				var cond: Null<Expression> = null;
 				if(type != 0) {
 					final startCond = parser.getIndexFromLine();
-					cond = getNextTypedExpression(parser);
+					cond = getNextExpression(parser);//getNextTypedExpression(parser);
 					if(cond == null) {
 						Error.addError(ErrorType.ExpectedCondition, parser, startCond);
 						return null;

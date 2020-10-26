@@ -35,4 +35,14 @@ class TypedExpressionHelper {
 			case Value(l, _, _): l.isConst();
 		}
 	}
+
+	public static function getPosition(expr: TypedExpression): Position {
+		return switch(expr) {
+			case Prefix(_, _, pos, _): pos;
+			case Suffix(_, _, pos, _): pos;
+			case Infix(_, _, _, pos, _): pos;
+			case Value(_, pos, _): pos;
+			case Call(_, _, _, pos, _): pos;
+		};
+	}
 }

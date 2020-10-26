@@ -12,6 +12,7 @@ import io.SourceFileManager;
 import io.SourceFolderInfo;
 
 import parsers.Parser;
+import parsers.Typer;
 import parsers.Error;
 import parsers.modules.Module;
 
@@ -66,8 +67,20 @@ class SourceFile {
 			final parser = new Parser(source, manager, this, isPrelim);
 			parser.setupForSourceFile();
 			parser.beginParse();
+
+			// setup globals
+			parser.scope.checkForGlobalScopeInclusion();
+
 			members = parser.scope.getTopScope();
 			scope = parser.scope;
+
+			if(!isPrelim && members != null) {
+				// type the expressions
+				final typer = new Typer(parser);
+				typer.typeScopeCollection(members, true);
+			}
+
+			members = parser.scope.getTopScope();
 
 			if(errorCount != Error.errorCount()) {
 				// there were errors, so let's not parse this again.
@@ -126,6 +139,10 @@ class SourceFile {
 			case Tuple(_): requiredIncludes.add("tuple", header, true);
 			default: {}
 		}
+	}
+
+	public function requireInclude(content: String, header: Bool = false) {
+		requiredIncludes.add(content, header, false);
 	}
 
 	public function getRequiredIncludes(): Array<RequiredCppInclude> {

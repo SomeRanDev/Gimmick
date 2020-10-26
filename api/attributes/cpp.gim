@@ -6,7 +6,11 @@
 
 import attributes/basic;
 
+@globalAll;
+
 attribute cppRequireInclude(content: raw, useBrackets: bool);
+
+attribute global;
 
 compiler attribute cppInject(content: raw):
 	def toCpp -> string:
@@ -50,7 +54,7 @@ compiler attribute cppPragma(param: raw):
 
 compiler attribute myTets(param: raw):
 	def bla -> string:
-		return "test"
+		return "test" + toCpp()
 
 	def toCpp -> string:
 		return bla() + "test"

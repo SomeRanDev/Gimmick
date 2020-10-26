@@ -11,10 +11,10 @@ end namespace
 
 var bla = 32;
 
-def bla2 -> string:
+def bla2 -> int:
 	return toCpp()
 
 def toCpp -> string:
-	return bla2() + "test"
+	return bla2();#bla2() + "test"
 
 

@@ -2,3 +2,7 @@
 #@RequireInclude(iostream, true)
 #gimmick print(args: string list) -> string:
 #	return "cpp { std::cout << " + args.join(" << ") + " << std::endl; }";
+
+@global
+def print(a: string):
+	pass
