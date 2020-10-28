@@ -4,6 +4,7 @@ import basic.Ref;
 
 import ast.scope.members.MemberLocation;
 
+import parsers.Parser;
 import parsers.expr.Position;
 import parsers.expr.QuantumExpression;
 using parsers.expr.TypedExpression;
@@ -83,5 +84,15 @@ class VariableMember {
 				ExpressionMember.Basic(assign);
 			}
 		}
+	}
+
+	public function setTypeIfUnknown(type: Type) {
+		if(this.type.isUnknown()) {
+			this.type = type;
+		}
+	}
+
+	public function setTypedExpression(typedExpr: TypedExpression) {
+		expression = typedExpr;
 	}
 }

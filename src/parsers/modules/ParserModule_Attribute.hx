@@ -35,6 +35,7 @@ class ParserModule_Attribute extends ParserModule {
 
 			parser.parseWhitespaceOrComments();
 
+			final paramsStartGlobal = parser.getIndex();
 			final paramsStart = parser.getIndexFromLine();
 			var params: Null<Array<AttributeArgumentValue>> = null;
 			if(parser.parseNextContent("(")) {
@@ -77,7 +78,7 @@ class ParserModule_Attribute extends ParserModule {
 				}
 			}
 
-			return AttributeInstance(attr, params);
+			return AttributeInstance(attr, params, parser.makePosition(paramsStartGlobal));
 
 		} else if(parser.parseMultipleWords(["compiler", "attribute"]) != null) {
 			final initialWord = parser.lastWordParsed;
@@ -139,21 +140,13 @@ class ParserModule_Attribute extends ParserModule {
 
 			final isCompilerAttribute = initialWord == "compiler";
 
-			final attrMember = new AttributeMember(name, arguments, isCompilerAttribute);
+			final attrMember = new AttributeMember(name, arguments, isCompilerAttribute, parser.makePosition(varNameStart));
 
 			if(isCompilerAttribute) {
 				if(parser.parseNextContent(":")) {
 					parser.scope.push();
 					final members = parser.parseNextLevelContent(CompilerAttribute);
 					if(members != null) {
-						for(m in members) {
-							switch(m.type) {
-								case Function(func): {
-									//trace(func.get().name);
-								}
-								default: {}
-							}
-						}
 						attrMember.setAllMembers(members);
 					}
 					parser.scope.pop();
@@ -180,8 +173,11 @@ class ParserModule_Attribute extends ParserModule {
 		parser.parseWhitespaceOrComments();
 
 		var argStart = parser.getIndexFromLine();
+		var typeArgStart = parser.getIndexFromLine();
 		var argRealType = null;
 		if(parser.parseNextContent(":")) {
+			parser.parseWhitespaceOrComments();
+			typeArgStart = parser.getIndexFromLine();
 			argRealType = parser.parseType();
 		} else {
 			Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
@@ -195,7 +191,7 @@ class ParserModule_Attribute extends ParserModule {
 
 		var argType = convertTypeToAttributeType(argRealType.type);
 		if(argType == null) {
-			Error.addError(ErrorType.InvalidTypeForAttribute, parser, argStart);
+			Error.addError(ErrorType.InvalidTypeForAttribute, parser, typeArgStart);
 			return null;
 		}
 
@@ -226,6 +222,15 @@ class ParserModule_Attribute extends ParserModule {
 			case String: {
 				AttributeArgumentType.String;
 			}
+			case List(l): {
+				final internal = convertTypeToAttributeType(l.type, true);
+				if(internal != null) {
+					AttributeArgumentType.List(internal);
+				} else {
+					null;
+				}
+			}
+			/*
 			case Class(cls, typeParams): {
 				if(recursive) {
 					null;
@@ -242,6 +247,7 @@ class ParserModule_Attribute extends ParserModule {
 					}
 				}
 			}
+			*/
 			default: null;
 		}
 	}

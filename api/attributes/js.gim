@@ -1,0 +1,14 @@
+# =================================================
+# * JS Attributes
+#
+# Attributes related to JS transpiling.
+# =================================================
+
+import attributes/basic;
+
+@globalAll;
+
+# If transpiling to JS, this attribute will be replaced with the content in the parameter.
+compiler attribute jsInject(content: raw):
+	def toJs -> string:
+		return content;

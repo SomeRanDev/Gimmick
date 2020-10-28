@@ -43,6 +43,20 @@ class CallOperator extends Operator {
 				}
 				result;
 			}
+			case String: {
+				if(op == "[") {
+					type;
+				} else {
+					null;
+				}
+			}
+			case List(t): {
+				if(op == "[") {
+					t;
+				} else {
+					null;
+				}
+			}
 			default: null;
 		}
 

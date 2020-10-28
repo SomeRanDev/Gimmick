@@ -80,7 +80,7 @@ class SourceFile {
 				typer.typeScopeCollection(members, true);
 			}
 
-			members = parser.scope.getTopScope();
+			//members = parser.scope.getTopScope();
 
 			if(errorCount != Error.errorCount()) {
 				// there were errors, so let's not parse this again.

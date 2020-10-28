@@ -8,53 +8,55 @@ import attributes/basic;
 
 @globalAll;
 
+# Automatically adds include statement to the file when the function/class is used.
 attribute cppRequireInclude(content: raw, useBrackets: bool);
 
-attribute global;
-
+# If transpiling to C++, this attribute will be replaced with the content in the parameter.
 compiler attribute cppInject(content: raw):
 	def toCpp -> string:
 		return content;
 
+# Adds a C++ define statement provided a name and value.
 compiler attribute cppDefine(content: raw, value: raw):
 	def toCpp -> string:
 		return "#define " + content + " " + value;
 
+# Adds an undefine statement in C++ output.
 compiler attribute cppUndef(content: raw):
 	def toCpp -> string:
 		return "#undef " + content;
 
+# Adds an if-defined statement in C++ output.
 compiler attribute cppIfDef(name: raw):
 	def toCpp -> string:
 		return "#ifdef " + name;
 
+# Adds an if-not-defined statement in C++ output.
 compiler attribute cppIfNDef(name: raw):
 	def toCpp -> string:
 		return "#ifndef " + name;
 
+# Adds a macro if statement in C++ output.
 compiler attribute cppIf(cond: raw):
 	def toCpp -> string:
 		return "#if " + cond;
 
+# Adds a macro else-if statement in C++ output.
 compiler attribute cppElif(cond: raw):
 	def toCpp -> string:
 		return "#elif " + cond;
 
+# Adds a macro else statement in C++ output.
 compiler attribute cppElse:
 	def toCpp -> string:
 		return "#else";
 
+# Adds a macro end-if statement in C++ output.
 compiler attribute cppEndIf:
 	def toCpp -> string:
 		return "#endif";
 
+# Adds a pragma statement in C++ output.
 compiler attribute cppPragma(param: raw):
 	def toCpp -> string:
 		return "#pragma " + param;
-
-compiler attribute myTets(param: raw):
-	def bla -> string:
-		return "test" + toCpp()
-
-	def toCpp -> string:
-		return bla() + "test"

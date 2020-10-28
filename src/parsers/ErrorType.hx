@@ -52,9 +52,18 @@ enum abstract ErrorType(Int) from Int to Int {
 	var InvalidTypeForAttribute = 17010;
 	var UnknownAttribute = 17020;
 	var AttributeArgumentsMismatch = 17030;
+	var MissingCompilerAttributeParameter = 17040;
 
 	var InterpreterUnknownLiteral = 20000;
+	var InterpreterLiteralListValuesDoNotMatch = 20010;
+	var InterpreterInvalidLExpr = 20020;
+	var InterpreterCannotAssignDifferentTypes = 20030;
 	var InterpreterMustReturnBool = 20100;
+	var InterpreterCannotCallType = 20200;
+	var InterpreterArrayAccessExpectsOneNumber = 20300;
+	var InterpreterAccessOutsideStringSize = 20310;
+	var InterpreterAccessOutsideArraySize = 20311;
+	var InterpreterInvalidAccessor = 20400;
 
 	public function getErrorMessage(): String {
 		switch(this) {
@@ -107,9 +116,20 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidTypeForAttribute: return "Invalid type for attribute.";
 			case UnknownAttribute: return "Unknown attribute.";
 			case AttributeArgumentsMismatch: return "Invalid arguments for attribute.";
+			case MissingCompilerAttributeParameter: return "Missing compiler attribute parameter #%1: '%2'.";
 
 			case InterpreterUnknownLiteral: return "Unknown value encountered.";
+			case InterpreterLiteralListValuesDoNotMatch: return "List types do not match. Expected '%1'. not '%2'.";
+			case InterpreterInvalidLExpr: return "Invalid left-expression for assignment.";
+			case InterpreterCannotAssignDifferentTypes: return "Cannot assign '%1' to '%2' variable.";
 			case InterpreterMustReturnBool: return "Expression should return bool, not '%1'.";
+			case InterpreterCannotCallType: return "Cannot call type '%1'.";
+			case InterpreterArrayAccessExpectsOneNumber: return "Single number value expected for array access.";
+
+			case InterpreterAccessOutsideStringSize: return "Access made outside string size (index: %1, size: %2).";
+			case InterpreterAccessOutsideArraySize: return "Access made outside array size (index: %1, size: %2).";
+
+			case InterpreterInvalidAccessor: return "Invalid accessor value.";
 		}
 		return "";
 	}
@@ -165,9 +185,20 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidTypeForAttribute: return "invalid type for attribute";
 			case UnknownAttribute: return "unknown attribute";
 			case AttributeArgumentsMismatch: return "invalid arguments";
+			case MissingCompilerAttributeParameter: return "missing compiler attribute parameter";
 
 			case InterpreterUnknownLiteral: return "unknown value";
+			case InterpreterLiteralListValuesDoNotMatch: return "list value types do not match";
+			case InterpreterInvalidLExpr: "invalid lexpr";
+			case InterpreterCannotAssignDifferentTypes: return "cannot assign mismatched types";
 			case InterpreterMustReturnBool: return "expression doesn't return bool";
+			case InterpreterCannotCallType: return "cannot call variable";
+			case InterpreterArrayAccessExpectsOneNumber: return "single number expected";
+
+			case InterpreterAccessOutsideStringSize: return "accessed outside string size";
+			case InterpreterAccessOutsideArraySize: return "accessed outside array size";
+
+			case InterpreterInvalidAccessor: return "invalid accessor value";
 		}
 		return "";
 	}

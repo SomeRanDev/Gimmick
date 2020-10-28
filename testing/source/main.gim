@@ -1,6 +1,31 @@
 
 import alt
 
+compiler attribute myAttribute(someInput: string, bla: string list):
+	def toCpp -> string:
+		someInput = bla[0]
+		###if someInput.length == 3:
+			return "got something"
+		else:
+			return "got nothing"###
+		return "test"
+
+@myAttribute("fjdkl", ["dsa"]);
+
 var a = 32
 
-var b = bla;
+@if(js == false) var b = bla;
+
+@untyped scope:
+	d.df = 43
+	if bfkld:
+		print("FUDFKDL")
+
+scope:
+	if a == 32:
+		a++
+
+if a == 32:
+	@untyped b::gf++
+
+print("fd")

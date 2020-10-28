@@ -12,13 +12,14 @@ import ast.scope.members.AttributeMember;
 import ast.typing.AttributeArgument.AttributeArgumentValue;
 
 import parsers.expr.Expression;
+import parsers.expr.Position;
 
 enum Module {
 	Variable(variable: VariableMember);
 	Function(func: FunctionMember);
 	GetSet(getset: GetSetMember);
 	Attribute(attribute: AttributeMember);
-	AttributeInstance(instanceOf: AttributeMember, params: Null<Array<AttributeArgumentValue>>);
+	AttributeInstance(instanceOf: AttributeMember, params: Null<Array<AttributeArgumentValue>>, position: Position);
 	Import(path: String, mainFunction: Null<Ref<FunctionMember>>);
 	Expression(expr: ExpressionMember);
 	NamespaceStart(name: Array<String>);

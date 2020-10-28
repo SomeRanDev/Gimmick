@@ -3,6 +3,4 @@
 
 extern int bla;
 
-int main_alt();
-
 #endif

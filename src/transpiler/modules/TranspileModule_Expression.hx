@@ -88,7 +88,7 @@ class TranspileModule_Expression {
 		for(i in 0...tabLevel) tabs += "\t";
 		for(e in exprs) {
 			if(e.isPass()) continue;
-			result += tabs + "\t" + TranspileModule_Function.transpileFunctionMember(e, context, tabLevel) + "\n";
+			result += tabs + "\t" + TranspileModule_Function.transpileFunctionMember(e, context, tabLevel + 1) + "\n";
 		}
 		result += tabs + "}";
 		return result;

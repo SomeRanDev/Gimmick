@@ -4,4 +4,5 @@ enum ParserMode {
 	SourceFile;
 	Function;
 	CompilerAttribute;
+	Modify;
 }

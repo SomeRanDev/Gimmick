@@ -163,7 +163,7 @@ class Scope {
 			if(first.length != 0) {
 				for(a in first) {
 					switch(a) {
-						case AttributeInstance(instanceOf, params): {
+						case AttributeInstance(instanceOf, params, _): {
 							member.addAttributeInstance(instanceOf, params);
 						}
 						default: {}
@@ -189,6 +189,7 @@ class Scope {
 		// at the top level, we need to split it into two.
 		// One for the declaration, and one for the assignment
 		// in the main function itself.
+		/*
 		var splitVarMember: Null<VariableMember> = null;
 		switch(member.type) {
 			case Variable(variable): {
@@ -198,11 +199,12 @@ class Scope {
 			}
 			default: {}
 		}
-		if(splitVarMember != null) {
-			addVarWithAssignTopLevelMember(splitVarMember);
-		} else {
+		*/
+		//if(splitVarMember != null) {
+		//	addVarWithAssignTopLevelMember(splitVarMember);
+		//} else {
 			addNormalTopLevelMember(member);
-		}
+		//}
 		
 	}
 
@@ -231,6 +233,13 @@ class Scope {
 		}
 	}
 
+	public function ensureMainExists() {
+		if(mainFunction == null) {
+			final funcType = new FunctionType([], Type.Number(Int));
+			mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null));
+		}
+	}
+
 	public function addExpressionMember(member: ExpressionMember) {
 		/*if(stackSize == 1 && file.usesMainFunction()) {
 			if(mainFunction == null) {
@@ -247,10 +256,7 @@ class Scope {
 			addMember(new ScopeMember(Expression(member)));
 		}*/
 
-		if(mainFunction == null) {
-			final funcType = new FunctionType([], Type.Number(Int));
-			mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null));
-		}
+		ensureMainExists();
 
 		final scopeMember = new ScopeMember(Expression(member));
 		attachAttributesToMember(scopeMember);
@@ -537,6 +543,7 @@ class Scope {
 			case "raw": return Type.Any();
 			case "void": return Type.Void();
 			case "bool": return Type.Boolean();
+			case "list": return Type.List(Type.Void());
 			case "ptr": return Type.Pointer(Type.Void());
 			case "ref": return Type.Reference(Type.Void());
 			case "string": return Type.String();

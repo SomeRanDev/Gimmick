@@ -24,6 +24,9 @@ class InfixOperator extends Operator {
 						default: {}
 					}
 				}
+				case String: {
+					
+				}
 				default: {}
 			}
 		}
@@ -54,6 +57,9 @@ class InfixOperator extends Operator {
 			return ltype.canBeAssigned(rtype) == null ? ltype : null;
 		}
 
+		if((op == "==" || op == "!=") && ltype.baseTypesEqual(rtype)) {
+			return ltype;
+		}
 		if(ltype.bothSameAndNotNull(rtype)) {
 			final defaultsTest = switch(ltype.type) {
 				case Number(numType): ltype;
@@ -81,6 +87,7 @@ class InfixOperator extends Operator {
 class InfixOperators {
 	public static var DotAccess = new InfixOperator(".", 0xf000);
 	public static var ArrowAccess = new InfixOperator("->", 0xf000);
+	public static var StaticAccess = new InfixOperator("::", 0xf000);
 
 	public static var Multiply = new InfixOperator("*", 0xd000);
 	public static var Divide = new InfixOperator("/", 0xd000);
@@ -123,7 +130,7 @@ class InfixOperators {
 
 	public static function all(): Array<InfixOperator> {
 		return [
-			DotAccess, ArrowAccess,
+			DotAccess, ArrowAccess, StaticAccess,
 			Multiply, Divide, Mod,
 			Add, Subtract,
 			BitLeft, BitRight,

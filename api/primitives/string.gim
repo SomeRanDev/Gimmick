@@ -1,0 +1,15 @@
+# =================================================
+# * String
+#
+# Methods available to the string primitive.
+# =================================================
+
+###
+modify string:
+	get length -> int:
+		@untyped return this.length;
+###
+
+modify string:
+	get length -> int:
+		@untyped return this.length;

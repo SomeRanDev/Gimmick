@@ -4,19 +4,11 @@
 # Attributes built into the compiler.
 # =================================================
 
-##isolated attribute globalAll;
-
-#@globalAll;
-
-#isolated attribute jsInject(content: raw);
-
-###
-attribute RequireInclude(content: raw, useBrackets: bool);
-###
 compiler attribute globalAll;
 
 @globalAll;
 
+attribute global;
 attribute untyped;
 attribute inline;
 

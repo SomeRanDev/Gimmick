@@ -24,6 +24,17 @@ class RuntimeScope {
 		return scope;
 	}
 
+	public function fromTopScope(): RuntimeScope {
+		var s = null;
+		for(_s in stack) {
+			s = _s;
+		}
+		if(s != null) {
+			return fromMap(s);
+		}
+		return new RuntimeScope();
+	}
+
 	public function add(name: String, value: Variant) {
 		final first = stack.first();
 		if(first != null) {
@@ -38,6 +49,15 @@ class RuntimeScope {
 			}
 		}
 		return null;
+	}
+
+	public function replace(name: String, value: Variant) {
+		for(s in stack) {
+			if(s.exists(name)) {
+				s.set(name, value);
+				break;
+			}
+		}
 	}
 
 	public function push() {

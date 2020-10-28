@@ -10,7 +10,7 @@ enum QuantumExpressionInternal {
 }
 
 abstract QuantumExpression(QuantumExpressionInternal) from QuantumExpressionInternal to QuantumExpressionInternal {
-	inline function new(i: QuantumExpressionInternal) {
+	public inline function new(i: QuantumExpressionInternal) {
 		this = i;
 	}
 
@@ -26,10 +26,10 @@ abstract QuantumExpression(QuantumExpressionInternal) from QuantumExpressionInte
 		return new QuantumExpression(Typed(_typed));
 	}
 
-	public function typeExpression(parser: Parser): Null<QuantumExpression> {
+	public function typeExpression(parser: Parser, typeless: Bool): Null<QuantumExpression> {
 		return switch(this) {
 			case Untyped(e): {
-				final typed = e.getType(parser, false);
+				final typed = e.getType(parser, typeless ? Typeless : Normal);
 				if(typed != null) {
 					fromTyped(typed);
 				} else {

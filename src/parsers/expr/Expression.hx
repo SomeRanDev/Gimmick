@@ -21,11 +21,19 @@ enum Expression {
 	Value(literal: Literal, pos: Position);
 }
 
+enum TypingMode {
+	Normal;
+	Preliminary;
+	Typeless;
+}
+
 class ExpressionHelper {
-	public static function getType(expression: Expression, parser: Parser, isPrelim: Bool, accessor: Null<Type> = null, incrementCall: Bool = false): Null<TypedExpression> {
+	public static function getType(expression: Expression, parser: Parser, mode: TypingMode = Normal, accessor: Null<Type> = null, incrementCall: Bool = false): Null<TypedExpression> {
+		final isPrelim = mode != Normal;
+		final isUntyped = mode == Typeless;
 		switch(expression) {
 			case Prefix(op, expr, pos): {
-				final typedExpr = getType(expr, parser, isPrelim);
+				final typedExpr = getType(expr, parser, mode);
 				if(typedExpr != null) {
 					final result = op.findReturnType(typedExpr.getType());
 					if(result != null) {
@@ -38,7 +46,7 @@ class ExpressionHelper {
 				return null;
 			}
 			case Suffix(op, expr, pos): {
-				final typedExpr = getType(expr, parser, isPrelim);
+				final typedExpr = getType(expr, parser, mode);
 				if(typedExpr != null) {
 					final type = typedExpr.getType();
 					final result = op.findReturnType(type);
@@ -52,9 +60,9 @@ class ExpressionHelper {
 				return null;
 			}
 			case Infix(op, lexpr, rexpr, pos): {
-				final lexprTyped = getType(lexpr, parser, isPrelim);
+				final lexprTyped = getType(lexpr, parser, mode);
 				if(lexprTyped != null) {
-					final rexprTyped = getType(rexpr, parser, isPrelim, op.isAccessor() ? lexprTyped.getType() : null);
+					final rexprTyped = getType(rexpr, parser, mode, op.isAccessor() ? lexprTyped.getType() : null);
 					if(rexprTyped != null) {
 						final rType = rexprTyped.getType();
 						final lType = lexprTyped.getType();
@@ -71,12 +79,12 @@ class ExpressionHelper {
 				return null;
 			}
 			case Call(op, expr, params, pos): {
-				final typedExpr = getType(expr, parser, isPrelim, null, op == CallOperators.Call);
+				final typedExpr = getType(expr, parser, mode, null, op == CallOperators.Call);
 				if(typedExpr != null) {
 
 					final typedParams: Array<TypedExpression> = [];
 					for(p in params) {
-						final r = getType(p, parser, isPrelim);
+						final r = getType(p, parser, mode);
 						if(r != null) {
 							typedParams.push(r);
 						}
@@ -94,7 +102,7 @@ class ExpressionHelper {
 				return null;
 			}
 			case Value(literal, pos): {
-				var result = Type.fromLiteral(literal, parser.scope);
+				var result = isUntyped ? Type.Any() : Type.fromLiteral(literal, parser.scope);
 				if(result != null) {
 					var replacement: Null<Literal> = null;
 					var varName: Null<String> = null;

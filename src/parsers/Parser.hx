@@ -32,6 +32,7 @@ import parsers.modules.ParserModule_Expression;
 import parsers.modules.ParserModule_Namespace;
 import parsers.modules.ParserModule_Function;
 import parsers.modules.ParserModule_Attribute;
+import parsers.modules.ParserModule_Modify;
 
 class Parser {
 	public var content(default, null): String;
@@ -204,9 +205,9 @@ class Parser {
 			case Attribute(attr): {
 				scope.addAttribute(attr);
 			}
-			case AttributeInstance(attr, params): {
+			case AttributeInstance(attr, params, pos): {
 				if(attr.compiler) {
-					scope.addMember(new ScopeMember(CompilerAttribute(attr, params)));
+					scope.addMember(new ScopeMember(CompilerAttribute(attr, params, pos)));
 				} else {
 					scope.addAttributeInstance(module);
 				}
@@ -320,6 +321,7 @@ class Parser {
 			ParserModule_Namespace.it,
 			ParserModule_Function.it,
 			ParserModule_Variable.it,
+			ParserModule_Modify.it,
 			ParserModule_Expression.it
 		];
 	}
@@ -334,6 +336,12 @@ class Parser {
 	}
 
 	public function getMode_CompilerAttribute(): Array<ParserModule> {
+		return [
+			ParserModule_Function.it
+		];
+	}
+
+	public function getMode_Modify(): Array<ParserModule> {
 		return [
 			ParserModule_Function.it
 		];
@@ -520,6 +528,7 @@ class Parser {
 			case SourceFile: getMode_SourceFile();
 			case Function: getMode_Function();
 			case CompilerAttribute: getMode_CompilerAttribute();
+			case Modify: getMode_Modify();
 		}
 		final currLine = getLineNumber();
 		parseWhitespaceOrComments();

@@ -24,6 +24,7 @@ enum TypeType {
 	Boolean;
 	Number(type: NumberType);
 	String;
+	List(type: Type);
 	Pointer(type: Type);
 	Reference(type: Type);
 	Function(func: Ref<FunctionType>, typeParams: Null<Array<Type>>);
@@ -69,6 +70,13 @@ class Type {
 		isOptional = true;
 	}
 
+	public function isUnknown(): Bool {
+		return switch(type) {
+			case TypeType.Unknown: true;
+			default: false;
+		}
+	}
+
 	public function canBeAssigned(other: Type): Null<ErrorType> {
 		if(!baseTypesEqual(other)) {
 			return ErrorType.CannotAssignThisTypeToThatType;
@@ -104,6 +112,10 @@ class Type {
 
 	public static function String(isConst: Bool = false, isOptional: Bool = false): Type {
 		return new Type(TypeType.String, isConst, isOptional);
+	}
+
+	public static function List(type: Type, isConst: Bool = false, isOptional: Bool = false): Type {
+		return new Type(TypeType.List(type), isConst, isOptional);
 	}
 
 	public static function Pointer(type: Type, isConst: Bool = false, isOptional: Bool = false): Type {
@@ -190,6 +202,9 @@ class Type {
 			case TypeType.Class(cls, _): {
 				TypeType.Class(cls, typeParams);
 			}
+			case TypeType.List(type): {
+				TypeType.List(typeParams.length > 0 ? typeParams[0] : type);
+			}
 			case TypeType.Pointer(type): {
 				TypeType.Pointer(typeParams.length > 0 ? typeParams[0] : type);
 			}
@@ -215,6 +230,9 @@ class Type {
 			}
 			case TypeType.Class(cls, typeParams): {
 				TypeType.Class(cls, typeParams == null ? [param] : [param].concat(typeParams));
+			}
+			case TypeType.List(type): {
+				TypeType.List(param);
 			}
 			case TypeType.Pointer(type): {
 				TypeType.Pointer(param);
@@ -272,6 +290,12 @@ class Type {
 			}
 			case TypeType.Number(num): {
 				result += Std.string(num).toLowerCase();
+			}
+			case TypeType.String: {
+				result += "string";
+			}
+			case TypeType.List(t): {
+				result += "list<" + t.toString() + ">";
 			}
 			case TypeType.Function(func, typeParams): {
 				final funcType = func.get();

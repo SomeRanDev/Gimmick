@@ -22,6 +22,7 @@ using interpreter.Variant;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
+import parsers.expr.Position;
 
 import transpiler.TranspilerContext;
 
@@ -37,7 +38,7 @@ enum ScopeMemberType {
 	InfixOperator(op: InfixOperator, func: Ref<FunctionMember>);
 	Expression(expr: ExpressionMember);
 	Attribute(attr: AttributeMember);
-	CompilerAttribute(attr: AttributeMember, params: Null<Array<AttributeArgumentValue>>);
+	CompilerAttribute(attr: AttributeMember, params: Null<Array<AttributeArgumentValue>>, position: Position);
 }
 
 class ScopeMemberAttribute {
@@ -57,6 +58,10 @@ class ScopeMember {
 	public function new(type: ScopeMemberType) {
 		this.type = type;
 		attributes = [];
+	}
+
+	public function setAttributes(attributes: Array<ScopeMemberAttribute>) {
+		this.attributes = attributes;
 	}
 
 	public function addAttributeInstance(instanceOf: AttributeMember, params: Null<Array<AttributeArgumentValue>>) {
@@ -85,6 +90,15 @@ class ScopeMember {
 	public function isGlobal(): Bool {
 		for(a in attributes) {
 			if(a.instanceOf.name == "global") {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public function isUntyped(): Bool {
+		for(a in attributes) {
+			if(a.instanceOf.name == "untyped") {
 				return true;
 			}
 		}

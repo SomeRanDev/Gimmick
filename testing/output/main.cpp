@@ -1,13 +1,30 @@
 #include "main.h"
 
+#include "api/print.h"
+
 #include "alt.h"
 
-int a = 0;
+test
+
+int a = 32;
 int b = 0;
 
 int main() {
-	main_alt();
-	a = 32;
 	b = bla;
+	{
+		d.df = 43;
+		if(bfkld) {
+			print("FUDFKDL");
+		}
+	}
+	{
+		if(a == 32) {
+			a++;
+		}
+	}
+	if(a == 32) {
+		b::gf++;
+	}
+	print("fd");
 	return 0;
 }

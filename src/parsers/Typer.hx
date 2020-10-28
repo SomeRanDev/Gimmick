@@ -1,5 +1,7 @@
 package parsers;
 
+import basic.Ref;
+
 import ast.scope.ScopeMember;
 import ast.scope.ExpressionMember;
 import ast.scope.ScopeMemberCollection;
@@ -9,14 +11,18 @@ import ast.typing.FunctionType;
 import ast.typing.Type;
 
 import parsers.Parser;
-import parsers.expr.TypedExpression;
+using parsers.expr.TypedExpression;
 using parsers.expr.QuantumExpression;
 
 class Typer {
 	public var parser(default, null): Parser;
 
+	var typeless: Bool;
+
 	public function new(parser: Parser) {
 		this.parser = parser;
+		typeless = false;
+
 		@:privateAccess for(attr in parser.scope.attributes) {
 			final a = attr.toAttribute();
 			if(a.members != null) {
@@ -49,10 +55,19 @@ class Typer {
 	public function typeScopeNoPush(members: Array<ScopeMember>): Array<ScopeMember> {
 		final allMembers: Array<ScopeMember> = [];
 		for(i in 0...members.length) {
-			final result = typeScopeMember(members[i]);
+			final mem = members[i];
+			var returnToTyped = false;
+			if(!typeless) {
+				typeless = mem.isUntyped();
+				returnToTyped = typeless;
+			}
+			final result = typeScopeMember(mem);
 			if(result != null) {
 				//members[i] = result;
 				allMembers.push(result);
+			}
+			if(returnToTyped) {
+				typeless = false;
 			}
 		}
 		return allMembers;
@@ -80,6 +95,7 @@ class Typer {
 								parser.scope.mainFunction.incrementCallCount();
 							}
 						}*/
+						parser.scope.ensureMainExists();
 						if(parser.scope.mainFunction != null) {
 							parser.scope.mainFunction.addMember(member);
 						}
@@ -100,8 +116,46 @@ class Typer {
 				//pushMutlipleNamespaces
 			}
 			case Variable(vari): {
-				parser.scope.addMember(member);
-				return member;
+				final untypedExpr = vari.get().expression;
+				if(untypedExpr != null) {
+					final quantumTypedExpr = untypedExpr.typeExpression(parser, typeless);
+					var typedExpr: Null<TypedExpression> = null;
+					if(quantumTypedExpr != null) {
+						switch(quantumTypedExpr) {
+							case Typed(texpr): {
+								vari.get().setTypedExpression(texpr);
+								vari.get().setTypeIfUnknown(texpr.getType());
+								typedExpr = texpr;
+							}
+							default: {}
+						}
+					}
+				}
+
+				final file = parser.scope.file;
+				@:privateAccess if(vari.get().shouldSplitAssignment() && parser.scope.stackSize == 1 && file.usesMainFunction()) {
+					final varMember = new ScopeMember(Variable(new Ref(vari.get().cloneWithoutExpression())));
+					varMember.setAttributes(member.attributes);
+					//attachAttributesToMember(varMember, false);
+					//addNormalTopLevelMember(varMember);
+
+					// add expression
+					final expr = vari.get().constructAssignementExpression();
+					if(expr != null) {
+						parser.scope.ensureMainExists();
+						if(parser.scope.mainFunction != null) {
+							final exprMember = new ScopeMember(Expression(expr));
+							exprMember.setAttributes(member.attributes);
+							parser.scope.mainFunction.addMember(exprMember);
+						}
+					}
+
+					parser.scope.addMember(varMember);
+					return varMember;
+				} else {
+					parser.scope.addMember(member);
+					return member;
+				}
 			}
 			case Function(func): {
 				final funcMember = func.get();
@@ -128,7 +182,7 @@ class Typer {
 	public function typeExpressionMember(expr: ExpressionMember): Null<ExpressionMember> {
 		switch(expr) {
 			case Basic(expr): {
-				final typed = expr.typeExpression(parser);
+				final typed = expr.typeExpression(parser, typeless);
 				if(typed != null) {
 					return Basic(typed);
 				} else {
@@ -139,7 +193,7 @@ class Typer {
 				return Scope(typeScope(subExpressions));
 			}
 			case IfStatement(expr, subExpressions, checkTrue): {
-				final typed = expr.typeExpression(parser);
+				final typed = expr.typeExpression(parser, typeless);
 				if(typed != null) {
 					return IfStatement(typed, typeScope(subExpressions), checkTrue);
 				} else {
@@ -171,12 +225,12 @@ class Typer {
 			case Loop(expr, subExpressions, checkTrue): {
 				var typedExpr: Null<QuantumExpression> = null;
 				if(expr != null) {
-					typedExpr = expr.typeExpression(parser);
+					typedExpr = expr.typeExpression(parser, typeless);
 				}
 				return Loop(expr == null ? null : typedExpr, typeScope(subExpressions), checkTrue);
 			}
 			case ReturnStatement(expr): {
-				final typed = expr.typeExpression(parser);
+				final typed = expr.typeExpression(parser, typeless);
 				if(typed != null) {
 					return ReturnStatement(typed);
 				} else {

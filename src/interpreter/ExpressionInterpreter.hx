@@ -1,7 +1,10 @@
 package interpreter;
 
+using haxe.EnumTools;
+
 using interpreter.Variant;
 import interpreter.RuntimeScope;
+import interpreter.ScopeInterpreter;
 
 import parsers.Error;
 import parsers.ErrorType;
@@ -33,6 +36,7 @@ class ExpressionInterpreter {
 			case Prefix(op, expr, pos, _): interpretPrefix(op, expr, pos, data);
 			case Suffix(op, expr, pos, _): interpretSuffix(op, expr, pos, data);
 			case Infix(op, lexpr, rexpr, pos, _): interpretInfix(op, lexpr, rexpr, pos, data);
+			case Call(op, expr, params, pos, _): interpretCall(op, expr, params.map(p -> new QuantumExpression(QuantumExpressionInternal.Typed(p))), pos, data);
 			case Value(literal, pos, _): interpretLiteral(literal, pos, data);
 			default: null;
 		}
@@ -43,6 +47,7 @@ class ExpressionInterpreter {
 			case Prefix(op, expr, pos): interpretPrefix(op, expr, pos, data);
 			case Suffix(op, expr, pos): interpretSuffix(op, expr, pos, data);
 			case Infix(op, lexpr, rexpr, pos): interpretInfix(op, lexpr, rexpr, pos, data);
+			case Call(op, expr, params, pos): interpretCall(op, expr, params.map(p -> new QuantumExpression(QuantumExpressionInternal.Untyped(p))), pos, data);
 			case Value(literal, pos): interpretLiteral(literal, pos, data);
 			default: null;
 		}
@@ -107,6 +112,11 @@ class ExpressionInterpreter {
 	}
 
 	public static function interpretInfix(op: InfixOperator, lexpr: QuantumExpression, rexpr: QuantumExpression, pos: Position, data: RuntimeScope): Null<Variant> {
+		if(op.op == "=") {
+			return interpretAssignment(lexpr, rexpr, pos, data);
+		} else if(op.op == ".") {
+			return interpretAccess(lexpr, rexpr, pos, data);
+		}
 		final l = interpret(lexpr, data);
 		final r = interpret(rexpr, data);
 		if(l == null || r == null) return null;
@@ -212,6 +222,158 @@ class ExpressionInterpreter {
 		return null;
 	}
 
+	public static function interpretCall(op: CallOperator, expr: QuantumExpression, params: Array<QuantumExpression>, pos: Position, data: RuntimeScope): Null<Variant> {
+		final e = interpret(expr, data);
+		if(e == null) return null;
+		final args = [];
+		for(p in params) {
+			final variant = interpret(p, data);
+			if(variant != null) {
+				args.push(variant);
+			} else {
+				return null;
+			}
+		}
+
+		switch(op.op) {
+			case "(": {
+				// TODO: check if provided arguments match the function header
+				switch(e) {
+					case Function(members, names, t): {
+						final scope = data.fromTopScope();
+						var index = 0;
+						for(n in names) {
+							scope.add(n, args[index]);
+							index++;
+						}
+						final resultInfo = ScopeInterpreter.interpret(members, scope);
+						return resultInfo.returnValue;
+					}
+					case NativeFunction(func, t): {
+						return func(null, args);
+					}
+					default: {
+						Error.addErrorFromPos(ErrorType.InterpreterCannotCallType, pos);
+					}
+				}
+			}
+			case "[": {
+				switch(e) {
+					case Str(str): {
+						if(args.length == 1 && args[0].isNumber()) {
+							final index = args[0].toInt();
+							if(index >= 0 && index < str.length) {
+								return Str(str.charAt(index));
+							} else {
+								Error.addErrorFromPos(ErrorType.InterpreterAccessOutsideStringSize, pos, [
+									Std.string(index),
+									Std.string(str.length)
+								]);
+							}
+						} else {
+							Error.addErrorFromPos(ErrorType.InterpreterArrayAccessExpectsOneNumber, pos);
+						}
+					}
+					case List(list, t): {
+						if(args.length == 1 && args[0].isNumber()) {
+							final index = args[0].toInt();
+							if(index >= 0 && index < list.length) {
+								return list[index];
+							} else {
+								Error.addErrorFromPos(ErrorType.InterpreterAccessOutsideArraySize, pos, [
+									Std.string(index),
+									Std.string(list.length)
+								]);
+							}
+						} else {
+							Error.addErrorFromPos(ErrorType.InterpreterArrayAccessExpectsOneNumber, pos);
+						}
+					}
+					default: {}
+				}
+			}
+		}
+
+		return null;
+	}
+
+	public static function interpretAssignment(lexpr: QuantumExpression, rexpr: QuantumExpression, pos: Position, data: RuntimeScope): Null<Variant> {
+		final name = getExpressionName(lexpr);
+		if(name != null) {
+			final r = interpret(rexpr, data);
+			final currVal = data.find(name);
+			if(r != null && currVal != null && r.type() == currVal.type()) {
+				data.replace(name, r);
+				return r;
+			} else {
+				Error.addErrorFromPos(ErrorType.InterpreterCannotAssignDifferentTypes, pos, [
+					r != null ? r.typeString() : "null",
+					currVal != null ? currVal.typeString() : "null",
+				]);
+				return null;
+			}
+		}
+		Error.addErrorFromPos(ErrorType.InterpreterInvalidLExpr, pos);
+		return null;
+	}
+
+	public static function interpretAccess(lexpr: QuantumExpression, rexpr: QuantumExpression, pos: Position, data: RuntimeScope): Null<Variant> {
+		final e = interpret(lexpr, data);
+		if(e == null) return null;
+		final name = getExpressionName(rexpr);
+		if(name == null) {
+			Error.addErrorFromPos(ErrorType.InterpreterInvalidAccessor, pos);
+		}
+		final result = switch(e.type()) {
+			case TBool: {
+				null;
+			}
+			case TNum: {
+				null;
+			}
+			case TStr: {
+				if(name == "length") Num(e.toString().length);
+				else null;
+			}
+			case TList(t): {
+				null;
+			}
+			case TNullable(t): {
+				null;
+			}
+			case TFunction(params, returnType): {
+				null;
+			}
+		}
+		return result;
+	}
+
+	public static function getExpressionName(expr: QuantumExpression): Null<String> {
+		final literal: Null<Literal> = switch(expr) {
+			case Typed(texpr): {
+				switch(texpr) {
+					case Value(literal, _, _): literal;
+					default: null;
+				}
+			}
+			case Untyped(expr): {
+				switch(expr) {
+					case Value(literal, _): literal;
+					default: null;
+				}
+			}
+		}
+		if(literal != null) {
+			final name = switch(literal) {
+				case Name(name, _): name;
+				case Variable(vari): vari.name;
+				default: null;
+			}
+			return name;
+		}
+		return null;
+	}
+
 	public static function interpretLiteral(literal: Literal, pos: Position, data: RuntimeScope): Null<Variant> {
 		switch(literal) {
 			case Name(name, _): {
@@ -219,7 +381,7 @@ class ExpressionInterpreter {
 				if(val != null) {
 					return val;
 				} else {
-					Error.addErrorFromPos(ErrorType.UnknownVariable, pos);
+					Error.addErrorFromPos(ErrorType.UnknownVariable, pos, [name]);
 					return null;
 				}
 			}
@@ -234,6 +396,24 @@ class ExpressionInterpreter {
 			}
 			case String(content, isMultiline, isRaw): {
 				return Str(content);
+			}
+			case List(exprs): {
+				final variants = [];
+				var variantListType: Null<VariantType> = null;
+				for(e in exprs) {
+					final currVariant = interpret(e, data);
+					final currVariantType: VariantType = currVariant.type();
+					if(variantListType == null) variantListType = currVariantType;
+					if(variantListType != currVariantType) {
+						Error.addErrorFromPos(ErrorType.InterpreterLiteralListValuesDoNotMatch, pos, [
+							VariantHelper.typeToString(currVariantType),
+							VariantHelper.typeToString(variantListType)
+						]);
+						return null;
+					}
+					variants.push(currVariant);
+				}
+				return List(variants, variantListType);
 			}
 			default: {}
 		}

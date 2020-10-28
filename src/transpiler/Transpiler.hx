@@ -89,8 +89,8 @@ class Transpiler {
 			case Expression(expr): {
 				TranspileModule_Expression.transpile(expr, this);
 			}
-			case CompilerAttribute(attr, params): {
-				return TranspileModule_CompilerAttribute.transpile(attr, params, this);
+			case CompilerAttribute(attr, params, pos): {
+				return TranspileModule_CompilerAttribute.transpile(attr, params, pos, this);
 			}
 			default: return false;
 		}

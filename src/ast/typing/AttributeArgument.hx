@@ -5,6 +5,11 @@ import ast.typing.Type;
 import parsers.expr.Expression;
 import parsers.expr.Position;
 
+import interpreter.RuntimeScope;
+import interpreter.ExpressionInterpreter;
+import interpreter.Variant;
+import interpreter.Variant.VariantType;
+
 enum AttributeArgumentType {
 	Raw;
 	String;
@@ -41,6 +46,29 @@ class AttributeArgument {
 			case Bool: Type.Boolean();
 			default: Type.Void();
 		}
+	}
+
+	public function isRequired(): Bool {
+		return !optional && expr == null;
+	}
+
+	public function getDefaultValue(runtimeScope: RuntimeScope): Null<Variant> {
+		if(expr != null) {
+			final result = ExpressionInterpreter.interpret(expr, runtimeScope);
+			return result;
+		}
+		if(optional) {
+			final variantType: Null<VariantType> = switch(type) {
+				case Raw | String: TStr;
+				case Number: TNum;
+				case Bool: TBool;
+				default: null;
+			}
+			if(variantType != null) {
+				return Nullable(null, variantType);
+			}
+		}
+		return null;
 	}
 }
 
