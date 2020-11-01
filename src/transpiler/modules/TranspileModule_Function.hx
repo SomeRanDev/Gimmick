@@ -4,12 +4,18 @@ import basic.Ref;
 
 import ast.scope.ScopeMember;
 import ast.scope.members.FunctionMember;
+import ast.scope.members.FunctionOption.FunctionOptionHelper;
+
+import parsers.expr.Position;
 
 import transpiler.modules.TranspileModule_Expression;
 import transpiler.modules.TranspileModule_Type;
 
 class TranspileModule_Function {
 	public static function transpile(func: FunctionMember, transpiler: Transpiler) {
+		if(func.isInject()) {
+			return;
+		}
 		if(transpiler.context.isCpp()) {
 			transpiler.addHeaderContent(transpileFunctionHeader(func, transpiler.context));
 		}
@@ -28,9 +34,22 @@ class TranspileModule_Function {
 		var result = functionDeclaration + " {\n";
 		var tabs = "";
 		for(i in 0...tabLevel) tabs += "\t";
+		var prevCond = true;
+		var popThisType = false;
+		if(func.type.get().thisType == StaticExtension) {
+			final args = func.type.get().arguments;
+			if(args.length > 0) {
+				context.pushThisExpr(Value(Literal.Name(args[0].name, null), Position.BLANK, args[0].type));
+				popThisType = true;
+			}
+		}
 		for(e in data.members) {
-			if(!e.shouldTranspile(context)) continue;
+			if(!e.shouldTranspile(context, prevCond)) { prevCond = false; continue; }
+			prevCond = true;
 			result += tabs + "\t" + transpileFunctionMember(e, context, tabLevel + 1) + "\n";
+		}
+		if(popThisType) {
+			context.popThisExpr();
 		}
 		result += tabs + "}";
 		return result;
@@ -44,7 +63,8 @@ class TranspileModule_Function {
 		} else {
 			"function";
 		};
-		final functionDeclaration = funcStart + " " + data.name + transpileFunctionArguments(func, context);
+		var functionDeclaration = funcStart + " " + data.name + transpileFunctionArguments(func, context);
+		functionDeclaration = FunctionOptionHelper.decorateFunctionHeader(functionDeclaration, func.options, context.isJs());
 		return functionDeclaration + ";";
 	}
 

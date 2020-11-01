@@ -75,6 +75,8 @@ class ParserModule_Attribute extends ParserModule {
 						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
 						return null;
 					}
+
+					index++;
 				}
 			}
 

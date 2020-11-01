@@ -65,6 +65,8 @@ enum abstract ErrorType(Int) from Int to Int {
 	var InterpreterAccessOutsideArraySize = 20311;
 	var InterpreterInvalidAccessor = 20400;
 
+	var InvalidThisOrSelf = 30000;
+
 	public function getErrorMessage(): String {
 		switch(this) {
 			case UnknownImportPath: return "Could not find source file based on path.";
@@ -130,6 +132,8 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InterpreterAccessOutsideArraySize: return "Access made outside array size (index: %1, size: %2).";
 
 			case InterpreterInvalidAccessor: return "Invalid accessor value.";
+
+			case InvalidThisOrSelf: return "Invalid usage of 'this'.";
 		}
 		return "";
 	}
@@ -199,6 +203,8 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InterpreterAccessOutsideArraySize: return "accessed outside array size";
 
 			case InterpreterInvalidAccessor: return "invalid accessor value";
+
+			case InvalidThisOrSelf: return "invalid 'this'";
 		}
 		return "";
 	}

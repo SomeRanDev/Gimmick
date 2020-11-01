@@ -2,6 +2,8 @@ package transpiler;
 
 import haxe.ds.GenericStack;
 
+import parsers.expr.TypedExpression;
+
 import interpreter.Variant;
 
 using transpiler.Language;
@@ -17,10 +19,14 @@ class TranspilerContext {
 	var language: Language;
 	var context: GenericStack<OutputContext>;
 	var values: Map<String, Variant>;
+	var thisExprStack: GenericStack<TypedExpression>;
+	var namedVarReplacements: GenericStack<Map<String, TypedExpression>>;
 
 	public function new(language: Language) {
 		namespaceStack = new GenericStack();
 		context = new GenericStack();
+		thisExprStack = new GenericStack();
+		namedVarReplacements = new GenericStack();
 		this.language = language;
 		values = [];
 		values.set("cpp", Bool(isCpp()));
@@ -99,5 +105,40 @@ class TranspilerContext {
 			result.push(n);
 		}
 		return reverseJoinArray(result, separator);
+	}
+
+	public function pushThisExpr(expr: TypedExpression) {
+		thisExprStack.add(expr);
+	}
+
+	public function popThisExpr() {
+		thisExprStack.pop();
+	}
+
+	public function thisExpr(): Null<TypedExpression> {
+		return thisExprStack.first();
+	}
+
+	public function pushVarReplacements() {
+		namedVarReplacements.add([]);
+	}
+
+	public function popVarReplacements() {
+		namedVarReplacements.pop();
+	}
+
+	public function addVarReplacement(name: String, expr: TypedExpression) {
+		final first = namedVarReplacements.first();
+		if(first != null) {
+			first[name] = expr;
+		}
+	}
+
+	public function findVarReplacement(name: String): Null<TypedExpression> {
+		final first = namedVarReplacements.first();
+		if(first != null) {
+			return first[name];
+		}
+		return null;
 	}
 }

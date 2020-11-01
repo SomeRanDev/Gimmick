@@ -26,10 +26,10 @@ abstract QuantumExpression(QuantumExpressionInternal) from QuantumExpressionInte
 		return new QuantumExpression(Typed(_typed));
 	}
 
-	public function typeExpression(parser: Parser, typeless: Bool): Null<QuantumExpression> {
+	public function typeExpression(parser: Parser, typeless: Bool, isInterpret: Bool): Null<QuantumExpression> {
 		return switch(this) {
 			case Untyped(e): {
-				final typed = e.getType(parser, typeless ? Typeless : Normal);
+				final typed = e.getType(parser, typeless ? Typeless : Normal, isInterpret);
 				if(typed != null) {
 					fromTyped(typed);
 				} else {

@@ -18,10 +18,12 @@ class Typer {
 	public var parser(default, null): Parser;
 
 	var typeless: Bool;
+	var isInterpret: Bool;
 
 	public function new(parser: Parser) {
 		this.parser = parser;
 		typeless = false;
+		isInterpret = true;
 
 		@:privateAccess for(attr in parser.scope.attributes) {
 			final a = attr.toAttribute();
@@ -40,6 +42,8 @@ class Typer {
 				parser.scope.pop();
 			}
 		}
+
+		isInterpret = false;
 	}
 
 	public function typeScopeCollection(members: ScopeMemberCollection, addMainFunction: Bool) {
@@ -118,7 +122,7 @@ class Typer {
 			case Variable(vari): {
 				final untypedExpr = vari.get().expression;
 				if(untypedExpr != null) {
-					final quantumTypedExpr = untypedExpr.typeExpression(parser, typeless);
+					final quantumTypedExpr = untypedExpr.typeExpression(parser, typeless, isInterpret);
 					var typedExpr: Null<TypedExpression> = null;
 					if(quantumTypedExpr != null) {
 						switch(quantumTypedExpr) {
@@ -174,6 +178,15 @@ class Typer {
 				parser.scope.addMember(member);
 				return member;
 			}
+			case Modify(modify): {
+				if(modify.members != null) {
+					final mems = [];
+					for(mem in modify.members) {
+						mems.push(mem);
+					}
+					typeScope(mems);
+				}
+			}
 			default: {}
 		}
 		return member;
@@ -182,7 +195,7 @@ class Typer {
 	public function typeExpressionMember(expr: ExpressionMember): Null<ExpressionMember> {
 		switch(expr) {
 			case Basic(expr): {
-				final typed = expr.typeExpression(parser, typeless);
+				final typed = expr.typeExpression(parser, typeless, isInterpret);
 				if(typed != null) {
 					return Basic(typed);
 				} else {
@@ -193,7 +206,7 @@ class Typer {
 				return Scope(typeScope(subExpressions));
 			}
 			case IfStatement(expr, subExpressions, checkTrue): {
-				final typed = expr.typeExpression(parser, typeless);
+				final typed = expr.typeExpression(parser, typeless, isInterpret);
 				if(typed != null) {
 					return IfStatement(typed, typeScope(subExpressions), checkTrue);
 				} else {
@@ -225,12 +238,12 @@ class Typer {
 			case Loop(expr, subExpressions, checkTrue): {
 				var typedExpr: Null<QuantumExpression> = null;
 				if(expr != null) {
-					typedExpr = expr.typeExpression(parser, typeless);
+					typedExpr = expr.typeExpression(parser, typeless, isInterpret);
 				}
 				return Loop(expr == null ? null : typedExpr, typeScope(subExpressions), checkTrue);
 			}
 			case ReturnStatement(expr): {
-				final typed = expr.typeExpression(parser, typeless);
+				final typed = expr.typeExpression(parser, typeless, isInterpret);
 				if(typed != null) {
 					return ReturnStatement(typed);
 				} else {

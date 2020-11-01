@@ -8,6 +8,7 @@ using ast.scope.ScopeMember;
 import ast.scope.members.FunctionMember;
 import ast.scope.members.GetSetMember;
 import ast.scope.members.MemberLocation;
+import ast.scope.members.FunctionOption.FunctionOptionHelper;
 import ast.typing.Type;
 import ast.typing.FunctionArgument;
 import ast.typing.FunctionType;
@@ -24,9 +25,12 @@ class ParserModule_Function extends ParserModule {
 	public static var it = new ParserModule_Function();
 
 	public override function parse(parser: Parser): Null<Module> {
+		final startIndex = parser.getIndex();
+
+		final options = FunctionOptionHelper.parseFunctionOptions(parser);
+
 		final isPrelim = parser.isPreliminary();
 		final word = parser.parseMultipleWords(["get", "set", "def"]);
-		final startIndex = parser.getIndex();
 		if(word != null) {
 			parser.parseWhitespaceOrComments();
 
@@ -96,7 +100,7 @@ class ParserModule_Function extends ParserModule {
 							if(parser.parseNextContent("=")) {
 								final expr = parser.parseExpression();
 								if(expr != null) {
-									final typedExpr = expr.getType(parser, parser.isPreliminary());
+									final typedExpr = expr.getType(parser, parser.isPreliminary() ? Preliminary : Normal);
 									if(argType == null && typedExpr != null) {
 										argType = typedExpr.getType();
 									}
@@ -157,7 +161,7 @@ class ParserModule_Function extends ParserModule {
 			}
 
 			final memberLocation = TopLevel(parser.scope.currentNamespaceStack());
-			final funcMember = new FunctionMember(functionName, new Ref(new FunctionType(arguments, returnType)), memberLocation);
+			final funcMember = new FunctionMember(functionName, new Ref(new FunctionType(arguments, returnType)), memberLocation, options);
 
 			if(parser.parseNextContent(":")) {
 				final members = parser.parseNextLevelContent();
@@ -193,6 +197,8 @@ class ParserModule_Function extends ParserModule {
 
 			return Function(funcMember);
 		}
+
+		parser.setIndex(startIndex);
 
 		return null;
 	}

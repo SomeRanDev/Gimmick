@@ -6,6 +6,7 @@ import ast.typing.FunctionType;
 
 import ast.scope.ScopeMemberCollection;
 import ast.scope.members.MemberLocation;
+import ast.scope.members.FunctionOption;
 
 class FunctionMember {
 	public var name(default, null): String;
@@ -13,14 +14,16 @@ class FunctionMember {
 	public var memberLocation(default, null): MemberLocation;
 	public var callCount(default, null): Int;
 
+	public var options(default, null): Array<FunctionOption>;
 	public var members(default, null): Array<ScopeMember>;
 
 	var ref: Null<Ref<FunctionMember>>;
 
-	public function new(name: String, type: Ref<FunctionType>, memberLocation: MemberLocation) {
+	public function new(name: String, type: Ref<FunctionType>, memberLocation: MemberLocation, options: Array<FunctionOption>) {
 		this.name = name;
 		this.type = type;
 		this.memberLocation = memberLocation;
+		this.options = options;
 		callCount = 0;
 		members = [];
 	}
@@ -49,5 +52,9 @@ class FunctionMember {
 
 	public function incrementCallCount() {
 		callCount++;
+	}
+
+	public function isInject() {
+		return options.contains(Inject);
 	}
 }

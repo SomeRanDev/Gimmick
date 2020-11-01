@@ -8,6 +8,8 @@ class Position {
 	public var startIndex(default, null): Int;
 	public var endIndex(default, null): Int;
 
+	public static final BLANK = new Position(SourceFile.BLANK, 0, 0, 0);
+
 	public function new(file: SourceFile, line: Int, startIndex: Int, endIndex: Int) {
 		this.file = file;
 		this.line = line;

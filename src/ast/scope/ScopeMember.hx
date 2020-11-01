@@ -8,17 +8,17 @@ import ast.scope.members.FunctionMember;
 import ast.scope.members.NamespaceMember;
 import ast.scope.members.GetSetMember;
 import ast.scope.members.AttributeMember;
+import ast.scope.members.ModifyMember;
 
 import ast.typing.Type;
 import ast.typing.ClassType;
 import ast.typing.AttributeArgument.AttributeArgumentValue;
 
-import ast.scope.members.AttributeMember;
-
 import interpreter.ExpressionInterpreter;
 import interpreter.RuntimeScope;
 using interpreter.Variant;
 
+import parsers.Parser;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
@@ -32,6 +32,7 @@ enum ScopeMemberType {
 	Variable(variable: Ref<VariableMember>);
 	Function(func: Ref<FunctionMember>);
 	GetSet(getset: Ref<GetSetMember>);
+	Modify(modify: ModifyMember);
 	Class(cls: Ref<ClassType>);
 	PrefixOperator(op: PrefixOperator, func: Ref<FunctionMember>);
 	SuffixOperator(op: SuffixOperator, func: Ref<FunctionMember>);
@@ -49,6 +50,26 @@ class ScopeMemberAttribute {
 		this.instanceOf = instanceOf;
 		this.parameters = parameters;
 	}
+
+	public function onMemberUsed(parser: Parser) {
+		if(instanceOf.name == "cppRequireInclude" && parameters != null) {
+			if(parameters.length > 0) {
+				switch(parameters[0]) {
+					case Raw(str): {
+						final brackets = if(parameters.length > 1) {
+							switch(parameters[1]) {
+								case Value(expr, _): ExpressionInterpreter.interpret(expr, new RuntimeScope());
+								default: null;
+							}
+						} else null;
+						parser.requireInclude(str, false, brackets == null ? false : brackets.toBool());
+					}
+					default: {}
+				}
+			}
+			
+		}
+	}
 }
 
 class ScopeMember {
@@ -60,6 +81,12 @@ class ScopeMember {
 		attributes = [];
 	}
 
+	public function onMemberUsed(parser: Parser) {
+		for(attr in attributes) {
+			attr.onMemberUsed(parser);
+		}
+	}
+
 	public function setAttributes(attributes: Array<ScopeMemberAttribute>) {
 		this.attributes = attributes;
 	}
@@ -68,9 +95,15 @@ class ScopeMember {
 		attributes.push(new ScopeMemberAttribute(instanceOf, params));
 	}
 
-	public function shouldTranspile(context: TranspilerContext): Bool {
+	public function shouldTranspile(context: TranspilerContext, prevTranspiled: Bool): Bool {
 		for(a in attributes) {
-			if(a.instanceOf.name == "if") {
+			if(a.instanceOf.name == "elseif" && prevTranspiled) {
+				return false;
+			}
+			if(a.instanceOf.name == "else") {
+				return !prevTranspiled;
+			}
+			if(a.instanceOf.name == "if" || a.instanceOf.name == "elseif") {
 				if(a.parameters != null && a.parameters.length > 0) {
 					switch(a.parameters[0]) {
 						case Value(expr, type): {
@@ -138,6 +171,18 @@ class ScopeMember {
 			default: {}
 		}
 		return null;
+	}
+
+	public function setName(name: String, scope: Scope) {
+		@:privateAccess switch(type) {
+			case Function(func): {
+				func.get().name = name;
+			}
+			case GetSet(getset): {
+				getset.get().setName(name, scope);
+			}
+			default: {}
+		}
 	}
 
 	public function isPass(): Bool {

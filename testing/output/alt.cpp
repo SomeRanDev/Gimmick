@@ -1,3 +1,3 @@
 #include "alt.h"
 
-int bla = 32;
+int bla2 = 32;

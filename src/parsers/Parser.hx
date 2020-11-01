@@ -188,6 +188,9 @@ class Parser {
 			case GetSet(getset): {
 				scope.addMember(new ScopeMember(GetSet(getset.getRef())));
 			}
+			case Modify(modify): {
+				scope.addMember(new ScopeMember(Modify(modify)));
+			}
 			case NamespaceStart(names): {
 				scope.pushMutlipleNamespaces(names);
 			}
@@ -337,12 +340,14 @@ class Parser {
 
 	public function getMode_CompilerAttribute(): Array<ParserModule> {
 		return [
+			ParserModule_Attribute.it,
 			ParserModule_Function.it
 		];
 	}
 
 	public function getMode_Modify(): Array<ParserModule> {
 		return [
+			ParserModule_Attribute.it,
 			ParserModule_Function.it
 		];
 	}
@@ -353,6 +358,10 @@ class Parser {
 
 	public function onTypeUsed(type: Type, header: Bool = false) {
 		file.onTypeUsed(type, header);
+	}
+
+	public function requireInclude(content: String, header: Bool = false, brackets: Bool = false) {
+		file.requireInclude(content, header, brackets);
 	}
 
 	// ======================================================

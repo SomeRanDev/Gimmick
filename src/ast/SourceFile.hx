@@ -37,6 +37,8 @@ class SourceFile {
 
 	var isParsed = 0;
 
+	public static final BLANK = new SourceFile(false, new SourceFilePathInfo("", "", "", ""), new SourceFolderInfo("", Source), Js);
+
 	public function new(isMain: Bool, pathInfo: SourceFilePathInfo, folderInfo: SourceFolderInfo, language: Language) {
 		source = "";
 		this.isMain = isMain;
@@ -141,8 +143,8 @@ class SourceFile {
 		}
 	}
 
-	public function requireInclude(content: String, header: Bool = false) {
-		requiredIncludes.add(content, header, false);
+	public function requireInclude(content: String, header: Bool = false, brackets: Bool = false) {
+		requiredIncludes.add(content, header, brackets);
 	}
 
 	public function getRequiredIncludes(): Array<RequiredCppInclude> {

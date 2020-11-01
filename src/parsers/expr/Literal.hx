@@ -11,6 +11,7 @@ import ast.scope.members.GetSetMember;
 enum Literal {
 	Name(name: String, namespaces: Null<Array<String>>);
 	Null;
+	This;
 	Boolean(value: Bool);
 	Number(number: String, format: NumberLiteralFormat, type: NumberType);
 	String(content: String, isMultiline: Bool, isRaw: Bool);

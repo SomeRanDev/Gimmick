@@ -1,9 +1,14 @@
 package parsers.modules;
 
+import ast.typing.Type;
+
+import ast.scope.members.ModifyMember;
+
 class ParserModule_Modify extends ParserModule {
 	public static var it = new ParserModule_Modify();
 
 	public override function parse(parser: Parser): Null<Module> {
+		final start = parser.getIndex();
 		if(parser.parseWord("modify")) {
 
 			parser.parseWhitespaceOrComments();
@@ -16,11 +21,12 @@ class ParserModule_Modify extends ParserModule {
 				return null;
 			}
 
+			final modify = new ModifyMember(type, parser.makePosition(start));
 			if(parser.parseNextContent(":")) {
 				parser.scope.push();
 				final members = parser.parseNextLevelContent(Modify);
 				if(members != null) {
-					//attrMember.setAllMembers(members);
+					modify.setAllMembers(members, parser.scope);
 				}
 				parser.scope.pop();
 			} else if(parser.parseNextContent(";")) {
@@ -29,7 +35,7 @@ class ParserModule_Modify extends ParserModule {
 				return null;
 			}
 
-			// return Attribute(attrMember);
+			return Modify(modify);
 		}
 		return null;
 	}

@@ -57,7 +57,7 @@ class ParserModule_Variable extends ParserModule {
 			var typedExpr = null;
 			var exprType: Null<Type> = null;
 			if(expr != null) {
-				typedExpr = expr.getType(parser, true);
+				typedExpr = expr.getType(parser, Preliminary);
 				if(typedExpr != null) {
 					exprType = typedExpr.getType();
 					if(isPrelim && exprType == null) {

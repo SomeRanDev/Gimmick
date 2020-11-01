@@ -1,5 +1,6 @@
 package transpiler.modules;
 
+import parsers.expr.Position;
 import parsers.expr.TypedExpression;
 import parsers.expr.CallOperator.CallOperators;
 import parsers.expr.QuantumExpression.QuantumExpressionInternal;
@@ -94,6 +95,23 @@ class TranspileModule_Expression {
 		return result;
 	}
 
+	public static function isIsolated(expr: TypedExpression): Bool {
+		return switch(expr) {
+			case Call(_, e, _, _, _): isIsolated(e);
+			case Value(_, _, _): true;
+			case Infix(op, le, re, _, _): isIsolated(le) && isIsolated(re) && (op.op == "." || op.op == "::" || op.op == "->");
+			default: false;
+		}
+	}
+
+	public static function transpileIsolatedExpr(expr: TypedExpression, context: TranspilerContext): String {
+		var result = transpileExpr(expr, context);
+		if(!isIsolated(expr)) {
+			result = "(" + result + ")";
+		}
+		return result;
+	}
+
 	public static function transpileExpr(expr: TypedExpression, context: TranspilerContext): String {
 		switch(expr) {
 			case Prefix(op, expr, pos, type): {
@@ -106,12 +124,79 @@ class TranspileModule_Expression {
 				return TranspileModule_InfixOperator.transpileInfix(op, lexpr, rexpr, context);
 			}
 			case Call(op, expr, params, pos, type): {
+				switch(expr) {
+					case Value(literal, _, _): {
+						switch(literal) {
+							case Function(func): {
+								if(func.isInject()) {
+									var returnExpr: Null<ScopeMember> = null;
+									var prevCond = true;
+									for(e in func.members) {
+										if(!e.shouldTranspile(context, prevCond)) { prevCond = false; continue; }
+										prevCond = true;
+										if(returnExpr == null) {
+											returnExpr = e;
+										} else {
+											// TODO: error can only have one return expr for inject
+										}
+									}
+									switch(returnExpr.type) {
+										case Expression(exprMember): {
+											switch(exprMember) {
+												case ReturnStatement(expr): {
+													context.pushVarReplacements();
+													var popThisType = false;
+													if(func.type.get().thisType == StaticExtension) {
+														final args = func.type.get().arguments;
+														if(args.length > 0 && params.length > 0) {
+															context.pushThisExpr(params[0]);
+															popThisType = true;
+														}
+													}
+													var index = 0;
+													for(arg in func.type.get().arguments) {
+														if(index > 0 && index < params.length) {
+															context.addVarReplacement(arg.name, params[index]);
+														}
+														index++;
+													}
+													var result: Null<String> = null;
+													switch(expr) {
+														case Typed(e): {
+															result = transpileIsolatedExpr(e, context);
+															context.popVarReplacements();
+														}
+														default: {}
+													}
+													if(popThisType) context.popThisExpr();
+													if(result != null) {
+														return result;
+													}
+												}
+												default: {}
+											}
+										}
+										default: {}
+									}
+								}
+							}
+							default: {}
+						}
+					}
+					default: {}
+				}
+
 				final paramStrings: Array<String> = params.map(p -> transpileExpr(p, context));
 				return transpileExpr(expr, context) + op.op + paramStrings.join(", ") + op.endOp;
 			}
 			case Value(literal, pos, type): {
 				switch(literal) {
 					case Name(name, namespaces): {
+						final varReplacement = context.findVarReplacement(name);
+						if(varReplacement != null) {
+							return transpileIsolatedExpr(varReplacement, context);
+						}
+
 						final nsAccessOp = context.isJs() ? "." : "::";
 						if(context.isJs()) {
 							// Always must use "namespaces" when referencing variables in JS.
@@ -144,6 +229,13 @@ class TranspileModule_Expression {
 					}
 					case Null: {
 						return context.isJs() ? "null" : "nullptr";
+					}
+					case This: {
+						final thisExpr = context.thisExpr();
+						if(thisExpr != null) {
+							return TranspileModule_Expression.transpileExpr(thisExpr, context);
+						}
+						return "this";
 					}
 					case Boolean(value): {
 						return value ? "true" : "false";

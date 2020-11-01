@@ -55,6 +55,12 @@ class Type {
 	}
 
 	public function baseTypesEqual(other: Type): Bool {
+		final refType = isRefType();
+		if(refType != null) refType.type.equals(other.type);
+
+		final otherRefType = other.isRefType();
+		if(otherRefType != null) type.equals(otherRefType.type);
+
 		return type.equals(other.type);
 	}
 
@@ -75,6 +81,16 @@ class Type {
 			case TypeType.Unknown: true;
 			default: false;
 		}
+	}
+
+	public function canBePassed(other: Type): Null<ErrorType> {
+		if(!baseTypesEqual(other)) {
+			return ErrorType.CannotAssignThisTypeToThatType;
+		}
+		if(!isOptional && other.isOptional) {
+			return ErrorType.CannotAssignThisTypeToThatType;
+		}
+		return null;
 	}
 
 	public function canBeAssigned(other: Type): Null<ErrorType> {
@@ -162,7 +178,7 @@ class Type {
 		return new Type(TypeType.UnknownNamed(name), isConst, isOptional);
 	}
 
-	public static function fromLiteral(literal: Literal, scope: Scope): Null<Type> {
+	public static function fromLiteral(literal: Literal, scope: Scope, thisType: Null<Type>): Null<Type> {
 		return switch(literal) {
 			case Literal.Null: Type.Any();
 			case Literal.Boolean(_): Type.Boolean();
@@ -189,6 +205,9 @@ class Type {
 			}
 			case Literal.EnclosedExpression(expr): {
 				return expr.getType();
+			}
+			case Literal.This: {
+				return thisType;
 			}
 			default: null;
 		}
@@ -334,5 +353,19 @@ class Type {
 			result += "?";
 		}
 		return result;
+	}
+
+	public function isClassType(): Null<Ref<ClassType>> {
+		return switch(type) {
+			case TypeType.Class(cls, _): cls;
+			default: null;
+		}
+	}
+
+	public function isRefType(): Null<Type> {
+		return switch(type) {
+			case TypeType.Reference(refType): refType;
+			default: null;
+		}
 	}
 }

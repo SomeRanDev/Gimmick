@@ -64,7 +64,7 @@ class ParserModule_Expression extends ParserModule {
 		parser.parseWhitespaceOrComments();
 		final result = parser.parseExpression();
 		if(result != null) {
-			final typed = result.getType(parser, false);
+			final typed = result.getType(parser, Normal);
 			if(typed != null) {
 				return typed;
 			}

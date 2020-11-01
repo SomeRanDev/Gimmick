@@ -10,6 +10,7 @@ import ast.scope.ScopeMemberCollection;
 import transpiler.Language;
 import transpiler.TranspilerContext;
 import transpiler.modules.*;
+import transpiler.modules.TranspileModule_Modify;
 
 class Transpiler {
 	public var headerFile(default, null): OutputFileContent;
@@ -46,16 +47,36 @@ class Transpiler {
 	}
 
 	public function transpile() {
+		/*var prevCond = true;
 		for(mem in members) {
-			if(mem.shouldTranspile(context)) {
+			if(mem.shouldTranspile(context, prevCond)) {
+				prevCond = true;
 				if(transpileMember(mem)) {
 					transpileCount++;
 				}
+			} else {
+				prevCond = false;
+			}
+		}
+		*/
+		transpileAll(members.members, context);
+	}
+
+	public function transpileAll(members: Array<ScopeMember>, context: TranspilerContext) {
+		var prevCond = true;
+		for(mem in members) {
+			if(mem.shouldTranspile(context, prevCond)) {
+				prevCond = true;
+				if(transpileMember(mem)) {
+					transpileCount++;
+				}
+			} else {
+				prevCond = false;
 			}
 		}
 	}
 
-	function transpileMember(member: ScopeMember): Bool {
+	public function transpileMember(member: ScopeMember): Bool {
 		final newIndex = member.type.getIndex();
 		if(lastTranspileMemberIndex != newIndex || alwaysCreateNewLine(newIndex)) {
 			lastTranspileMemberIndex = newIndex;
@@ -85,6 +106,9 @@ class Transpiler {
 				if(gs.set != null) {
 					TranspileModule_Function.transpile(gs.set, this);
 				}
+			}
+			case Modify(modify): {
+				TranspileModule_Modify.transpile(modify, this);
 			}
 			case Expression(expr): {
 				TranspileModule_Expression.transpile(expr, this);

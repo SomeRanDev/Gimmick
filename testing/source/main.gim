@@ -1,10 +1,19 @@
 
 import alt
 
+modify int:
+	@cppRequireInclude(cmath, true)
+	inject def floor(one: int, two: int) -> int:
+		@untyped return floor(this);
+
+
+inline def bla:
+	var ffdfdf = 32
+
 compiler attribute myAttribute(someInput: string, bla: string list):
 	def toCpp -> string:
 		someInput = bla[0]
-		###if someInput.length == 3:
+		###if someInput.length() == 3:
 			return "got something"
 		else:
 			return "got nothing"###
@@ -14,7 +23,7 @@ compiler attribute myAttribute(someInput: string, bla: string list):
 
 var a = 32
 
-@if(js == false) var b = bla;
+@if(js == false) var b = bla2;
 
 @untyped scope:
 	d.df = 43
@@ -29,3 +38,19 @@ if a == 32:
 	@untyped b::gf++
 
 print("fd")
+
+var fds: int list
+
+var fdsd = "fdsklfds"
+fdsd.length
+fdsd.bla = 32
+
+var aaa = 111.floor(2, 3)
+
+var blabla = ""
+@if(js) blabla = "fds";
+@elseif(js) blabla = "broken"
+@else scope:
+	blabla = "gfd"
+	blabla = "success!"
+

@@ -33,17 +33,18 @@ class LiteralParser {
 	public function parseLiteral(): Null<Literal> {
 		var result = null;
 		var count = 0;
-		while(result == null && count <= 8) {
+		while(result == null && count <= 9) {
 			switch(count) {
 				case 0: result = parseNextNull();
-				case 1: result = parseNextBoolean();
-				case 2: result = parseArrayLiteral();
-				case 3: result = parseTupleOrEnclosedLiteral();
-				case 4: result = parseNextMultilineString();
-				case 5: result = parseNextString();
-				case 6: result = parseNextNumber();
-				case 7: result = parseTypeName();
-				case 8: result = parseNextVarNameLiteral();
+				case 1: result = parseNextThis();
+				case 2: result = parseNextBoolean();
+				case 3: result = parseArrayLiteral();
+				case 4: result = parseTupleOrEnclosedLiteral();
+				case 5: result = parseNextMultilineString();
+				case 6: result = parseNextString();
+				case 7: result = parseNextNumber();
+				case 8: result = parseTypeName();
+				case 9: result = parseNextVarNameLiteral();
 			}
 			count++;
 		}
@@ -54,6 +55,14 @@ class LiteralParser {
 		final word = parser.parseMultipleWords(["null", "none", "Null", "None"]);
 		if(word != null) {
 			return Null;
+		}
+		return null;
+	}
+
+	public function parseNextThis(): Null<Literal> {
+		final word = parser.parseMultipleWords(["this", "self"]);
+		if(word != null) {
+			return This;
 		}
 		return null;
 	}
@@ -314,7 +323,7 @@ class LiteralParser {
 				parser.parseWhitespaceOrComments();
 				final expr = parser.parseExpression();
 				if(expr != null) {
-					final typedExpr = expr.getType(parser, parser.isPreliminary());
+					final typedExpr = expr.getType(parser, parser.isPreliminary() ? Preliminary : Normal);
 					if(typedExpr != null) {
 						result.push(typedExpr);
 						parser.parseNextContent(listSeparatorOperator);

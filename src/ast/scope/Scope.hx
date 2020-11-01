@@ -236,7 +236,7 @@ class Scope {
 	public function ensureMainExists() {
 		if(mainFunction == null) {
 			final funcType = new FunctionType([], Type.Number(Int));
-			mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null));
+			mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null), []);
 		}
 	}
 
@@ -255,8 +255,6 @@ class Scope {
 		} else {
 			addMember(new ScopeMember(Expression(member)));
 		}*/
-
-		ensureMainExists();
 
 		final scopeMember = new ScopeMember(Expression(member));
 		attachAttributesToMember(scopeMember);
@@ -530,6 +528,43 @@ class Scope {
 			for(imp in imports) {
 				final type = imp.get().findInfixOperator(op, inputType, false);
 				if(type != null) {
+					return type;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	public function findModifyFunction(type: Type, name: String, checkImports: Bool = true, includeGlobals: Bool = true): Null<ScopeMember> {
+		for(namespace in namespaceStack) {
+			final member = namespace.members.findModify(type, name);
+			if(member != null) {
+				return member;
+			}
+		}
+
+		for(collection in stack) {
+			final member = collection.findModify(type, name);
+			if(member != null) {
+				return member;
+			}
+		}
+
+		if(checkImports) {
+			for(imp in imports) {
+				final member = imp.get().findModifyFunction(type, name, false, false);
+				if(member != null) {
+					return member;
+				}
+			}
+		}
+
+		if(includeGlobals) {
+			for(g in globalScope) {
+				final type = g.scope.findModifyFunction(type, name, false, false);
+				if(type != null) {
+					file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
 					return type;
 				}
 			}

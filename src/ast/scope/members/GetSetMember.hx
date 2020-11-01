@@ -5,6 +5,8 @@ import basic.Ref;
 import ast.scope.Scope;
 import ast.scope.members.FunctionMember;
 
+import ast.typing.Type;
+
 class GetSetMember {
 	public var name(default, null): String;
 	public var get(default, null): Null<FunctionMember>;
@@ -39,6 +41,34 @@ class GetSetMember {
 
 	public function isSetAvailable(): Bool {
 		return set == null;
+	}
+
+	public function setName(name: String, scope: Scope) {
+		this.name = name;
+		if(get != null) {
+			@:privateAccess get.name = generateGetFunctionName(name, scope);
+		}
+		if(set != null) {
+			@:privateAccess set.name = generateSetFunctionName(name, scope);
+		}
+	}
+
+	public function prependArgument(name: String, type: Type) {
+		if(get != null) {
+			get.type.get().prependArgument(name, type);
+		}
+		if(set != null) {
+			set.type.get().prependArgument(name, type);
+		}
+	}
+
+	public function setStaticExtension() {
+		if(get != null) {
+			get.type.get().setStaticExtension();
+		}
+		if(set != null) {
+			set.type.get().setStaticExtension();
+		}
 	}
 
 	public static function generateFunctionName(prefix: String, originalName: String, scope: Scope): String {

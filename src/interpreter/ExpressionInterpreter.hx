@@ -332,7 +332,7 @@ class ExpressionInterpreter {
 				null;
 			}
 			case TStr: {
-				if(name == "length") Num(e.toString().length);
+				if(name == "string_length") Num(e.toString().length);
 				else null;
 			}
 			case TList(t): {
@@ -367,6 +367,8 @@ class ExpressionInterpreter {
 			final name = switch(literal) {
 				case Name(name, _): name;
 				case Variable(vari): vari.name;
+				case Function(func): func.name;
+				case GetSet(getset): getset.name;
 				default: null;
 			}
 			return name;
@@ -386,6 +388,12 @@ class ExpressionInterpreter {
 				}
 			}
 			case Variable(mem): {
+				return interpretLiteral(Name(mem.name, null), pos, data);
+			}
+			case Function(mem): {
+				return interpretLiteral(Name(mem.name, null), pos, data);
+			}
+			case GetSet(mem): {
 				return interpretLiteral(Name(mem.name, null), pos, data);
 			}
 			case Boolean(value): {
