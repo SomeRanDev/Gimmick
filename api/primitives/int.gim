@@ -1,0 +1,11 @@
+# =================================================
+# * Int
+#
+# Methods available to the int primitive.
+# =================================================
+
+@global
+modify int:
+	@cppRequireInclude(cmath, true)
+	inject def floor() -> int:
+		@untyped return floor(this);

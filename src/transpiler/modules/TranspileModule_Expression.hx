@@ -138,45 +138,49 @@ class TranspileModule_Expression {
 											returnExpr = e;
 										} else {
 											// TODO: error can only have one return expr for inject
+											returnExpr = null;
+											break;
 										}
 									}
-									switch(returnExpr.type) {
-										case Expression(exprMember): {
-											switch(exprMember) {
-												case ReturnStatement(expr): {
-													context.pushVarReplacements();
-													var popThisType = false;
-													if(func.type.get().thisType == StaticExtension) {
-														final args = func.type.get().arguments;
-														if(args.length > 0 && params.length > 0) {
-															context.pushThisExpr(params[0]);
-															popThisType = true;
+									if(returnExpr != null) {
+										switch(returnExpr.type) {
+											case Expression(exprMember): {
+												switch(exprMember) {
+													case ReturnStatement(expr): {
+														context.pushVarReplacements();
+														var popThisType = false;
+														if(func.type.get().thisType == StaticExtension) {
+															final args = func.type.get().arguments;
+															if(args.length > 0 && params.length > 0) {
+																context.pushThisExpr(params[0]);
+																popThisType = true;
+															}
+														}
+														var index = 0;
+														for(arg in func.type.get().arguments) {
+															if(index >= 0 && index < params.length) {
+																context.addVarReplacement(arg.name, params[index]);
+															}
+															index++;
+														}
+														var result: Null<String> = null;
+														switch(expr) {
+															case Typed(e): {
+																result = transpileIsolatedExpr(e, context);
+																context.popVarReplacements();
+															}
+															default: {}
+														}
+														if(popThisType) context.popThisExpr();
+														if(result != null) {
+															return result;
 														}
 													}
-													var index = 0;
-													for(arg in func.type.get().arguments) {
-														if(index > 0 && index < params.length) {
-															context.addVarReplacement(arg.name, params[index]);
-														}
-														index++;
-													}
-													var result: Null<String> = null;
-													switch(expr) {
-														case Typed(e): {
-															result = transpileIsolatedExpr(e, context);
-															context.popVarReplacements();
-														}
-														default: {}
-													}
-													if(popThisType) context.popThisExpr();
-													if(result != null) {
-														return result;
-													}
+													default: {}
 												}
-												default: {}
 											}
+											default: {}
 										}
-										default: {}
 									}
 								}
 							}

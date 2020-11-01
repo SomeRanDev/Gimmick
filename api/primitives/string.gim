@@ -4,20 +4,8 @@
 # Methods available to the string primitive.
 # =================================================
 
-###
-modify string:
-	get length -> int:
-		@untyped return this.length;
-###
-
 @global
 modify string:
 	get length -> int:
 		@if(cpp) @untyped return this.size();
 		@elseif(js) @untyped return this.length;
-
-	set bla(v: int):
-		return 0
-
-	get bla -> int:
-		return 32

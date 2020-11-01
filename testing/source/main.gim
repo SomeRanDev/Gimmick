@@ -1,11 +1,6 @@
 
 import alt
 
-modify int:
-	@cppRequireInclude(cmath, true)
-	inject def floor(one: int, two: int) -> int:
-		@untyped return floor(this);
-
 
 inline def bla:
 	var ffdfdf = 32
@@ -43,9 +38,8 @@ var fds: int list
 
 var fdsd = "fdsklfds"
 fdsd.length
-fdsd.bla = 32
 
-var aaa = 111.floor(2, 3)
+var aaa = 111.floor()
 
 var blabla = ""
 @if(js) blabla = "fds";
@@ -54,3 +48,5 @@ var blabla = ""
 	blabla = "gfd"
 	blabla = "success!"
 
+
+print("bla");

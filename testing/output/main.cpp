@@ -1,7 +1,9 @@
 #include "main.h"
 
+#include "api/primitives/int.h"
 #include <cmath>
 #include "api/print.h"
+#include <iostream>
 #include "api/primitives/string.h"
 
 #include "alt.h"
@@ -35,13 +37,13 @@ int main() {
 	if(a == 32) {
 		b::gf++;
 	}
-	print("fd");
+	(std::cout << "fd" << std::endl);
 	get_string_length(fdsd);
-	set_string_bla(fdsd, 32);
 	aaa = floor(111);
 	{
 		blabla = "gfd";
 		blabla = "success!";
 	}
+	(std::cout << "bla" << std::endl);
 	return 0;
 }

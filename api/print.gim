@@ -1,8 +1,6 @@
 
-#@RequireInclude(iostream, true)
-#gimmick print(args: string list) -> string:
-#	return "cpp { std::cout << " + args.join(" << ") + " << std::endl; }";
 
 @global
-def print(a: string):
-	pass
+@cppRequireInclude(iostream, true)
+inject def print(a: string):
+	@untyped return std::cout << a << std::endl;
