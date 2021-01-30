@@ -5,12 +5,17 @@ import basic.Ref;
 import ast.scope.ScopeMember;
 import ast.typing.Type;
 import ast.typing.ClassType;
+import ast.typing.FunctionType.FunctionTypePassResult;
 
 import ast.scope.members.FunctionMember;
 
+import parsers.Error;
+import parsers.ErrorType;
+import parsers.ErrorPromise;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
+using parsers.expr.TypedExpression;
 
 class ScopeMemberCollection {
 	public var length(get, never): Int;
@@ -41,6 +46,10 @@ class ScopeMemberCollection {
 		return members[index];
 	}
 
+	public function setAllMembers(members: Array<ScopeMember>) {
+		this.members = members;
+	}
+
 	public function replace(index: Int, scopeMember: ScopeMember): Bool {
 		if(index >= 0 && index < members.length) {
 			members[index] = scopeMember;
@@ -65,6 +74,57 @@ class ScopeMemberCollection {
 
 	public function find(name: String): Null<ScopeMember> {
 		return findIn(name, members);
+	}
+
+	public function findWithParameters(name: String, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+		final options = findAll(name);
+		if(options == null) return null;
+		if(options.length == 0) return null;
+		final types = params.map(p -> p.getType());
+		var resultingIndex = 0;
+		final possibilities = [];
+		var errorMember: Null<ScopeMember> = null;
+		var errorReason: Null<FunctionTypePassResult> = null;
+		for(member in options) {
+			switch(member.type) {
+				case Function(func): {
+					final result = func.get().type.get().canPassTypes(types);
+					if(result != null) {
+						if(errorReason == null || (errorReason.error == ErrorType.TooManyFunctionParametersProvided && result.error != ErrorType.TooManyFunctionParametersProvided)) {
+							errorMember = member;
+							errorReason = result;
+						}
+					} else {
+						possibilities.push(member);
+					}
+				}
+				default: {
+					return null;
+				}
+			}
+		}
+		if(possibilities.length == 0) {
+			if(errorReason != null) {
+				Error.addErrorPromise("funcWrongParam", errorReason);
+			}
+			if(errorMember != null) {
+				return [errorMember];
+			}
+			return null;
+		}
+		return possibilities;
+	}
+
+	public function findAll(name: String): Null<Array<ScopeMember>> {
+		var result: Null<Array<ScopeMember>> = null;
+		for(member in members) {
+			final memName = findName(member);
+			if(memName == name) {
+				if(result == null) result = [];
+				result.push(member);
+			}
+		}
+		return result;
 	}
 
 	public static function findIn(name: String, members: Array<ScopeMember>): Null<ScopeMember> {
@@ -92,7 +152,7 @@ class ScopeMemberCollection {
 			switch(member.type) {
 				case Class(cls): {
 					if(cls.get().name == name) {
-						return cls;
+						return cls.get().type;
 					}
 				}
 				default: {}

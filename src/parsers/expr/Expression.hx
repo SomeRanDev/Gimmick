@@ -31,11 +31,13 @@ class ExpressionTypingContext {
 	public var incrementCall(default, null): Bool;
 	public var isStaticExtension(default, null): Bool;
 	public var prependedArgs(default, null): Null<Array<TypedExpression>>;
+	public var arguments(default, null): Null<Array<TypedExpression>>;
 
 	public function new(incrementCall: Bool) {
 		this.incrementCall = incrementCall;
 		isStaticExtension = false;
 		prependedArgs = null;
+		arguments = null;
 	}
 
 	public function setIsStaticExtension() {
@@ -44,6 +46,10 @@ class ExpressionTypingContext {
 
 	public function setPrependedArguments(prependedArgs: Array<TypedExpression>) {
 		this.prependedArgs = prependedArgs;
+	}
+
+	public function setCallParameters(params: Array<TypedExpression>) {
+		arguments = params;
 	}
 }
 
@@ -162,8 +168,20 @@ class ExpressionHelper {
 				return null;
 			}
 			case Call(op, expr, params, pos): {
-				final context = new ExpressionTypingContext(op == CallOperators.Call);
+
+				final typedParamExpr: Array<TypedExpression> = [];
+				for(p in params) {
+					final r = getInternalTypeStacked(p);
+					if(r != null) {
+						typedParamExpr.push(r);
+					}
+				}
+
+				final isCall = op == CallOperators.Call;
+				final context = new ExpressionTypingContext(isCall);
+				if(isCall) context.setCallParameters(typedParamExpr);
 				final typedExpr = getInternalTypeStacked(expr, null, context);
+				Error.completePromiseMulti("funcWrongParam", params.map(p -> getPosition(p)));
 				if(typedExpr != null) {
 
 					final typedParams: Array<TypedExpression> = [];
@@ -172,12 +190,10 @@ class ExpressionHelper {
 							typedParams.push(p);
 						}
 					}
-					for(p in params) {
-						final r = getInternalTypeStacked(p);
-						if(r != null) {
-							typedParams.push(r);
-						}
+					for(expr in typedParamExpr) {
+						typedParams.push(expr);
 					}
+					
 
 					final type = typedExpr.getType();
 					final result = op.findReturnType(type, typedParams.map(p -> p.getType()));
@@ -200,7 +216,23 @@ class ExpressionHelper {
 						case UnknownNamed(name): {
 							varName = name;
 							if(accessor == null) {
-								final member = parser.scope.findMember(name);
+								final member = if(context != null && context.arguments != null) {
+									final options = parser.scope.findMemberWithParameters(name, context.arguments);
+									if(options != null) {
+										switch(options.length) {
+											case 0: null;
+											case 1: options[0];
+											default: {
+												Error.addErrorFromPos(ErrorType.AmbiguousFunctionCall, pos);
+												options[0];
+											}
+										}
+									} else {
+										null;
+									}
+								} else {
+									parser.scope.findMember(name);
+								}
 								if(member != null) {
 									member.onMemberUsed(parser);
 									result = member.getType();
@@ -302,8 +334,8 @@ class ExpressionHelper {
 		return null;
 	}
 
-	public static function getType(expression: Expression, parser: Parser, mode: TypingMode = Normal, isInterpret: Bool = false, accessor: Null<TypedExpression> = null, context: Null<ExpressionTypingContext> = null): Null<TypedExpression> {
-		final result = new ExpressionHelper(parser, mode, isInterpret);
+	public static function getType(expression: Expression, parser: Parser, mode: TypingMode = Normal, isInterpret: Bool = false, thisType: Null<Type> = null, accessor: Null<TypedExpression> = null, context: Null<ExpressionTypingContext> = null): Null<TypedExpression> {
+		final result = new ExpressionHelper(parser, mode, isInterpret, thisType);
 		return result.getInternalTypeStacked(expression, accessor, context);
 	}
 

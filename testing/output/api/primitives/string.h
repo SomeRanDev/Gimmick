@@ -3,6 +3,7 @@
 
 #include <string>
 
-int get_string_length(std::string self);
+int string_bla(std::string self);
+
 
 #endif

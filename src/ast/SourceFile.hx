@@ -137,8 +137,9 @@ class SourceFile {
 
 	public function onTypeUsed(type: Type, header: Bool = false) {
 		switch(type.type) {
-			case String: requiredIncludes.add("string", header, true);
-			case Tuple(_): requiredIncludes.add("tuple", header, true);
+			case String: requireInclude("string", header, true);
+			case Tuple(_): requireInclude("tuple", header, true);
+			case List(_): requireInclude("vector", header, true);
 			default: {}
 		}
 	}

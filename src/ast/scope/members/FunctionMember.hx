@@ -54,7 +54,19 @@ class FunctionMember {
 		callCount++;
 	}
 
+	public function isStatic() {
+		return options.contains(Static);
+	}
+
 	public function isInject() {
 		return options.contains(Inject);
+	}
+
+	public function isExtern() {
+		return options.contains(Extern);
+	}
+
+	public function shouldTranspile() {
+		return !isInject() && !isExtern();
 	}
 }

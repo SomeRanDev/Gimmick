@@ -40,7 +40,7 @@ class OutputFile {
 
 	function setupHeaderGuardsCpp() {
 		if(TranspilerOptions.pragmaHeaderGuard) {
-			headerFile.addContent("#pragma once");
+			headerFile.addContent("#pragma once\n");
 		} else {
 			final headerMacroName = source.macroGuardName();
 			headerFile.addContent("#ifndef " + headerMacroName + "\n");
@@ -54,6 +54,11 @@ class OutputFile {
 
 	function setupAutoIncludesCpp() {
 		final requiredIncludes = source.getRequiredIncludes();
+		haxe.ds.ArraySort.sort(requiredIncludes, function(inc1, inc2) {
+			if(inc1.brackets && !inc2.brackets) return -1;
+			if(!inc1.brackets && inc2.brackets) return 1;
+			return inc1.path.length - inc2.path.length;
+		});
 		var headerResult = "";
 		var sourceResult = "";
 		for(include in requiredIncludes) {

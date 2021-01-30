@@ -9,9 +9,9 @@ import ast.scope.members.NamespaceMember;
 import ast.scope.members.GetSetMember;
 import ast.scope.members.AttributeMember;
 import ast.scope.members.ModifyMember;
+import ast.scope.members.ClassMember;
 
 import ast.typing.Type;
-import ast.typing.ClassType;
 import ast.typing.AttributeArgument.AttributeArgumentValue;
 
 import interpreter.ExpressionInterpreter;
@@ -27,13 +27,13 @@ import parsers.expr.Position;
 import transpiler.TranspilerContext;
 
 enum ScopeMemberType {
-	Include(path: String, brackets: Bool);
+	Include(path: String, brackets: Bool, header: Bool);
 	Namespace(namespace: Ref<NamespaceMember>);
 	Variable(variable: Ref<VariableMember>);
 	Function(func: Ref<FunctionMember>);
 	GetSet(getset: Ref<GetSetMember>);
 	Modify(modify: ModifyMember);
-	Class(cls: Ref<ClassType>);
+	Class(cls: Ref<ClassMember>);
 	PrefixOperator(op: PrefixOperator, func: Ref<FunctionMember>);
 	SuffixOperator(op: SuffixOperator, func: Ref<FunctionMember>);
 	InfixOperator(op: InfixOperator, func: Ref<FunctionMember>);
@@ -120,22 +120,41 @@ class ScopeMember {
 		return true;
 	}
 
-	public function isGlobal(): Bool {
+	public function hasAttribute(name: String) {
 		for(a in attributes) {
-			if(a.instanceOf.name == "global") {
+			if(a.instanceOf.name == name) {
 				return true;
 			}
 		}
 		return false;
 	}
 
+	public function isGlobal(): Bool {
+		return hasAttribute("global");
+	}
+
 	public function isUntyped(): Bool {
+		return hasAttribute("untyped");
+	}
+
+	public function getClassSection(context: TranspilerContext): Null<String> {
 		for(a in attributes) {
-			if(a.instanceOf.name == "untyped") {
-				return true;
+			if(a.instanceOf.name == "classSection") {
+				if(a.parameters != null && a.parameters.length > 0) {
+					final param = a.parameters[0];
+					switch(param) {
+						case Value(expr, _): {
+							final name = ExpressionInterpreter.interpret(expr, RuntimeScope.fromMap(context.getValues()));
+							if(name != null) {
+								return name.toString();
+							}
+						}
+						default: {}
+					}
+				}
 			}
 		}
-		return false;
+		return null;
 	}
 
 	public function getType(): Null<Type> {
@@ -204,5 +223,42 @@ class ScopeMember {
 			case Attribute(attr): return attr;
 			default: throw "Not an attribute!!";
 		}
+	}
+
+	public function extractVariableMember(): Null<VariableMember> {
+		return switch(type) {
+			case Variable(variable): variable.get();
+			default: null;
+		}
+	}
+
+	public function extractFunctionMember(): Null<FunctionMember> {
+		return switch(type) {
+			case Function(func): func.get();
+			default: null;
+		}
+	}
+
+	public function extractGetSetMember(): Null<GetSetMember> {
+		return switch(type) {
+			case GetSet(getset): getset.get();
+			default: null;
+		}
+	}
+
+	public function shouldTriggerAutomaticInclude(): Bool {
+		switch(type) {
+			case Function(func): {
+				return !func.get().isInject();
+			}
+			case GetSet(getset): {
+				final getFunc = getset.get().get;
+				final setFunc = getset.get().set;
+				if(getFunc != null && !getFunc.isInject()) return true;
+				return setFunc != null && !setFunc.isInject();
+			}
+			default: {}
+		}
+		return true;
 	}
 }

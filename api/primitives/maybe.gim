@@ -1,0 +1,41 @@
+###
+// Example program
+#include <iostream>
+#include <string>
+
+template <typename T>
+class maybe {
+public:
+    maybe() {
+        value = nullptr;
+    }
+    maybe(const T& other): maybe() {
+        value = malloc(sizeof(T));
+        (*value) = other;
+    }
+    maybe(T&& other): maybe() {
+        value = static_cast<T*>(malloc(sizeof(T)));
+        (*value) = std::move(other);
+    }
+    virtual ~maybe() {
+        if(value != nullptr) {
+            delete value;
+        }
+        value = nullptr;
+    }
+    
+    T operator*() {
+        return *value;
+    }
+    
+    T* value;
+};
+
+
+int main() {
+    maybe<int> fds(23);
+    std::cout << *fds << std::endl;
+    return 0;
+}
+
+###

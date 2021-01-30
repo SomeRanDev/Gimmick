@@ -6,6 +6,12 @@
 
 @global
 modify string:
-	get length -> int:
+	inject get length -> int:
 		@if(cpp) @untyped return this.size();
 		@elseif(js) @untyped return this.length;
+
+	inject def toString() -> string:
+		return this;
+
+	def bla() -> int:
+		return 12;

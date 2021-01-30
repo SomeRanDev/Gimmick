@@ -1,3 +1,9 @@
 
 
 var bla2 = 32
+
+class HFDKS:
+	def bla():
+		print("TEST")
+
+	var fd = 32

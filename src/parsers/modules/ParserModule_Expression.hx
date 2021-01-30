@@ -39,11 +39,11 @@ class ParserModule_Expression extends ParserModule {
 		if(shouldParseEnd) {
 			if(!parser.parseNextExpressionEnd()) {
 				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
-				return null;
+				return Nothing;
 			}
 		}
 		if(parser.isPreliminary()) {
-			return null;
+			return Nothing;
 		}
 		if(result != null) {
 			return Expression(result);

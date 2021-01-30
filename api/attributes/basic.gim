@@ -4,14 +4,27 @@
 # Attributes built into the compiler.
 # =================================================
 
+# Makes all top-level members global in the file.
 compiler attribute globalAll;
 
 @globalAll;
 
+# Makes the top-level member globally available throughout the project.
 attribute global;
+
+# Disables type checking from the expression.
 attribute untyped;
+
+# Makes the function inline in C++.
 attribute inline;
 
+# Sets the "section" of the field in the class. Ex: public, protected, private.
+attribute classSection(sectionName: string);
+
+# Conditionally controls whether an expression is transpiled into C++.
 attribute if(expr: bool);
 attribute elseif(expr: bool);
 attribute else(expr: bool);
+
+# If applied to a class, its function members are sorted alphabetically.
+attribute sortMembersAlphabetically;

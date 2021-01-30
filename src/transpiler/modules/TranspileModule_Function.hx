@@ -13,7 +13,7 @@ import transpiler.modules.TranspileModule_Type;
 
 class TranspileModule_Function {
 	public static function transpile(func: FunctionMember, transpiler: Transpiler) {
-		if(func.isInject()) {
+		if(!func.shouldTranspile()) {
 			return;
 		}
 		if(transpiler.context.isCpp()) {
@@ -22,7 +22,7 @@ class TranspileModule_Function {
 		transpiler.addSourceContent(transpileFunctionSourceTopLevel(func, transpiler.context, 0));
 	}
 
-	public static function transpileFunctionSourceTopLevel(func: FunctionMember, context: TranspilerContext, tabLevel: Int): String {
+	public static function transpileFunctionSourceTopLevel(func: FunctionMember, context: TranspilerContext, tabLevel: Int, namespaces: Null<Array<String>> = null): String {
 		final data = func;
 		final type = data.type.get();
 		final funcStart = if(context.isCpp()) {
@@ -30,7 +30,12 @@ class TranspileModule_Function {
 		} else {
 			"function";
 		};
-		final functionDeclaration = funcStart + " " + data.name + transpileFunctionArguments(func, context);
+		final namespacePrefix = if(context.isCpp() && namespaces != null) {
+			context.reverseJoinArray(namespaces, "::") + "::";
+		} else {
+			"";
+		}
+		final functionDeclaration = funcStart + " " + namespacePrefix + data.name + transpileFunctionArguments(func, context);
 		var result = functionDeclaration + " {\n";
 		var tabs = "";
 		for(i in 0...tabLevel) tabs += "\t";

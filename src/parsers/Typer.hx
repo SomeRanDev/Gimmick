@@ -34,7 +34,7 @@ class Typer {
 				}
 				if(a.params != null) {
 					for(arg in a.params) {
-						final v = new VariableMember(arg.name, arg.getType(), true, arg.position, null, ClassMember);
+						final v = new VariableMember(arg.name, arg.getType(), true, arg.position, null, null, ClassMember);
 						parser.scope.addMemberToCurrentScope(new ScopeMember(Variable(v.getRef())));
 					}
 				}
@@ -56,7 +56,7 @@ class Typer {
 		}
 	}
 
-	public function typeScopeNoPush(members: Array<ScopeMember>): Array<ScopeMember> {
+	public function typeScopeNoPush(members: Array<ScopeMember>, thisType: Null<Type> = null): Array<ScopeMember> {
 		final allMembers: Array<ScopeMember> = [];
 		for(i in 0...members.length) {
 			final mem = members[i];
@@ -65,7 +65,7 @@ class Typer {
 				typeless = mem.isUntyped();
 				returnToTyped = typeless;
 			}
-			final result = typeScopeMember(mem);
+			final result = typeScopeMember(mem, thisType);
 			if(result != null) {
 				//members[i] = result;
 				allMembers.push(result);
@@ -77,35 +77,30 @@ class Typer {
 		return allMembers;
 	}
 
-	public function typeScope(members: Array<ScopeMember>): Array<ScopeMember> {
+	public function typeScope(members: Array<ScopeMember>, thisType: Null<Type> = null): Array<ScopeMember> {
 		parser.scope.push();
-		final result = typeScopeNoPush(members);
+		final result = typeScopeNoPush(members, thisType);
 		parser.scope.pop();
 		return result;
 	}
 
-	public function typeScopeMember(member: ScopeMember): Null<ScopeMember> {
+	public function typeScopeMember(member: ScopeMember, thisType: Null<Type> = null): Null<ScopeMember> {
 		switch(member.type) {
 			case Expression(expr): {
-				final typedExpr = typeExpressionMember(expr);
+				final typedExpr = typeExpressionMember(expr, thisType);
 				if(typedExpr != null) {
 					final file = parser.scope.file;
-					@:privateAccess member.type = Expression(typedExpr);
-					@:privateAccess if(parser.scope.stackSize == 1 && file.usesMainFunction()) {
-						/*if(parser.scope.mainFunction == null) {
-							final funcType = new FunctionType([], Type.Number(Int));
-							parser.scope.mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null));
-							if(file.isMain) {
-								parser.scope.mainFunction.incrementCallCount();
+					@:privateAccess {
+						member.type = Expression(typedExpr);
+						if(parser.scope.stackSize == 1 && file.usesMainFunction()) {
+							parser.scope.ensureMainExists();
+							if(parser.scope.mainFunction != null) {
+								parser.scope.mainFunction.addMember(member);
 							}
-						}*/
-						parser.scope.ensureMainExists();
-						if(parser.scope.mainFunction != null) {
-							parser.scope.mainFunction.addMember(member);
+							return null;
+						} else {
+							return member;
 						}
-						return null;
-					} else {
-						return member;
 					}
 				} else {
 					return null;
@@ -114,21 +109,27 @@ class Typer {
 			case Namespace(namespace): {
 				final namespaceMember = namespace.get();
 				typeScopeCollection(namespaceMember.members, false);
-				//@:privateAccess namespaceMember.members = typeScope(funcMember.members, parser);
-				//parser.scope.addMember(member);
 				return member;
-				//pushMutlipleNamespaces
 			}
 			case Variable(vari): {
 				final untypedExpr = vari.get().expression;
 				if(untypedExpr != null) {
-					final quantumTypedExpr = untypedExpr.typeExpression(parser, typeless, isInterpret);
+					final quantumTypedExpr = untypedExpr.typeExpression(parser, typeless, isInterpret, thisType);
 					var typedExpr: Null<TypedExpression> = null;
 					if(quantumTypedExpr != null) {
 						switch(quantumTypedExpr) {
 							case Typed(texpr): {
 								vari.get().setTypedExpression(texpr);
-								vari.get().setTypeIfUnknown(texpr.getType());
+								final assignError = vari.get().canBeAssigned(texpr.getType());
+								if(assignError == null) {
+									vari.get().setTypeIfUnknown(texpr.getType());
+								} else {
+									final pos = vari.get().assignPosition;
+									if(pos != null) {
+										Error.addErrorFromPos(assignError, pos, [vari.get().type.toString(), texpr != null ? texpr.getType().toString() : ""]);
+									}
+									return null;
+								}
 								typedExpr = texpr;
 							}
 							default: {}
@@ -154,28 +155,34 @@ class Typer {
 						}
 					}
 
-					parser.scope.addMember(varMember);
+					//parser.scope.addMember(varMember);
 					return varMember;
 				} else {
-					parser.scope.addMember(member);
+					//parser.scope.addMember(member);
 					return member;
 				}
 			}
 			case Function(func): {
 				final funcMember = func.get();
-				@:privateAccess funcMember.members = typeScope(funcMember.members);
-				parser.scope.addMember(member);
+				@:privateAccess funcMember.members = typeScope(funcMember.members, thisType);
+				//parser.scope.addMember(member);
+				return member;
+			}
+			case Class(cls): {
+				final clsMemberType = cls.get().type.get();
+				@:privateAccess clsMemberType.members.members = typeScope(clsMemberType.members.members, Type.Class(cls.get().type, null));
+				//parser.scope.addMember(member);
 				return member;
 			}
 			case GetSet(getset): {
 				final getsetMember = getset.get();
 				if(getsetMember.get != null) {
-					@:privateAccess getsetMember.get.members = typeScope(getsetMember.get.members);
+					@:privateAccess getsetMember.get.members = typeScope(getsetMember.get.members, thisType);
 				}
 				if(getsetMember.set != null) {
-					@:privateAccess getsetMember.set.members = typeScope(getsetMember.set.members);
+					@:privateAccess getsetMember.set.members = typeScope(getsetMember.set.members, thisType);
 				}
-				parser.scope.addMember(member);
+				//parser.scope.addMember(member);
 				return member;
 			}
 			case Modify(modify): {
@@ -184,7 +191,7 @@ class Typer {
 					for(mem in modify.members) {
 						mems.push(mem);
 					}
-					typeScope(mems);
+					typeScope(mems, modify.type);
 				}
 			}
 			default: {}
@@ -192,10 +199,10 @@ class Typer {
 		return member;
 	}
 
-	public function typeExpressionMember(expr: ExpressionMember): Null<ExpressionMember> {
+	public function typeExpressionMember(expr: ExpressionMember, thisType: Null<Type>): Null<ExpressionMember> {
 		switch(expr) {
 			case Basic(expr): {
-				final typed = expr.typeExpression(parser, typeless, isInterpret);
+				final typed = expr.typeExpression(parser, typeless, isInterpret, thisType);
 				if(typed != null) {
 					return Basic(typed);
 				} else {
@@ -206,7 +213,7 @@ class Typer {
 				return Scope(typeScope(subExpressions));
 			}
 			case IfStatement(expr, subExpressions, checkTrue): {
-				final typed = expr.typeExpression(parser, typeless, isInterpret);
+				final typed = expr.typeExpression(parser, typeless, isInterpret, thisType);
 				if(typed != null) {
 					return IfStatement(typed, typeScope(subExpressions), checkTrue);
 				} else {
@@ -214,7 +221,7 @@ class Typer {
 				}
 			}
 			case IfElseStatement(ifState, elseExpressions): {
-				final exprMember = typeExpressionMember(ifState);
+				final exprMember = typeExpressionMember(ifState, thisType);
 				if(exprMember != null) {
 					return IfElseStatement(exprMember, typeScope(elseExpressions));
 				} else {
@@ -224,7 +231,7 @@ class Typer {
 			case IfElseIfChain(ifStatements, elseExpressions): {
 				final typedIfStatements: Array<ExpressionMember> = [];
 				for(ifState in ifStatements) {
-					final typedIf = typeExpressionMember(ifState);
+					final typedIf = typeExpressionMember(ifState, thisType);
 					if(typedIf != null) {
 						typedIfStatements.push(typedIf);
 					}
@@ -238,12 +245,12 @@ class Typer {
 			case Loop(expr, subExpressions, checkTrue): {
 				var typedExpr: Null<QuantumExpression> = null;
 				if(expr != null) {
-					typedExpr = expr.typeExpression(parser, typeless, isInterpret);
+					typedExpr = expr.typeExpression(parser, typeless, isInterpret, thisType);
 				}
 				return Loop(expr == null ? null : typedExpr, typeScope(subExpressions), checkTrue);
 			}
 			case ReturnStatement(expr): {
-				final typed = expr.typeExpression(parser, typeless, isInterpret);
+				final typed = expr.typeExpression(parser, typeless, isInterpret, thisType);
 				if(typed != null) {
 					return ReturnStatement(typed);
 				} else {

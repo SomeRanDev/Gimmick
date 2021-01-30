@@ -33,6 +33,8 @@ import parsers.modules.ParserModule_Namespace;
 import parsers.modules.ParserModule_Function;
 import parsers.modules.ParserModule_Attribute;
 import parsers.modules.ParserModule_Modify;
+import parsers.modules.ParserModule_Include;
+import parsers.modules.ParserModule_Class;
 
 class Parser {
 	public var content(default, null): String;
@@ -125,9 +127,12 @@ class Parser {
 		if(checkIndentation()) {
 			return true;
 		}
+		final errorCount = Error.errorCount();
 		for(mod in moduleParsers) {
 			final module = mod.parse(this);
-			if(module != null) {
+			if(module == Nothing) {
+				break;
+			} else if(module != null) {
 				modules.push(module);
 				onModuleAdd(module);
 				break;
@@ -188,6 +193,9 @@ class Parser {
 			case GetSet(getset): {
 				scope.addMember(new ScopeMember(GetSet(getset.getRef())));
 			}
+			case Class(cls): {
+				scope.addMember(new ScopeMember(Class(cls.getRef())));
+			}
 			case Modify(modify): {
 				scope.addMember(new ScopeMember(Modify(modify)));
 			}
@@ -204,6 +212,9 @@ class Parser {
 				if(func != null && func.get().callCount == 0) {
 					scope.addFunctionCallExpression(func, this);
 				}
+			}
+			case Include(path, header, brackets): {
+				scope.addMember(new ScopeMember(Include(path, brackets, header)));
 			}
 			case Attribute(attr): {
 				scope.addAttribute(attr);
@@ -320,8 +331,10 @@ class Parser {
 	public function getMode_SourceFile(): Array<ParserModule> {
 		return [
 			ParserModule_Attribute.it,
+			ParserModule_Include.it,
 			ParserModule_Import.it,
 			ParserModule_Namespace.it,
+			ParserModule_Class.it,
 			ParserModule_Function.it,
 			ParserModule_Variable.it,
 			ParserModule_Modify.it,
@@ -335,6 +348,14 @@ class Parser {
 			ParserModule_Function.it,
 			ParserModule_Variable.it,
 			ParserModule_Expression.it
+		];
+	}
+
+	public function getMode_Class(): Array<ParserModule> {
+		return [
+			ParserModule_Attribute.it,
+			ParserModule_Function.it,
+			ParserModule_Variable.it
 		];
 	}
 
@@ -536,6 +557,7 @@ class Parser {
 		final modules: Array<ParserModule> = switch(mode) {
 			case SourceFile: getMode_SourceFile();
 			case Function: getMode_Function();
+			case Class: getMode_Class();
 			case CompilerAttribute: getMode_CompilerAttribute();
 			case Modify: getMode_Modify();
 		}

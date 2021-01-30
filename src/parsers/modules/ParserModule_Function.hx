@@ -32,22 +32,43 @@ class ParserModule_Function extends ParserModule {
 		final isPrelim = parser.isPreliminary();
 		final word = parser.parseMultipleWords(["get", "set", "def"]);
 		if(word != null) {
+			var failed = false;
+
 			parser.parseWhitespaceOrComments();
 
 			final isGet = word == "get";
 			final isSet = word == "set";
 
 			final funcNameStart = parser.getIndexFromLine();
-			final name = parser.parseNextVarName();
+			var name = parser.parseNextVarName();
 			if(name == null) {
 				Error.addError(ErrorType.ExpectedVariableName, parser, funcNameStart);
-				return null;
+				failed = true;
+				name = "";
 			}
 
-			final existingMember = parser.scope.existInCurrentScope(name);
-			if(existingMember != null && (!existingMember.isGetSet() || (!isGet && !isSet))) {
+			final funcNameEnd = parser.getIndexFromLine();
+			final existingMembers = parser.scope.existInCurrentScopeAll(name);
+
+			var existingMember = if(existingMembers != null && existingMembers.length == 1) {
+				existingMembers[0];
+			} else {
+				null;
+			}
+
+			var anyIsGetSet = existingMember != null ? existingMember.isGetSet() : (isGet || isSet);
+			if(existingMembers != null) {
+				for(member in existingMembers) {
+					if(member.isGetSet()) {
+						anyIsGetSet = true;
+						break;
+					}
+				}
+			}
+
+			if((isGet || isSet) != anyIsGetSet) {
 				Error.addError(ErrorType.VariableNameAlreadyUsedInCurrentScope, parser, funcNameStart);
-				return null;
+				failed = true;
 			}
 
 			var existingGetSet: Null<GetSetMember> = null;
@@ -57,7 +78,7 @@ class ParserModule_Function extends ParserModule {
 						existingGetSet = getset.get();
 						if((isGet && !getset.get().isGetAvailable()) || (isSet && !getset.get().isSetAvailable())) {
 							Error.addError(ErrorType.VariableNameAlreadyUsedInCurrentScope, parser, funcNameStart);
-							return null;
+							failed = true;
 						}
 					}
 					default: {}
@@ -119,19 +140,61 @@ class ParserModule_Function extends ParserModule {
 
 					if(indexTracker != parser.getIndex() && argTracker == arguments.length) {
 						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
-						return null;
+						return Nothing;
 					}
 				}
 			}
 
 			if(isGet && arguments.length > 0) {
 				Error.addError(ErrorType.GetRequiresNoArguments, parser, argListStart);
-				return null;
+				failed = true;
 			}
 
 			if(isSet && arguments.length != 1) {
 				Error.addError(ErrorType.SetRequiresOneArgument, parser, argListStart);
-				return null;
+				failed = true;
+			}
+
+			if(existingMembers != null) {
+				var exists = 0;
+				for(member in existingMembers) {
+					switch(member.type) {
+						case Function(func): {
+							if(!isGet && !isSet) {
+								final existingArgs = func.get().type.get().arguments;
+								var match = arguments.length == existingArgs.length;
+								if(match) {
+									for(i in 0...arguments.length) {
+										if(i >= existingArgs.length) {
+											match = false;
+											break;
+										}
+										final arg = arguments[i];
+										final existArg = existingArgs[i];
+										if(!arg.type.equals(existArg.type)) {
+											match = false;
+											break;
+										}
+									}
+								}
+								if(match) {
+									exists = 2;
+									break;
+								}
+							}
+						}
+						case GetSet(getset): {}
+						default: {
+							exists = 1;
+							break;
+						}
+					}
+				}
+				if(exists != 0) {
+					final errorType = exists == 1 ? ErrorType.VariableNameAlreadyUsedInCurrentScope : ErrorType.FunctionNameWithParamsAlreadyUsedInScope;
+					Error.addErrorWithStartEnd(errorType, parser, funcNameStart, funcNameEnd);
+					failed = true;
+				}
 			}
 
 			parser.parseWhitespaceOrComments();
@@ -145,7 +208,7 @@ class ParserModule_Function extends ParserModule {
 			if(returnType == null) {
 				if(isGet) {
 					Error.addError(ErrorType.GetRequiresAReturn, parser, parser.getIndexFromLine());
-					return null;
+					failed = true;
 				}
 				returnType = Type.Void();
 			}
@@ -171,7 +234,11 @@ class ParserModule_Function extends ParserModule {
 			} else if(parser.parseNextContent(";")) {
 			} else {
 				Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndexFromLine(), 0, [":", ";"]);
-				return null;
+				return Nothing;
+			}
+
+			if(failed) {
+				return Nothing;
 			}
 
 			for(arg in arguments) {
@@ -182,10 +249,10 @@ class ParserModule_Function extends ParserModule {
 			if(existingGetSet != null) {
 				if(isGet) {
 					existingGetSet.setGetter(funcMember);
-					return null;
+					return Nothing;
 				} else if(isSet) {
 					existingGetSet.setSetter(funcMember);
-					return null;
+					return Nothing;
 				}
 			} else {
 				if(isGet) {

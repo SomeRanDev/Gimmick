@@ -2,6 +2,7 @@ package ast.typing;
 
 import basic.Ref;
 
+import ast.scope.ScopeMember;
 import ast.scope.ScopeMemberCollection;
 
 class ClassType {
@@ -22,5 +23,9 @@ class ClassType {
 			ref = new Ref<ClassType>(this);
 		}
 		return ref;
+	}
+
+	public function setAllMembers(members: ScopeMemberCollection) {
+		this.members = members;
 	}
 }

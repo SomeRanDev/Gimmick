@@ -41,7 +41,7 @@ class ParserModule_Import extends ParserModule {
 
 			if(!parser.parseNextExpressionEnd()) {
 				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
-				return null;
+				return Nothing;
 			}
 			
 			return Import(path, result);

@@ -84,6 +84,9 @@ class Type {
 	}
 
 	public function canBePassed(other: Type): Null<ErrorType> {
+		if(isGenericNumber() && other.isNumber() != null) {
+			return null;
+		}
 		if(!baseTypesEqual(other)) {
 			return ErrorType.CannotAssignThisTypeToThatType;
 		}
@@ -355,6 +358,50 @@ class Type {
 		return result;
 	}
 
+	public function getTypeSize(): Int {
+		return switch(type) {
+			case TypeType.Void: 0;
+			case TypeType.Boolean: 1;
+			case TypeType.Unknown: 9999;
+			case TypeType.Number(num): {
+				switch(num) {
+					case NumberType.Char | NumberType.Byte: 1;
+					case NumberType.Short | NumberType.UShort: 2;
+					case NumberType.Int | NumberType.UInt: 4;
+					case NumberType.Long | NumberType.ULong: 8;
+					case NumberType.Thicc | NumberType.UThicc: 12;
+
+					case NumberType.Int8 | NumberType.UInt8: 1;
+					case NumberType.Int16 | NumberType.UInt16: 2;
+					case NumberType.Int32 | NumberType.UInt32: 4;
+					case NumberType.Int64 | NumberType.UInt64: 8;
+
+					case NumberType.Float: 4;
+					case NumberType.Double: 8;
+					case NumberType.Triple: 12;
+
+					default: 4;
+				}
+			}
+			case TypeType.String: 8;
+			case TypeType.List(t): t.getTypeSize() + 4;
+			case TypeType.Function(func, typeParams): 4;
+			case TypeType.Class(cls, typeParams): 99;
+			case TypeType.Namespace(namespace): 0;
+			case TypeType.Tuple(types): {
+				var result = 0;
+				for(t in types) {
+					result += t.getTypeSize();
+				}
+				result;
+			}
+			case TypeType.Pointer(t): 8;
+			case TypeType.Reference(t): 8;
+			case TypeType.External(name, typeParams): 999;
+			default: 9999;
+		}
+	}
+
 	public function isClassType(): Null<Ref<ClassType>> {
 		return switch(type) {
 			case TypeType.Class(cls, _): cls;
@@ -367,5 +414,16 @@ class Type {
 			case TypeType.Reference(refType): refType;
 			default: null;
 		}
+	}
+
+	public function isNumber(): Null<NumberType> {
+		return switch(type) {
+			case TypeType.Number(numType): numType;
+			default: null;
+		}
+	}
+
+	public function isGenericNumber(): Bool {
+		return isNumber() == NumberType.Any;
 	}
 }

@@ -11,19 +11,27 @@ import transpiler.modules.TranspileModule_Expression;
 import transpiler.modules.TranspileModule_Type;
 
 class TranspileModule_Variable {
-	public static function transpile(variable: Ref<VariableMember>, transpiler: Transpiler) {
+	public static function transpile(variable: Ref<VariableMember>, transpiler: Transpiler, isExtern: Bool = true) {
 		final result = transpileVariableSource(variable, transpiler.context);
 		transpiler.addSourceContent(result);
 
 		final member = variable.get();
-		transpiler.addHeaderContent("extern " + TranspileModule_Type.transpile(member.type) + " " + member.name + ";");
+		transpiler.addHeaderContent((isExtern ? "extern " : "") + TranspileModule_Type.transpile(member.type) + " " + member.name + ";");
 	}
 
-	public static function transpileVariableSource(variable: Ref<VariableMember>, context: TranspilerContext) {
+	public static function transpileVariableSource(variable: Ref<VariableMember>, context: TranspilerContext): String {
 		final member = variable.get();
 		var result = "";
 		result += makeVariablePrefix(member, context);
 		result += member.name;
+		result += getAssignment(variable, context);
+		result += ";";
+		return result;
+	}
+
+	public static function getAssignment(variable: Ref<VariableMember>, context: TranspilerContext): String {
+		var result = "";
+		final member = variable.get();
 		final assignment = TranspileModule_Type.getDefaultAssignment(member.type);
 		final expression = switch(member.expression) {
 			case null: null;
@@ -35,7 +43,6 @@ class TranspileModule_Variable {
 		} else if(assignment != null) {
 			result += " = " + assignment;
 		}
-		result += ";";
 		return result;
 	}
 

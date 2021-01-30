@@ -25,23 +25,23 @@ class ParserModule_Namespace extends ParserModule {
 					final names = parser.parseDotConnectedVarNames();
 					if(names == null) {
 						Error.addError(ErrorType.ExpectedNamespaceName, parser, nameStart);
-						return null;
+						return Nothing;
 					}
 
 					if(!parser.parseNextExpressionEnd()) {
 						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
-						return null;
+						return Nothing;
 					}
 
 					return NamespaceStart(names);
 				} else if(word == "end") {
 					if(!parser.scope.namespacesExist()) {
 						Error.addError(ErrorType.NoNamespaceToEnd, parser, startOfModule);
-						return null;
+						return Nothing;
 					}
 					if(!parser.parseNextExpressionEnd()) {
 						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
-						return null;
+						return Nothing;
 					}
 					return NamespaceEnd;
 				}

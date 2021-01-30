@@ -18,7 +18,7 @@ class ParserModule_Modify extends ParserModule {
 			final type = parser.parseType();
 			if(type == null) {
 				Error.addError(ErrorType.ExpectedType, parser, typeStart);
-				return null;
+				return Nothing;
 			}
 
 			final modify = new ModifyMember(type, parser.makePosition(start));
@@ -32,7 +32,7 @@ class ParserModule_Modify extends ParserModule {
 			} else if(parser.parseNextContent(";")) {
 			} else {
 				Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndexFromLine(), 0, [":", ";"]);
-				return null;
+				return Nothing;
 			}
 
 			return Modify(modify);

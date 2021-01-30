@@ -4,6 +4,8 @@ import parsers.Parser;
 using parsers.expr.Expression;
 using parsers.expr.TypedExpression;
 
+import ast.typing.Type;
+
 enum QuantumExpressionInternal {
 	Untyped(e: Expression);
 	Typed(e: TypedExpression);
@@ -26,10 +28,10 @@ abstract QuantumExpression(QuantumExpressionInternal) from QuantumExpressionInte
 		return new QuantumExpression(Typed(_typed));
 	}
 
-	public function typeExpression(parser: Parser, typeless: Bool, isInterpret: Bool): Null<QuantumExpression> {
+	public function typeExpression(parser: Parser, typeless: Bool, isInterpret: Bool, thisType: Null<Type>): Null<QuantumExpression> {
 		return switch(this) {
 			case Untyped(e): {
-				final typed = e.getType(parser, typeless ? Typeless : Normal, isInterpret);
+				final typed = e.getType(parser, typeless ? Typeless : Normal, isInterpret, thisType);
 				if(typed != null) {
 					fromTyped(typed);
 				} else {

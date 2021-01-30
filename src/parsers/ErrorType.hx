@@ -13,7 +13,9 @@ enum abstract ErrorType(Int) from Int to Int {
 	var ExpectedNamespaceName = 4001;
 	var ExpectedAttributeName = 4002;
 	var VariableNameAlreadyUsedInCurrentScope = 4010;
-	var AttributeNameAlreadyUsedInCurrentScope = 4011;
+	var FunctionNameWithParamsAlreadyUsedInScope = 4011;
+	var AttributeNameAlreadyUsedInCurrentScope = 4012;
+	var ClassNameAlreadyUsedInCurrentScope = 4013;
 	var NoNamespaceToEnd = 4020;
 
 	var UnexpectedCharacter = 5000;
@@ -33,6 +35,7 @@ enum abstract ErrorType(Int) from Int to Int {
 	var InvalidValue = 10030;
 	var UnknownVariable = 10040;
 	var UnknownMember = 10050;
+	var AmbiguousFunctionCall = 10060;
 
 	var CannotDetermineVariableType = 11000;
 	var CannotAssignThisTypeToThatType = 12000;
@@ -53,6 +56,10 @@ enum abstract ErrorType(Int) from Int to Int {
 	var UnknownAttribute = 17020;
 	var AttributeArgumentsMismatch = 17030;
 	var MissingCompilerAttributeParameter = 17040;
+
+	var MissingFunctionParameter = 18000;
+	var CannotPassThisForThat = 18100;
+	var TooManyFunctionParametersProvided = 18200;
 
 	var InterpreterUnknownLiteral = 20000;
 	var InterpreterLiteralListValuesDoNotMatch = 20010;
@@ -79,7 +86,9 @@ enum abstract ErrorType(Int) from Int to Int {
 			case ExpectedNamespaceName: return "Namespace name or path expected.";
 			case ExpectedAttributeName: return "Attribute name expected.";
 			case VariableNameAlreadyUsedInCurrentScope: return "Name already in use.";
+			case FunctionNameWithParamsAlreadyUsedInScope: return "Function with this name and parameters already exists.";
 			case AttributeNameAlreadyUsedInCurrentScope: return "Attribute name already in use.";
+			case ClassNameAlreadyUsedInCurrentScope: return "Class name already in use.";
 			case NoNamespaceToEnd: return "No namespace to end.";
 
 			case UnexpectedCharacter: return "Unexpected character encountered.";
@@ -99,6 +108,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidValue: return "Invalid value.";
 			case UnknownVariable: return "Unknown variable '%1'.";
 			case UnknownMember: return "Unknown member '%1' of '%2'";
+			case AmbiguousFunctionCall: return "Ambiguous function call";
 
 			case CannotDetermineVariableType: return "Cannot determine variable type.";
 			case CannotAssignThisTypeToThatType: return "Cannot assign '%1' to '%2'.";
@@ -119,6 +129,10 @@ enum abstract ErrorType(Int) from Int to Int {
 			case UnknownAttribute: return "Unknown attribute.";
 			case AttributeArgumentsMismatch: return "Invalid arguments for attribute.";
 			case MissingCompilerAttributeParameter: return "Missing compiler attribute parameter #%1: '%2'.";
+
+			case MissingFunctionParameter: return "Missing function parameter.";
+			case CannotPassThisForThat: return "Cannot pass '%1' for '%2'.";
+			case TooManyFunctionParametersProvided: return "Too many function parameters provided.";
 
 			case InterpreterUnknownLiteral: return "Unknown value encountered.";
 			case InterpreterLiteralListValuesDoNotMatch: return "List types do not match. Expected '%1'. not '%2'.";
@@ -150,7 +164,9 @@ enum abstract ErrorType(Int) from Int to Int {
 			case ExpectedNamespaceName: return "expected namespace name";
 			case ExpectedAttributeName: return "expected attribute name";
 			case VariableNameAlreadyUsedInCurrentScope: return "name already in use";
+			case FunctionNameWithParamsAlreadyUsedInScope: return "name already in use";
 			case AttributeNameAlreadyUsedInCurrentScope: return "attribute name already in use";
+			case ClassNameAlreadyUsedInCurrentScope: return "class name already in use";
 			case NoNamespaceToEnd: return "no namespaces to end";
 
 			case UnexpectedCharacter: return "unexpected character";
@@ -170,6 +186,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidValue: return "invalid value";
 			case UnknownVariable: return "unknown variable";
 			case UnknownMember: return "unknown member";
+			case AmbiguousFunctionCall: return "ambiguous function";
 
 			case CannotDetermineVariableType: return "cannot determine type";
 			case CannotAssignThisTypeToThatType: return "cannot assign different types";
@@ -190,6 +207,10 @@ enum abstract ErrorType(Int) from Int to Int {
 			case UnknownAttribute: return "unknown attribute";
 			case AttributeArgumentsMismatch: return "invalid arguments";
 			case MissingCompilerAttributeParameter: return "missing compiler attribute parameter";
+
+			case MissingFunctionParameter: return "missing function parameter";
+			case CannotPassThisForThat: return "incorrect type passed";
+			case TooManyFunctionParametersProvided: return "too many parameters provided";
 
 			case InterpreterUnknownLiteral: return "unknown value";
 			case InterpreterLiteralListValuesDoNotMatch: return "list value types do not match";

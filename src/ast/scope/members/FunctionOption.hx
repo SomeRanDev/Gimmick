@@ -7,8 +7,10 @@ enum FunctionOption {
 	Static;
 	Const;
 	Virtual;
+	Abstract;
 	Override;
 	Inject;
+	Extern;
 }
 
 class FunctionOptionHelper {
@@ -17,7 +19,7 @@ class FunctionOptionHelper {
 		var word = null;
 		while(true) {
 			parser.parseWhitespaceOrComments();
-			word = parser.parseMultipleWords(["inline", "static", "const", "virtual", "override", "inject"]);
+			word = parser.parseMultipleWords(["inline", "static", "const", "virtual", "abstract", "override", "inject", "extern"]);
 			if(word != null) {
 				final option = stringToOption(word);
 				if(option != null) {
@@ -36,8 +38,10 @@ class FunctionOptionHelper {
 			case "static": Static;
 			case "const": Const;
 			case "virtual": Virtual;
+			case "abstract": Abstract;
 			case "override": Override;
 			case "inject": Inject;
+			case "extern": Extern;
 			default: null;
 		}
 	}
@@ -48,15 +52,17 @@ class FunctionOptionHelper {
 			case Static: "static";
 			case Const: "const";
 			case Virtual: "virtual";
+			case Abstract: "virtual";
 			case Override: "override";
 			case Inject: "";
+			case Extern: "";
 			default: null;
 		}
 	}
 
 	public static function classOnly(option: FunctionOption): Bool {
 		return switch(option) {
-			case Static | Virtual | Override: true;
+			case Static | Virtual | Abstract | Override: true;
 			default: false;
 		}
 	}

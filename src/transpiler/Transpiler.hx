@@ -47,18 +47,6 @@ class Transpiler {
 	}
 
 	public function transpile() {
-		/*var prevCond = true;
-		for(mem in members) {
-			if(mem.shouldTranspile(context, prevCond)) {
-				prevCond = true;
-				if(transpileMember(mem)) {
-					transpileCount++;
-				}
-			} else {
-				prevCond = false;
-			}
-		}
-		*/
 		transpileAll(members.members, context);
 	}
 
@@ -84,8 +72,8 @@ class Transpiler {
 		}
 
 		switch(member.type) {
-			case Include(path, brackets): {
-				TranspileModule_Include.transpile(path, brackets, this);
+			case Include(path, brackets, header): {
+				TranspileModule_Include.transpile(path, brackets, header, this);
 				return false;
 			}
 			case Namespace(namespace): {
@@ -96,6 +84,7 @@ class Transpiler {
 			}
 			case Function(func): {
 				TranspileModule_Function.transpile(func.get(), this);
+				return func.get().shouldTranspile();
 			}
 			case GetSet(getset): {
 				final gs = getset.get();
@@ -106,9 +95,16 @@ class Transpiler {
 				if(gs.set != null) {
 					TranspileModule_Function.transpile(gs.set, this);
 				}
+				if((gs.get == null || gs.get.isInject()) && (gs.set == null || gs.set.isInject())) {
+					return false;
+				}
+			}
+			case Class(cls): {
+				TranspileModule_Class.transpile(cls.get(), this, member);
+				return cls.get().shouldTranspile();
 			}
 			case Modify(modify): {
-				TranspileModule_Modify.transpile(modify, this);
+				return TranspileModule_Modify.transpile(modify, this);
 			}
 			case Expression(expr): {
 				TranspileModule_Expression.transpile(expr, this);

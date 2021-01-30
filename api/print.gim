@@ -2,5 +2,5 @@
 
 @global
 @cppRequireInclude(iostream, true)
-inject def print(a: string):
-	@untyped return std::cout << a << std::endl;
+inject def print###<T: [has toString() -> string]>(a: T)###(a: string):
+	@untyped return std::cout << a.toString() << std::endl;

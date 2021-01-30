@@ -271,7 +271,7 @@ class LiteralParser {
 			result = "";
 			while(true) {
 				final char = parser.currentChar();
-				if(char == opChar) {
+				if(!wasSlash && char == opChar) {
 					if(parser.parseNextContent(op)) {
 						break;
 					}
@@ -285,8 +285,10 @@ class LiteralParser {
 						Error.addError(UnknownEscapeCharacter, parser, parser.getIndexFromLine() - 1, 1);
 					}
 					wasSlash = false;
+					@:nullSafety(Off) result += char;
+				} else {
+					@:nullSafety(Off) result += char;
 				}
-				@:nullSafety(Off) result += char;
 				if(parser.incrementIndex(1)) {
 					break;
 				}

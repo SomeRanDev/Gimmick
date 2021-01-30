@@ -22,6 +22,8 @@ class ParserModule_Variable extends ParserModule {
 		final word = parser.parseMultipleWords(["var", "const", "static"]);
 		final startIndex = parser.getIndex();
 		if(word != null) {
+			var failed = false;
+
 			parser.parseWhitespaceOrComments();
 
 			final varNameStart = parser.getIndexFromLine();
@@ -34,7 +36,7 @@ class ParserModule_Variable extends ParserModule {
 			final existingMember = parser.scope.existInCurrentScope(name);
 			if(existingMember != null) {
 				Error.addError(ErrorType.VariableNameAlreadyUsedInCurrentScope, parser, varNameStart);
-				return null;
+				failed = true;
 			}
 
 			parser.parseWhitespaceOrComments();
@@ -48,10 +50,12 @@ class ParserModule_Variable extends ParserModule {
 			parser.parseWhitespaceOrComments();
 
 			var expr = null;
-			var equalsPos = parser.makePosition(parser.getIndex());
+			var equalsPos: Null<Position> = parser.makePosition(parser.getIndex());
 			if(parser.parseNextContent("=")) {
 				parser.parseWhitespaceOrComments();
 				expr = parser.parseExpression();
+			} else {
+				equalsPos = null;
 			}
 
 			var typedExpr = null;
@@ -89,7 +93,11 @@ class ParserModule_Variable extends ParserModule {
 
 			if(!parser.parseNextExpressionEnd()) {
 				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
-				return null;
+				return Nothing;
+			}
+
+			if(failed) {
+				return Nothing;
 			}
 
 			final finalType =  type == null ? Type.Unknown() : type;
@@ -99,7 +107,7 @@ class ParserModule_Variable extends ParserModule {
 
 			parser.onTypeUsed(finalType, parser.scope.isTopLevel());
 
-			return Variable(new VariableMember(name, finalType, isStatic, position, expr, varMemberType));
+			return Variable(new VariableMember(name, finalType, isStatic, position, equalsPos, expr, varMemberType));
 		}
 
 		return null;

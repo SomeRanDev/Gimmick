@@ -2,12 +2,36 @@
 import alt
 
 
+start namespace dfsfds
+
+@sortMembersAlphabetically
+class Fuck:
+	var vwref = 666
+	static aa = 32
+	var fds = "fdsf"
+	var bb = 123
+
+	static def bla -> int:
+		return 43#aa
+
+	def ccc -> int:
+		return 0
+
+	def bla2 -> int:
+		return 0
+
+var ffff = 2323232
+end namespace
+
+extern class Test:
+	var bla: int
+
 inline def bla:
 	var ffdfdf = 32
 
 compiler attribute myAttribute(someInput: string, bla: string list):
 	def toCpp -> string:
-		someInput = bla[0]
+		someInput = bla[0];
 		###if someInput.length() == 3:
 			return "got something"
 		else:
@@ -34,12 +58,20 @@ if a == 32:
 
 print("fd")
 
-var fds: int list
+var fds: int ptr list
 
 var fdsd = "fdsklfds"
-fdsd.length
+var dsdsds: string = fdsd
+var help = "";
 
-var aaa = 111.floor()
+var qwer = help
+
+var aaa = 111.floor.floor
+
+if 21 == 21:
+	print("fds")
+
+print(12.toString());
 
 var blabla = ""
 @if(js) blabla = "fds";
@@ -50,3 +82,20 @@ var blabla = ""
 
 
 print("bla");
+
+print("bla23");
+
+var grge = dfsfds.ffff
+
+get test2 -> int:
+set test2(bla: int):
+
+def test1() -> int:
+
+#def test() -> int:
+
+def test(test: int):
+
+#def test(test: string):
+
+test(123)

@@ -59,6 +59,9 @@ class TranspileModule_Type {
 			case String: {
 				return "std::string";
 			}
+			case List(type): {
+				return "std::vector<" + transpile(type) + ">";
+			}
 			case Pointer(type): {
 				return transpile(type) + "*";
 			}

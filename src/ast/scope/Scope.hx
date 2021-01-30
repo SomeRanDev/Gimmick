@@ -90,7 +90,7 @@ class Scope {
 
 	public function addImport(imp: Ref<Scope>) {
 		imports.push(imp);
-		addMember(new ScopeMember(Include(imp.get().file.getHeaderOutputFile(), false)));
+		addMember(new ScopeMember(Include(imp.get().file.getHeaderOutputFile(), false, false)));
 	}
 
 	public function pushNamespace(name: String) {
@@ -290,6 +290,14 @@ class Scope {
 		return null;
 	}
 
+	public function existInCurrentScopeAll(varName: String): Null<Array<ScopeMember>> {
+		final top = stack.first();
+		if(top != null) {
+			return top.findAll(varName);
+		}
+		return null;
+	}
+
 	public function addAttribute(attribute: AttributeMember) {
 		final result = new ScopeMember(Attribute(attribute));
 		attachAttributesToMember(result);
@@ -446,8 +454,46 @@ class Scope {
 			for(g in globalScope) {
 				final type = g.scope.findMember(name, false, false);
 				if(type != null) {
-					file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
+					if(type.shouldTriggerAutomaticInclude()) {
+						file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
+					}
 					return type;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	public function findMemberWithParameters(name: String, params: Array<TypedExpression>, checkImports: Bool = true, includeGlobals: Bool = true): Null<Array<ScopeMember>> {
+		for(namespace in namespaceStack) {
+			final members = namespace.members.findWithParameters(name, params);
+			if(members != null) {
+				return members;
+			}
+		}
+
+		for(collection in stack) {
+			final members = collection.findWithParameters(name, params);
+			if(members != null) {
+				return members;
+			}
+		}
+
+		if(checkImports) {
+			for(imp in imports) {
+				final types = imp.get().findMemberWithParameters(name, params, false, false);
+				if(types != null) {
+					return types;
+				}
+			}
+		}
+
+		if(includeGlobals) {
+			for(g in globalScope) {
+				final types = g.scope.findMemberWithParameters(name, params, false, false);
+				if(types != null) {
+					return types;
 				}
 			}
 		}
@@ -564,7 +610,9 @@ class Scope {
 			for(g in globalScope) {
 				final type = g.scope.findModifyFunction(type, name, false, false);
 				if(type != null) {
-					file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
+					if(type.shouldTriggerAutomaticInclude()) {
+						file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
+					}
 					return type;
 				}
 			}
@@ -590,33 +638,36 @@ class Scope {
 	}
 
 	function findNumberType(name: String): Null<NumberType> {
-		switch(name) {
-			case "char": return Char;
-			case "short": return Short;
-			case "int": return Int;
-			case "long": return Long;
-			case "thicc": return Thicc;
+		return switch(name) {
+			case "number": Any;
 
-			case "byte": return Byte;
-			case "ushort": return UShort;
-			case "uint": return UInt;
-			case "ulong": return ULong;
-			case "uthicc": return UThicc;
+			case "char": Char;
+			case "short": Short;
+			case "int": Int;
+			case "long": Long;
+			case "thicc": Thicc;
 
-			case "int8": return Int8;
-			case "int16": return Int16;
-			case "int32": return Int32;
-			case "int64": return Int64;
+			case "byte": Byte;
+			case "ushort": UShort;
+			case "uint": UInt;
+			case "ulong": ULong;
+			case "uthicc": UThicc;
 
-			case "uint8": return UInt8;
-			case "uint16": return UInt16;
-			case "uint32": return UInt32;
-			case "uint64": return UInt64;
+			case "int8": Int8;
+			case "int16": Int16;
+			case "int32": Int32;
+			case "int64": Int64;
 
-			case "float": return Float;
-			case "double": return Double;
-			case "triple": return Triple;
+			case "uint8": UInt8;
+			case "uint16": UInt16;
+			case "uint32": UInt32;
+			case "uint64": UInt64;
+
+			case "float": Float;
+			case "double": Double;
+			case "triple": Triple;
+
+			default: null;
 		}
-		return null;
 	}
 }

@@ -6,6 +6,7 @@ import basic.Ref;
 
 import parsers.Parser;
 import parsers.ErrorType;
+import parsers.ErrorPromise;
 
 import parsers.expr.Position;
 
@@ -32,6 +33,7 @@ class Error {
 	var params: Null<Array<String>>;
 
 	static var errors: Array<Error> = [];
+	static var promises: Map<String, Array<ErrorPromise>> = [];
 
 	public function new(errorType: ErrorType, lineStr: String, file: String, line: Int, start: Int, end: Int, params: Null<Array<String>>) {
 		this.errorType = errorType;
@@ -182,5 +184,36 @@ class Error {
 			return result;
 		}
 		return str;
+	}
+
+	public static function addErrorPromise(key: String, promise: ErrorPromise) {
+		@:nullSafety(Off) {
+			if(!promises.exists(key)) {
+				promises.set(key, []);
+			}
+			promises.get(key).push(promise);
+		}
+	}
+
+	public static function completePromiseOne(key: String, position: Position) {
+		@:nullSafety(Off) {
+			if(promises.exists(key)) {
+				for(promise in promises.get(key)) {
+					promise.completeOne(position);
+				}
+			}
+			promises.set(key, []);
+		}
+	}
+
+	public static function completePromiseMulti(key: String, positions: Array<Position>) {
+		@:nullSafety(Off) {
+			if(promises.exists(key)) {
+				for(promise in promises.get(key)) {
+					promise.completeMulti(positions);
+				}
+			}
+			promises.set(key, []);
+		}
 	}
 }

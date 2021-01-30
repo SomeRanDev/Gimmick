@@ -3,4 +3,11 @@
 
 extern int bla2;
 
+class HFDKS {
+public:
+	int fd = 32;
+
+	void bla();
+};
+
 #endif

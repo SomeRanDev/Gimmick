@@ -24,7 +24,7 @@ class TranspileModule_Expression {
 			case Basic(expr): {
 				return switch(expr) {
 					case Untyped(_): "";
-					case Typed(texpr): transpileExpr(texpr, context) + ";";
+					case Typed(texpr): transpileExpr(texpr, context, true) + ";";
 				}
 			}
 			case Pass: return "";
@@ -39,7 +39,7 @@ class TranspileModule_Expression {
 				} else {
 					final exprStr = switch(expr) {
 						case Untyped(_): null;
-						case Typed(texpr): transpileExpr(texpr, context);
+						case Typed(texpr): transpileExpr(texpr, context, true);
 					}
 					if(exprStr == null) return "";
 					return "while(" + exprStr + ") " + transpileScope(subExpressions, context, tabLevel);
@@ -48,7 +48,7 @@ class TranspileModule_Expression {
 			case IfStatement(expr, subExpressions, checkTrue): {
 				final exprStr = switch(expr) {
 					case Untyped(_): null;
-					case Typed(texpr): transpileExpr(texpr, context);
+					case Typed(texpr): transpileExpr(texpr, context, true);
 				}
 				if(exprStr == null) return "";
 				var result = "if(" + exprStr + ") " + transpileScope(subExpressions, context, tabLevel);
@@ -73,7 +73,7 @@ class TranspileModule_Expression {
 			case ReturnStatement(expr): {
 				final exprStr = switch(expr) {
 					case Untyped(_): null;
-					case Typed(texpr): transpileExpr(texpr, context);
+					case Typed(texpr): transpileExpr(texpr, context, true);
 				}
 				if(exprStr == null) return "";
 				return "return " + exprStr + ";";
@@ -105,14 +105,14 @@ class TranspileModule_Expression {
 	}
 
 	public static function transpileIsolatedExpr(expr: TypedExpression, context: TranspilerContext): String {
-		var result = transpileExpr(expr, context);
+		var result = transpileExpr(expr, context, false);
 		if(!isIsolated(expr)) {
 			result = "(" + result + ")";
 		}
 		return result;
 	}
 
-	public static function transpileExpr(expr: TypedExpression, context: TranspilerContext): String {
+	public static function transpileExpr(expr: TypedExpression, context: TranspilerContext, isolated: Bool = false): String {
 		switch(expr) {
 			case Prefix(op, expr, pos, type): {
 				return op.op + transpileExpr(expr, context);
@@ -166,7 +166,7 @@ class TranspileModule_Expression {
 														var result: Null<String> = null;
 														switch(expr) {
 															case Typed(e): {
-																result = transpileIsolatedExpr(e, context);
+																result = !isolated ? transpileIsolatedExpr(e, context) : transpileExpr(e, context);
 																context.popVarReplacements();
 															}
 															default: {}

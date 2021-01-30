@@ -5,7 +5,11 @@
 # =================================================
 
 @global
-modify int:
+modify number:
 	@cppRequireInclude(cmath, true)
-	inject def floor() -> int:
+	inject get floor() -> int:
 		@untyped return floor(this);
+
+	@cppRequireInclude(string, true)
+	inject def toString() -> string:
+		@untyped return std::to_string(this);

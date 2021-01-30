@@ -20,17 +20,18 @@ class ParserModule_Attribute extends ParserModule {
 	public override function parse(parser: Parser): Null<Module> {
 		final startIndex = parser.getIndex();
 		if(parser.parseNextContent("@")) {
+			var failed = false;
 			final varNameStart = parser.getIndexFromLine();
 			final name = parser.parseNextVarName();
 			if(name == null) {
 				Error.addError(ErrorType.ExpectedAttributeName, parser, varNameStart);
-				return null;
+				return Nothing;
 			}
 
 			final attr = parser.scope.findAttributeFromName(name);
 			if(attr == null) {
 				Error.addError(ErrorType.UnknownAttribute, parser, varNameStart);
-				return null;
+				failed = true;
 			}
 
 			parser.parseWhitespaceOrComments();
@@ -47,13 +48,16 @@ class ParserModule_Attribute extends ParserModule {
 					parser.parseWhitespaceOrComments();
 					indexTracker = parser.getIndex();
 
-					final withinAttr = attr.params != null && attr.params.length > index;
-					final type = infinityType != null ? infinityType : @:nullSafety(Off) (withinAttr ? attr.params[index].type : null);
 					var isRaw = false;
-					if(type != null ? type.isRaw() : false) {
-						isRaw = true;
-					} else if(!withinAttr && infinityType == null) {
-						isRaw = true;
+					var type: Null<AttributeArgumentType> = null;
+					if(attr != null) {
+						final withinAttr = attr.params != null && attr.params.length > index;
+						type = infinityType != null ? infinityType : @:nullSafety(Off) (withinAttr ? attr.params[index].type : null);
+						if(type != null ? type.isRaw() : false) {
+							isRaw = true;
+						} else if(!withinAttr && infinityType == null) {
+							isRaw = true;
+						}
 					}
 
 					if(isRaw) {
@@ -73,11 +77,15 @@ class ParserModule_Attribute extends ParserModule {
 
 					if(indexTracker == parser.getIndex()) {
 						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
-						return null;
+						failed = true;
 					}
 
 					index++;
 				}
+			}
+
+			if(failed || attr == null) {
+				return Nothing;
 			}
 
 			return AttributeInstance(attr, params, parser.makePosition(paramsStartGlobal));
