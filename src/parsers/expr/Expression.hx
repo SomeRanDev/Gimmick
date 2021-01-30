@@ -168,7 +168,6 @@ class ExpressionHelper {
 				return null;
 			}
 			case Call(op, expr, params, pos): {
-
 				final typedParamExpr: Array<TypedExpression> = [];
 				for(p in params) {
 					final r = getInternalTypeStacked(p);
@@ -181,7 +180,9 @@ class ExpressionHelper {
 				final context = new ExpressionTypingContext(isCall);
 				if(isCall) context.setCallParameters(typedParamExpr);
 				final typedExpr = getInternalTypeStacked(expr, null, context);
-				Error.completePromiseMulti("funcWrongParam", params.map(p -> getPosition(p)));
+				final exprPos = [getPosition(expr)];
+				final otherPos = params.map(p -> getPosition(p));
+				Error.completePromiseMulti("funcWrongParam", exprPos.concat(otherPos));
 				if(typedExpr != null) {
 
 					final typedParams: Array<TypedExpression> = [];
@@ -193,7 +194,6 @@ class ExpressionHelper {
 					for(expr in typedParamExpr) {
 						typedParams.push(expr);
 					}
-					
 
 					final type = typedExpr.getType();
 					final result = op.findReturnType(type, typedParams.map(p -> p.getType()));

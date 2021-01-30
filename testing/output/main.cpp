@@ -54,6 +54,9 @@ int test1() {
 void test(int test) {
 }
 
+void test(int test) {
+}
+
 int main() {
 	b = bla2;
 	{
@@ -85,6 +88,6 @@ int main() {
 	std::cout << "bla".toString() << std::endl;
 	std::cout << "bla23".toString() << std::endl;
 	grge = dfsfds::ffff;
-	test(123);
+	test(nullptr);
 	return 0;
 }

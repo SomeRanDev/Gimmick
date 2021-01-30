@@ -96,6 +96,8 @@ def test1() -> int:
 
 def test(test: int):
 
+def test(test: int?):
+
 #def test(test: string):
 
-test(123)
+test(43)

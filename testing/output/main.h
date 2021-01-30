@@ -42,6 +42,8 @@ int test1();
 
 void test(int test);
 
+void test(int test);
+
 int main();
 
 #endif

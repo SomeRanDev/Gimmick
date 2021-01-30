@@ -33,7 +33,7 @@ class FunctionTypePassResult extends ErrorPromise {
 
 	public override function completeMulti(positions: Array<Position>) {
 		if(index < positions.length) {
-			Error.addErrorFromPos(error, positions[index], [typeA != null ? typeA.toString() : "", typeB != null ? typeB.toString() : ""]);
+			Error.addErrorFromPos(error, positions[index + 1], [typeA != null ? typeA.toString() : "", typeB != null ? typeB.toString() : ""]);
 		}
 	}
 }
@@ -85,7 +85,7 @@ class FunctionType {
 				final arg = arguments[i];
 				final optional = arg.expr != null;
 				if(!optional) {
-					return new FunctionTypePassResult(ErrorType.MissingFunctionParameter, i, null, null);
+					return new FunctionTypePassResult(ErrorType.MissingFunctionParameter, -1, null, null);
 				}
 			}
 		}

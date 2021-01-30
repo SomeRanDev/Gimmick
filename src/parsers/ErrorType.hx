@@ -40,6 +40,7 @@ enum abstract ErrorType(Int) from Int to Int {
 	var CannotDetermineVariableType = 11000;
 	var CannotAssignThisTypeToThatType = 12000;
 	var CannotAssignToConst = 12010;
+	var CannotAssignNullToNonOptional = 12020;
 
 	var ExpectedFunctionParameterName = 13000;
 
@@ -113,6 +114,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case CannotDetermineVariableType: return "Cannot determine variable type.";
 			case CannotAssignThisTypeToThatType: return "Cannot assign '%1' to '%2'.";
 			case CannotAssignToConst: return "Cannot assign to const variable.";
+			case CannotAssignNullToNonOptional: return "Cannot assign null to non-nullable value.";
 
 			case ExpectedFunctionParameterName: return "Expected function parameter name.";
 
@@ -191,6 +193,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case CannotDetermineVariableType: return "cannot determine type";
 			case CannotAssignThisTypeToThatType: return "cannot assign different types";
 			case CannotAssignToConst: return "cannot assign to const";
+			case CannotAssignNullToNonOptional: return "cannot assign null";
 
 			case ExpectedFunctionParameterName: return "expected name here";
 

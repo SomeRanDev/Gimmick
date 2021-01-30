@@ -21,6 +21,7 @@ using haxe.EnumTools;
 enum TypeType {
 	Void;
 	Any;
+	Null;
 	Boolean;
 	Number(type: NumberType);
 	String;
@@ -84,6 +85,9 @@ class Type {
 	}
 
 	public function canBePassed(other: Type): Null<ErrorType> {
+		if(other.isNull()) {
+			return isOptional ? null : ErrorType.CannotAssignNullToNonOptional;
+		}
 		if(isGenericNumber() && other.isNumber() != null) {
 			return null;
 		}
@@ -119,6 +123,10 @@ class Type {
 
 	public static function Any(isConst: Bool = false, isOptional: Bool = false): Type {
 		return new Type(TypeType.Any, isConst, isOptional);
+	}
+
+	public static function Null(): Type {
+		return new Type(TypeType.Null, true, true);
 	}
 
 	public static function Boolean(isConst: Bool = false, isOptional: Bool = false): Type {
@@ -183,7 +191,7 @@ class Type {
 
 	public static function fromLiteral(literal: Literal, scope: Scope, thisType: Null<Type>): Null<Type> {
 		return switch(literal) {
-			case Literal.Null: Type.Any();
+			case Literal.Null: Type.Null();
 			case Literal.Boolean(_): Type.Boolean();
 			case Literal.Number(_, _, type): Type.Number(type);
 			case Literal.String(_, _, _): Type.String();
@@ -399,6 +407,13 @@ class Type {
 			case TypeType.Reference(t): 8;
 			case TypeType.External(name, typeParams): 999;
 			default: 9999;
+		}
+	}
+
+	public function isNull(): Bool {
+		return switch(type) {
+			case TypeType.Null: true;
+			default: false;
 		}
 	}
 
