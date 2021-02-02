@@ -21,6 +21,13 @@ class NamespaceMember {
 		members.add(member);
 	}
 
+	public function replace(index: Int, member: ScopeMember): Bool {
+		if(index >= 0 && index < members.length) {
+			return members.replace(index, member);
+		}
+		return false;
+	}
+
 	public function getRef(): Ref<NamespaceMember> {
 		if(ref == null) {
 			ref = new Ref<NamespaceMember>(this);

@@ -21,12 +21,14 @@ class TranspilerContext {
 	var values: Map<String, Variant>;
 	var thisExprStack: GenericStack<TypedExpression>;
 	var namedVarReplacements: GenericStack<Map<String, TypedExpression>>;
+	var classNameStack: GenericStack<String>;
 
 	public function new(language: Language) {
 		namespaceStack = new GenericStack();
 		context = new GenericStack();
 		thisExprStack = new GenericStack();
 		namedVarReplacements = new GenericStack();
+		classNameStack = new GenericStack();
 		this.language = language;
 		values = [];
 		values.set("cpp", Bool(isCpp()));
@@ -140,5 +142,17 @@ class TranspilerContext {
 			return first[name];
 		}
 		return null;
+	}
+
+	public function pushClassName(name: String) {
+		classNameStack.add(name);
+	}
+
+	public function popClassName() {
+		classNameStack.pop();
+	}
+
+	public function currentClassName(): Null<String> {
+		return classNameStack.first();
 	}
 }

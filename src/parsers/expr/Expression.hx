@@ -133,19 +133,26 @@ class ExpressionHelper {
 				return null;
 			}
 			case Infix(op, lexpr, rexpr, pos): {
-				final lexprTyped = getInternalTypeStacked(lexpr);
+				var lexprTyped = getInternalTypeStacked(lexpr);
 				if(lexprTyped != null) {
 					final accessContext = new ExpressionTypingContext(false);
 					final rexprTyped = getInternalTypeStacked(rexpr, op.isAccessor() ? lexprTyped : null, accessContext);
 					if(rexprTyped != null) {
-						if(op.op == "=" && convertAssignmentToArgument) {
-							convertAssignmentToArgument = false;
-							switch(lexprTyped) {
-								case Call(op, expr, params, pos, t): {
-									params.push(rexprTyped);
-									return Call(op, expr, params, pos, t);
+						if(op.op == "=") {
+							if(convertAssignmentToArgument) {
+								convertAssignmentToArgument = false;
+								switch(lexprTyped) {
+									case Call(op, expr, params, pos, t): {
+										params.push(rexprTyped);
+										return Call(op, expr, params, pos, t);
+									}
+									default: {}
 								}
-								default: {}
+							} else if(lexprTyped.getType().isUnknown()) {
+								final newExpr = lexprTyped.discoverVariableType(rexprTyped.getType());
+								if(newExpr != null) {
+									lexprTyped = newExpr;
+								}
 							}
 						}
 						final rType = rexprTyped.getType();
@@ -223,7 +230,20 @@ class ExpressionHelper {
 											case 0: null;
 											case 1: options[0];
 											default: {
-												Error.addErrorFromPos(ErrorType.AmbiguousFunctionCall, pos);
+												var extractName = function(opt: ScopeMember) {
+													final mem = opt.extractFunctionMember();
+													if(mem != null) {
+														return mem.toString();
+													}
+													return "";
+												};
+												if(options.length == 2) {
+													Error.addErrorFromPos(ErrorType.AmbiguousFunctionCall, pos, options.map(extractName));
+												} else if(options.length == 3) {
+													Error.addErrorFromPos(ErrorType.AmbiguousFunctionCall3, pos, options.map(extractName));
+												} else {
+													Error.addErrorFromPos(ErrorType.AmbiguousFunctionCallMulti, pos, options.slice(0, 2).map(extractName).concat([Std.string(options.length - 2)]));
+												}
 												options[0];
 											}
 										}

@@ -354,7 +354,7 @@ class Parser {
 	public function getMode_Class(): Array<ParserModule> {
 		return [
 			ParserModule_Attribute.it,
-			ParserModule_Function.it,
+			ParserModule_Function.classIt,
 			ParserModule_Variable.it
 		];
 	}

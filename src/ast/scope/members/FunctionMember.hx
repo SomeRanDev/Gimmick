@@ -28,6 +28,10 @@ class FunctionMember {
 		members = [];
 	}
 
+	public function toString() {
+		return type.get().toString();
+	}
+
 	public function addMember(member: ScopeMember) {
 		members.push(member);
 	}
@@ -68,5 +72,13 @@ class FunctionMember {
 
 	public function shouldTranspile() {
 		return !isInject() && !isExtern();
+	}
+
+	public function isConstructor() {
+		return type.get().isConstructor();
+	}
+
+	public function isDestructor() {
+		return type.get().isDestructor();
 	}
 }

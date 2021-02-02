@@ -45,4 +45,21 @@ class TypedExpressionHelper {
 			case Call(_, _, _, pos, _): pos;
 		};
 	}
+
+	public static function discoverVariableType(expr: TypedExpression, type: Type): Null<TypedExpression> {
+		switch(expr) {
+			case Value(literal, pos, _): {
+				switch(literal) {
+					case Variable(member): {
+						if(member.discoverType(type)) {
+							return Value(literal, pos, type);
+						}
+					}
+					default: {}
+				}
+			}
+			default: {}
+		}
+		return null;
+	}
 }

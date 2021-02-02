@@ -15,6 +15,8 @@ enum FunctionThisType {
 	None;
 	StaticExtension;
 	Class;
+	Constructor;
+	Destructor;
 }
 
 class FunctionTypePassResult extends ErrorPromise {
@@ -58,12 +60,37 @@ class FunctionType {
 		return ref;
 	}
 
+	public function toString() {
+		final argStr = arguments.map((p) -> p.type.toString()).join(", ");
+		return "func(" + argStr + ") -> " + returnType.toString();
+	}
+
 	public function prependArgument(name: String, type: Type) {
 		arguments.insert(0, new FunctionArgument(name, type, null));
 	}
 
 	public function setStaticExtension() {
 		thisType = StaticExtension;
+	}
+
+	public function setClassFunction() {
+		thisType = Class;
+	}
+
+	public function setConstructor() {
+		thisType = Constructor;
+	}
+
+	public function setDestructor() {
+		thisType = Destructor;
+	}
+
+	public function isConstructor() {
+		return thisType == Constructor;
+	}
+
+	public function isDestructor() {
+		return thisType == Destructor;
 	}
 
 	public function canPassTypes(types: Array<Type>): Null<FunctionTypePassResult> {

@@ -21,6 +21,8 @@ class TranspileModule_Class {
 		final isCpp = context.isCpp();
 		final isJs = context.isJs();
 
+		context.pushClassName(cls.name);
+
 		final data = cls;
 		final type = data.type.get();
 		final clsHeader = "class " + cls.name + " {";
@@ -132,6 +134,8 @@ class TranspileModule_Class {
 		} else {
 			transpiler.addSourceContent(clsCloser);
 		}
+
+		context.popClassName();
 	}
 
 	public static function transpileFunctionMember(cls: ClassMember, member: ScopeMember, transpiler: Transpiler, tabLevel: Int) {

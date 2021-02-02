@@ -107,4 +107,12 @@ class VariableMember {
 	public function setTypedExpression(typedExpr: TypedExpression) {
 		expression = typedExpr;
 	}
+
+	public function discoverType(type: Type): Bool {
+		if(this.type.isUnknown()) {
+			this.type = type;
+			return true;
+		}
+		return false;
+	}
 }

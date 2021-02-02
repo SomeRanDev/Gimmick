@@ -3,7 +3,7 @@ import alt
 
 
 start namespace dfsfds
-
+var blafdfdsfd = 43434
 @sortMembersAlphabetically
 class Fuck:
 	var vwref = 666
@@ -12,7 +12,7 @@ class Fuck:
 	var bb = 123
 
 	static def bla -> int:
-		return 43#aa
+		return aa
 
 	def ccc -> int:
 		return 0
@@ -94,10 +94,39 @@ def test1() -> int:
 
 #def test() -> int:
 
-def test(test: int):
+def test(test: int) -> int?:
 
-def test(test: int?):
+def test(test2: long?) -> int?:
+
+def test(test3: long):
+
+def test(test5: float):
 
 #def test(test: string):
 
-test(43)
+test(null)
+
+var __ttgdf = test2
+
+
+#modify string:
+#	def bbb -> int:
+#		return length
+
+#var pop = "fjdsklfkds".bbb()
+
+test(43f);
+
+class MyTestClass:
+	var unqiue
+
+	init(fd: int):
+		unqiue = 32
+
+	destroy:
+		print("fjdklfds")
+
+scope:
+	var onetwo = 12
+	scope:
+		var twothree = onetwo + 32

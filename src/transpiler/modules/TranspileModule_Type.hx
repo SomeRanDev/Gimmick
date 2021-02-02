@@ -119,6 +119,10 @@ class TranspileModule_Type {
 		return "auto";
 	}
 
+	public static function transpilable(type: Type): Bool {
+		return transpileInternal(type.type) != "auto";
+	}
+
 	public static function getDefaultAssignment(type: Type): Null<String> {
 		switch(type.type) {
 			case Boolean: {

@@ -8,7 +8,7 @@ using ast.scope.ScopeMember;
 import ast.scope.members.FunctionMember;
 import ast.scope.members.GetSetMember;
 import ast.scope.members.MemberLocation;
-import ast.scope.members.FunctionOption.FunctionOptionHelper;
+using ast.scope.members.FunctionOption.FunctionOptionHelper;
 import ast.typing.Type;
 import ast.typing.FunctionArgument;
 import ast.typing.FunctionType;
@@ -22,29 +22,64 @@ using parsers.expr.Expression;
 using parsers.expr.TypedExpression;
 
 class ParserModule_Function extends ParserModule {
-	public static var it = new ParserModule_Function();
+	public static var it = new ParserModule_Function(false);
+	public static var classIt = new ParserModule_Function(true);
+
+	var classFunctions = false;
+
+	public function new(classFunctions: Bool) {
+		super();
+		this.classFunctions = classFunctions;
+	}
 
 	public override function parse(parser: Parser): Null<Module> {
 		final startIndex = parser.getIndex();
 
 		final options = FunctionOptionHelper.parseFunctionOptions(parser);
 
+		final veryStart = parser.getIndexFromLine();
 		final isPrelim = parser.isPreliminary();
-		final word = parser.parseMultipleWords(["get", "set", "def"]);
-		if(word != null) {
+		final word = parser.parseMultipleWords(["get", "set", "def", "init", "destroy"]);
+		if(word != null && (classFunctions || (word != "init" && word != "destroy"))) {
 			var failed = false;
 
 			parser.parseWhitespaceOrComments();
 
 			final isGet = word == "get";
 			final isSet = word == "set";
+			final isInit = word == "init";
+			final isDest = word == "destroy";
 
-			final funcNameStart = parser.getIndexFromLine();
-			var name = parser.parseNextVarName();
-			if(name == null) {
-				Error.addError(ErrorType.ExpectedVariableName, parser, funcNameStart);
-				failed = true;
+			final attributes = [];
+
+			for(opt in options) {
+				var valid = false;
+				final attr = opt.a;
+				if(!classFunctions && attr.classOnly()) {
+					Error.addErrorFromPos(ErrorType.InvalidFunctionAttributeForNonClassFunction, opt.b);
+				} else if(isInit && !attr.constructorValid()) {
+					Error.addErrorFromPos(ErrorType.InvalidFunctionAttributeForConstructor, opt.b);
+				} else if(isDest && !attr.destructorValid()) {
+					Error.addErrorFromPos(ErrorType.InvalidFunctionAttributeForDestructor, opt.b);
+				} else {
+					attributes.push(attr);
+				}
+			}
+
+			var funcNameStart;
+			var name;
+			if(isInit || isDest) {
+				funcNameStart = veryStart;
 				name = "";
+			} else {
+				funcNameStart = parser.getIndexFromLine();
+				var tempName = parser.parseNextVarName();
+				if(tempName == null) {
+					Error.addError(ErrorType.ExpectedVariableName, parser, funcNameStart);
+					failed = true;
+					tempName = "";
+				}
+				name = tempName;
 			}
 
 			final funcNameEnd = parser.getIndexFromLine();
@@ -145,6 +180,11 @@ class ParserModule_Function extends ParserModule {
 				}
 			}
 
+			if(isDest && arguments.length > 0) {
+				Error.addError(ErrorType.DestructorRequiresNoArguments, parser, argListStart);
+				failed = true;
+			}
+
 			if(isGet && arguments.length > 0) {
 				Error.addError(ErrorType.GetRequiresNoArguments, parser, argListStart);
 				failed = true;
@@ -199,6 +239,7 @@ class ParserModule_Function extends ParserModule {
 
 			parser.parseWhitespaceOrComments();
 
+			final returnStart = parser.getIndexFromLine();
 			var returnType: Null<Type> = null;
 			if(parser.parseNextContent("->")) {
 				parser.parseWhitespaceOrComments();
@@ -211,6 +252,11 @@ class ParserModule_Function extends ParserModule {
 					failed = true;
 				}
 				returnType = Type.Void();
+			} else {
+				if(isInit || isDest) {
+					Error.addError(isInit ? ErrorType.ConstructorRequiresNoReturn : ErrorType.DestructorRequiresNoReturn, parser, returnStart);
+					failed = true;
+				}
 			}
 
 			parser.parseWhitespaceOrComments();
@@ -224,7 +270,17 @@ class ParserModule_Function extends ParserModule {
 			}
 
 			final memberLocation = TopLevel(parser.scope.currentNamespaceStack());
-			final funcMember = new FunctionMember(functionName, new Ref(new FunctionType(arguments, returnType)), memberLocation, options);
+			final funcType = new FunctionType(arguments, returnType);
+			if(classFunctions) {
+				if(isInit) {
+					funcType.setConstructor();
+				} else if(isDest) {
+					funcType.setDestructor();
+				} else {
+					funcType.setClassFunction();
+				}
+			}
+			final funcMember = new FunctionMember(functionName, new Ref(funcType), memberLocation, attributes);
 
 			if(parser.parseNextContent(":")) {
 				final members = parser.parseNextLevelContent();

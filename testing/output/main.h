@@ -6,6 +6,8 @@
 
 namespace dfsfds {
 
+extern int blafdfdsfd;
+
 class Fuck {
 public:
 	static int aa;
@@ -40,9 +42,23 @@ void set_test2(int bla);
 
 int test1();
 
-void test(int test);
+int test(int test);
 
-void test(int test);
+int test(long test2);
+
+void test(long test3);
+
+void test(float test5);
+
+extern int __ttgdf;
+
+class MyTestClass {
+public:
+	int unqiue = 0;
+
+	MyTestClass(int fd);
+	~MyTestClass();
+};
 
 int main();
 

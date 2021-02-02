@@ -91,6 +91,9 @@ class Type {
 		if(isGenericNumber() && other.isNumber() != null) {
 			return null;
 		}
+		if(other.isNumber() == NumberType.Int && isNumber() != null) {
+			return null;
+		}
 		if(!baseTypesEqual(other)) {
 			return ErrorType.CannotAssignThisTypeToThatType;
 		}
@@ -309,7 +312,7 @@ class Type {
 			result += "const ";
 		}
 		switch(type) {
-			case TypeType.Void: {
+			case TypeType.Void | TypeType.Null: {
 				result += "void";
 			}
 			case TypeType.Boolean: {
@@ -328,9 +331,7 @@ class Type {
 				result += "list<" + t.toString() + ">";
 			}
 			case TypeType.Function(func, typeParams): {
-				final funcType = func.get();
-				final argStr = funcType.arguments.map((p) -> p.type.toString()).join(", ");
-				result += "func(" + argStr + ") -> " + funcType.returnType.toString();
+				result += func.get().toString();
 			}
 			case TypeType.Class(cls, typeParams): {
 				result += cls.get().name;

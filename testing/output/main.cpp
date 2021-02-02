@@ -7,10 +7,12 @@
 
 namespace dfsfds {
 
+int blafdfdsfd = 43434;
+
 static int Fuck::aa = 32;
 
 int Fuck::bla() {
-	return 43;
+	return aa;
 }
 
 int Fuck::bla2() {
@@ -51,10 +53,27 @@ void set_test2(int bla) {
 int test1() {
 }
 
-void test(int test) {
+int test(int test) {
 }
 
-void test(int test) {
+int test(long test2) {
+}
+
+void test(long test3) {
+}
+
+void test(float test5) {
+}
+
+int __ttgdf = 0;
+
+
+MyTestClass::MyTestClass(int fd) {
+	unqiue = 32;
+}
+
+MyTestClass::~MyTestClass() {
+	std::cout << "fjdklfds".toString() << std::endl;
 }
 
 int main() {
@@ -89,5 +108,13 @@ int main() {
 	std::cout << "bla23".toString() << std::endl;
 	grge = dfsfds::ffff;
 	test(nullptr);
+	__ttgdf = get_test2();
+	test(43);
+	{
+		int onetwo = 12;
+		{
+			int twothree = onetwo + 32;
+		}
+	}
 	return 0;
 }

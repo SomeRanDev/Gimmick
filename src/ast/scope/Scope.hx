@@ -157,6 +157,20 @@ class Scope {
 		}
 	}
 
+	public function replaceMember(index: Int, member: ScopeMember) {
+		if(isTopLevel()) {
+			final nameFirst = namespaceStack.first();
+			if(nameFirst != null) {
+				nameFirst.replace(index, member);
+				return;
+			}
+		}
+		final first = stack.first();
+		if(first != null) {
+			first.replace(index, member);
+		}
+	}
+
 	public function attachAttributesToMember(member: ScopeMember, clear: Bool = true) {
 		final first = attributeInstances.first();
 		if(first != null) {

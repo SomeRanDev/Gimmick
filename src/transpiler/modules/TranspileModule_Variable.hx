@@ -12,11 +12,14 @@ import transpiler.modules.TranspileModule_Type;
 
 class TranspileModule_Variable {
 	public static function transpile(variable: Ref<VariableMember>, transpiler: Transpiler, isExtern: Bool = true) {
-		final result = transpileVariableSource(variable, transpiler.context);
-		transpiler.addSourceContent(result);
-
 		final member = variable.get();
-		transpiler.addHeaderContent((isExtern ? "extern " : "") + TranspileModule_Type.transpile(member.type) + " " + member.name + ";");
+		if(TranspileModule_Type.transpilable(member.type)) {
+			final result = transpileVariableSource(variable, transpiler.context);
+			transpiler.addSourceContent(result);
+			transpiler.addHeaderContent((isExtern ? "extern " : "") + TranspileModule_Type.transpile(member.type) + " " + member.name + ";");
+			return true;
+		}
+		return false;
 	}
 
 	public static function transpileVariableSource(variable: Ref<VariableMember>, context: TranspilerContext): String {

@@ -2,6 +2,8 @@ package transpiler;
 
 using haxe.EnumTools;
 
+import haxe.ds.GenericStack;
+
 import parsers.modules.Module;
 
 import ast.scope.ScopeMember;

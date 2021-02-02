@@ -1,6 +1,9 @@
 package ast.scope.members;
 
+import basic.Tuple2;
+
 import parsers.Parser;
+import parsers.expr.Position;
 
 enum FunctionOption {
 	Inline;
@@ -14,16 +17,18 @@ enum FunctionOption {
 }
 
 class FunctionOptionHelper {
-	public static function parseFunctionOptions(parser: Parser): Array<FunctionOption> {
-		final result: Array<FunctionOption> = [];
+	public static function parseFunctionOptions(parser: Parser): Array<Tuple2<FunctionOption, Position>> {
+		final result: Array<Tuple2<FunctionOption, Position>> = [];
 		var word = null;
 		while(true) {
 			parser.parseWhitespaceOrComments();
+			final initialPos = parser.getIndex();
 			word = parser.parseMultipleWords(["inline", "static", "const", "virtual", "abstract", "override", "inject", "extern"]);
 			if(word != null) {
+				final pos = parser.makePosition(initialPos);
 				final option = stringToOption(word);
 				if(option != null) {
-					result.push(option);
+					result.push(new Tuple2<FunctionOption, Position>(option, pos));
 					continue;
 				}
 			}
@@ -63,6 +68,17 @@ class FunctionOptionHelper {
 	public static function classOnly(option: FunctionOption): Bool {
 		return switch(option) {
 			case Static | Virtual | Abstract | Override: true;
+			default: false;
+		}
+	}
+
+	public static function constructorValid(option: FunctionOption): Bool {
+		return false;
+	}
+
+	public static function destructorValid(option: FunctionOption): Bool {
+		return switch(option) {
+			case Virtual: true;
 			default: false;
 		}
 	}
