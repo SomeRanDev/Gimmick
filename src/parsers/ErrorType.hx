@@ -16,6 +16,8 @@ enum abstract ErrorType(Int) from Int to Int {
 	var FunctionNameWithParamsAlreadyUsedInScope = 4011;
 	var AttributeNameAlreadyUsedInCurrentScope = 4012;
 	var ClassNameAlreadyUsedInCurrentScope = 4013;
+	var ConstructorWithParamsAlreadyInUse = 4014;
+	var DestructorWithParamsAlreadyInUse = 4015;
 	var NoNamespaceToEnd = 4020;
 
 	var UnexpectedCharacter = 5000;
@@ -100,6 +102,8 @@ enum abstract ErrorType(Int) from Int to Int {
 			case FunctionNameWithParamsAlreadyUsedInScope: "Function with this name and parameters already exists.";
 			case AttributeNameAlreadyUsedInCurrentScope: "Attribute name already in use.";
 			case ClassNameAlreadyUsedInCurrentScope: "Class name already in use.";
+			case ConstructorWithParamsAlreadyInUse: "Constructor with these parameters already exists.";
+			case DestructorWithParamsAlreadyInUse: "Destructor with these parameters already exists.";
 			case NoNamespaceToEnd: "No namespace to end.";
 
 			case UnexpectedCharacter: "Unexpected character encountered.";
@@ -190,6 +194,8 @@ enum abstract ErrorType(Int) from Int to Int {
 			case FunctionNameWithParamsAlreadyUsedInScope: "name already in use";
 			case AttributeNameAlreadyUsedInCurrentScope: "attribute name already in use";
 			case ClassNameAlreadyUsedInCurrentScope: "class name already in use";
+			case ConstructorWithParamsAlreadyInUse: "constructor already exists";
+			case DestructorWithParamsAlreadyInUse: "destructor already exists";
 			case NoNamespaceToEnd: "no namespaces to end";
 
 			case UnexpectedCharacter: "unexpected character";

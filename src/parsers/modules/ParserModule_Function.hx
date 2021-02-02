@@ -231,7 +231,15 @@ class ParserModule_Function extends ParserModule {
 					}
 				}
 				if(exists != 0) {
-					final errorType = exists == 1 ? ErrorType.VariableNameAlreadyUsedInCurrentScope : ErrorType.FunctionNameWithParamsAlreadyUsedInScope;
+					final errorType = if(exists == 1) {
+						ErrorType.VariableNameAlreadyUsedInCurrentScope;
+					} else if(isInit) {
+						ErrorType.ConstructorWithParamsAlreadyInUse;
+					} else if(isDest) {
+						ErrorType.DestructorWithParamsAlreadyInUse;
+					} else {
+						ErrorType.FunctionNameWithParamsAlreadyUsedInScope;
+					};
 					Error.addErrorWithStartEnd(errorType, parser, funcNameStart, funcNameEnd);
 					failed = true;
 				}

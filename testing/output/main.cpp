@@ -72,6 +72,9 @@ MyTestClass::MyTestClass(int fd) {
 	unqiue = 32;
 }
 
+MyTestClass::MyTestClass(float sdfsd) {
+}
+
 MyTestClass::~MyTestClass() {
 	std::cout << "fjdklfds".toString() << std::endl;
 }

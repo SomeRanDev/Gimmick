@@ -57,6 +57,7 @@ public:
 	int unqiue = 0;
 
 	MyTestClass(int fd);
+	MyTestClass(float sdfsd);
 	~MyTestClass();
 };
 

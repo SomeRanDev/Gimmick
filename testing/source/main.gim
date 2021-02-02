@@ -123,6 +123,8 @@ class MyTestClass:
 	init(fd: int):
 		unqiue = 32
 
+	init(sdfsd: float):
+
 	destroy:
 		print("fjdklfds")
 
