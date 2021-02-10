@@ -135,7 +135,7 @@ class MyTestClass:
 
 	var unqiue
 
-	
+
 
 #class PleaseWork extends MyTestClass:
 
@@ -153,6 +153,8 @@ def qwetre(b: Blah):
 
 #var blahinsta = Blah()
 
+
+
 class Blah:
 	var test = "fdfds"
 
@@ -165,26 +167,29 @@ class Blah:
 	op +(a: float):
 		print("test")
 
-	init: 
+	init(a: int): 
 		print("fds")
+
+	init(a: string):
 
 	def one(a: int):
 
 	def one(a: string):
 
-extern var qqds: Blah;
+var qqds = Blah("jfkdlsjsd");
 qqds + 32
 #qqds + 43.4
 qqds++
 
-qqds.one(43)
+qqds.one(435454)
+
+
+var lookforthis = qqds.test
 
 
 def AAA:
 
 class AAA:
-
-
 
 #var ergfd = Blah.new
 
@@ -232,3 +237,9 @@ def test<T: has def toString() -> string>(input: T) -> T:
 
 def pweo<T = int>:
 	print("fdsfds")
+
+def pqpqp(a: int):
+
+def pqpqp(a: string):
+
+pqpqp("32.43")

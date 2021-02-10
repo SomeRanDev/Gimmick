@@ -50,10 +50,12 @@ class TypeParser {
 
 	function parseAllTypesListed(): Array<Type> {
 		final result: Array<Type> = [];
+		var first = true;
 		while(true) {
 			parser.parseWhitespaceOrComments(true);
 			final initialIndex = parser.getIndex();
-			final type = parseTypeName();
+			final type = parseTypeName(first);
+			first = false;
 			if(type != null) {
 				result.push(type);
 			} else {
@@ -80,7 +82,7 @@ class TypeParser {
 		return typeList;
 	}
 
-	function parseTypeName(): Null<Type> {
+	function parseTypeName(first: Bool): Null<Type> {
 		final initialState = parser.saveParserState();
 		var type = null;
 
@@ -88,9 +90,9 @@ class TypeParser {
 		final startPos = parser.getIndex();
 		while(type == null && check <= 3) {
 			switch(check) {
-				case 0: type = checkTuple();
+				case 0: if(first) type = checkTuple();
 				case 1: type = checkExtern();
-				case 2: type = checkFunction();
+				case 2: if(first) type = checkFunction();
 				case 3: {
 					final name = parser.parseNextVarName();
 					if(name != null) {

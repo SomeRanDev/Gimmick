@@ -59,6 +59,9 @@ class CallOperator extends Operator {
 				}
 				result;
 			}
+			case TypeSelf(type): {
+				type;
+			}
 			case String: {
 				if(op == "[") {
 					type;

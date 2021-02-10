@@ -2,6 +2,8 @@ package ast.scope.members;
 
 import basic.Ref;
 
+import parsers.expr.TypedExpression;
+
 import ast.scope.members.ClassOption;
 
 import ast.typing.ClassType;
@@ -35,5 +37,13 @@ class ClassMember {
 
 	public function shouldTranspile() {
 		return !isExtern();
+	}
+
+	public function getAllConstructors(): Array<ScopeMember> {
+		return type.get().getAllConstructors();
+	}
+
+	public function findConstructorWithParameters(params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+		return type.get().findConstructorWithParameters(params);
 	}
 }

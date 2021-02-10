@@ -10,34 +10,32 @@ import parsers.Error;
 import transpiler.Language;
 import transpiler.TranspilerOptions;
 
-class Main {
-	static function main() {
-		final args = #if (sys || hxnodejs) Sys.args() #else [] #end;
-		final argParser = new CompilerArgumentParser(args);
-		if(argParser.contains("help")) {
-			return haxe.Log.trace("<TODO: write help stuff here>", null);
-		}
+function main() {
+	final args = #if (sys || hxnodejs) Sys.args() #else [] #end;
+	final argParser = new CompilerArgumentParser(args);
+	if(argParser.contains("help")) {
+		return haxe.Log.trace("<TODO: write help stuff here>", null);
+	}
 
-		TranspilerOptions.init(argParser);
+	TranspilerOptions.init(argParser);
 
-		final sourcePaths = SourceFileExtracter.getSourceFolders(argParser);
-		final outputPaths = OutputFileSaver.getOutputFolders(argParser);
+	final sourcePaths = SourceFileExtracter.getSourceFolders(argParser);
+	final outputPaths = OutputFileSaver.getOutputFolders(argParser);
 
-		final language = LanguageHelper.getLanguage(argParser);
-		final manager = new SourceFileManager(language, argParser.getValue("main"));
-		for(path in sourcePaths) {
-			manager.addPath(path);
-		}
+	final language = LanguageHelper.getLanguage(argParser);
+	final manager = new SourceFileManager(language, argParser.getValue("main"));
+	for(path in sourcePaths) {
+		manager.addPath(path);
+	}
 
-		manager.beginParse();
+	manager.beginParse();
 
+	if(Error.hasErrors()) {
+		Error.printAllErrors();
+	} else {
+		manager.exportFiles(outputPaths);
 		if(Error.hasErrors()) {
 			Error.printAllErrors();
-		} else {
-			manager.exportFiles(outputPaths);
-			if(Error.hasErrors()) {
-				Error.printAllErrors();
-			}
 		}
 	}
 }

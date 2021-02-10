@@ -17,6 +17,10 @@ import parsers.expr.CallOperator;
 using parsers.expr.Expression.ExpressionHelper;
 using parsers.expr.TypedExpression;
 
+// ================================================
+// * ExpressionTyperValueContext
+// ================================================
+
 class ExpressionTyperValueContext {
 	public var result(default, null): Null<Type> = null;
 	public var literal(default, null): Literal;
@@ -52,6 +56,10 @@ class ExpressionTyperValueContext {
 	}
 }
 
+// ================================================
+// * ExpressionTypingContext
+// ================================================
+
 class ExpressionTypingContext {
 	public var incrementCall(default, null): Bool;
 	public var isStaticExtension(default, null): Bool;
@@ -77,6 +85,10 @@ class ExpressionTypingContext {
 		arguments = params;
 	}
 }
+
+// ================================================
+// * ExpressionTyper
+// ================================================
 
 class ExpressionTyper {
 	var parser: Parser;
@@ -256,6 +268,30 @@ class ExpressionTyper {
 							}
 							if(typedExpr != null) {
 								return typedExpr;
+							}
+						}
+						case TypeSelf(type): {
+							if(!isPrelim && context != null && context.arguments != null) {
+								switch(type.type) {
+									case Class(cls, _): {
+										final options = cls.get().findConstructorWithParameters(context.arguments);
+										final member = retrieveMemberFromOptions(options, pos);
+										if(member != null) {
+											member.onMemberUsed(parser);
+											valueContext.setResult(member.getType());
+											switch(member.type) {
+												case ScopeMemberType.Function(funcMember): {
+													valueContext.setReplacement(Function(funcMember.get()));
+													if(valueContext.incrementCall) {
+														funcMember.get().incrementCallCount();
+													}
+												}
+												default: {}
+											}
+										}
+									}
+									default: {}
+								}
 							}
 						}
 						default: {}

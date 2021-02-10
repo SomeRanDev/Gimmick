@@ -3,6 +3,7 @@ package ast.scope;
 import basic.Ref;
 
 import ast.scope.ScopeMember;
+import ast.scope.members.ClassMember;
 import ast.typing.Type;
 import ast.typing.ClassType;
 import ast.typing.FunctionType.FunctionTypePassResult;
@@ -111,8 +112,37 @@ class ScopeMemberCollection {
 		return null;
 	}
 
+	public function findConstructorWithParameters(params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+		final options = findAllConstructors();
+		if(options != null) {
+			return findWithParametersFromOptions(options, params);
+		}
+		return null;
+	}
+
 	public function findWithParametersFromOptions(options: Array<ScopeMember>, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
 		if(options.length == 0) return null;
+
+		var onlyClass = true;
+		var classMember: Null<ClassMember> = null;
+		for(member in options) {
+			switch(member.type) {
+				case Function(_): onlyClass = false;
+				case Class(clsMemberRef): {
+					if(classMember == null) {
+						classMember = clsMemberRef.get();
+					}
+				}
+				default: {}
+			}
+		}
+
+		if(onlyClass && classMember != null) {
+			return classMember.findConstructorWithParameters(params);
+		}
+
+		if(options.length == 0) return null;
+
 		final types = params.map(p -> p.getType());
 		var resultingIndex = 0;
 		final possibilities = [];
@@ -155,6 +185,24 @@ class ScopeMemberCollection {
 			if(memName == name) {
 				if(result == null) result = [];
 				result.push(member);
+			}
+		}
+		return result;
+	}
+
+	public function findAllConstructors(): Null<Array<ScopeMember>> {
+		var result: Null<Array<ScopeMember>> = null;
+		for(member in members) {
+			switch(member.type) {
+				case Function(func): {
+					if(func.get().isConstructor()) {
+						if(result == null) {
+							result = [];
+						}
+						result.push(member);
+					}
+				}
+				default: {}
 			}
 		}
 		return result;

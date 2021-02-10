@@ -51,6 +51,8 @@ class FunctionType {
 	public var thisType(default, null): FunctionThisType;
 	public var templateArguments(default, null): Null<Array<TemplateArgument>>;
 
+	public var classType(default, null): Null<Ref<ClassType>>;
+
 	var ref: Null<Ref<FunctionType>>;
 
 	public function new(arguments: Array<FunctionArgument>, returnType: Type) {
@@ -155,5 +157,9 @@ class FunctionType {
 			}
 		}
 		return returnType.resolveUnknownNamedType(parser) || result;
+	}
+
+	public function setClassType(clsType: ClassType) {
+		classType = clsType.getRef();
 	}
 }

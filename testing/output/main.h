@@ -69,7 +69,8 @@ class Blah {
 public:
 	std::string test = "fdfds";
 
-	Blah();
+	Blah(int a);
+	Blah(std::string a);
 	void one(int a);
 	void one(std::string a);
 	void increment();
@@ -77,12 +78,19 @@ public:
 	void operator+(float a);
 };
 
+extern Blah qqds;
+extern std::string lookforthis;
+
 void AAA();
 
 class AAA {
 };
 
 void pweo();
+
+void pqpqp(int a);
+
+void pqpqp(std::string a);
 
 int main();
 

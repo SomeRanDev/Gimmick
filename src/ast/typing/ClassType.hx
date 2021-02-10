@@ -2,6 +2,8 @@ package ast.typing;
 
 import basic.Ref;
 
+import parsers.expr.TypedExpression;
+
 import ast.scope.ScopeMember;
 import ast.scope.ScopeMemberCollection;
 
@@ -30,11 +32,32 @@ class ClassType {
 
 	public function setAllMembers(members: ScopeMemberCollection) {
 		this.members = members;
+		for(mem in members) {
+			mem.setClassType(this);
+		}
 	}
 
 	public function setTemplateArguments(args: Null<Array<TemplateArgument>>) {
 		if(args != null) {
 			templateArguments = args;
 		}
+	}
+	public function getAllConstructors(): Array<ScopeMember> {
+		final result = [];
+		for(member in members) {
+			switch(member.type) {
+				case Function(funcRef): {
+					if(funcRef.get().isConstructor()) {
+						result.push(member);
+					}
+				}
+				default: {}
+			}
+		}
+		return result;
+	}
+
+	public function findConstructorWithParameters(params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+		return members.findConstructorWithParameters(params);
 	}
 }

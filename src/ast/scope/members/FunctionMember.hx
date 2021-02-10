@@ -8,6 +8,8 @@ import ast.scope.ScopeMemberCollection;
 import ast.scope.members.MemberLocation;
 import ast.scope.members.FunctionOption;
 
+import ast.typing.Type;
+
 import parsers.expr.Operator;
 import parsers.expr.Position;
 
@@ -104,5 +106,15 @@ class FunctionMember {
 
 	public function uniqueFunctionSuffix(): String {
 		return "$" + Std.string(uniqueId);
+	}
+
+	public function getType(): Type {
+		if(isConstructor() || isDestructor()) {
+			final result = type.get().classType;
+			if(result != null) {
+				return Type.TypeSelf(Type.Class(result, null));
+			}
+		}
+		return Type.Function(type, null);
 	}
 }

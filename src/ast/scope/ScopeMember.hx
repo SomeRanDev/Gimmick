@@ -12,6 +12,7 @@ import ast.scope.members.ModifyMember;
 import ast.scope.members.ClassMember;
 
 import ast.typing.Type;
+import ast.typing.ClassType;
 import ast.typing.AttributeArgument.AttributeArgumentValue;
 
 import interpreter.ExpressionInterpreter;
@@ -165,7 +166,7 @@ class ScopeMember {
 				return variable.get().type;
 			}
 			case Function(func): {
-				return Type.Function(func.get().type, null);
+				return func.get().getType();
 			}
 			case Namespace(namespace): {
 				return Type.Namespace(namespace);
@@ -177,7 +178,7 @@ class ScopeMember {
 				}
 			}
 			case Class(cls): {
-				return Type.Class(cls.get().type, null);
+				return Type.TypeSelf(Type.Class(cls.get().type, null));
 			}
 			default: {}
 		}
@@ -272,5 +273,14 @@ class ScopeMember {
 			default: {}
 		}
 		return true;
+	}
+
+	public function setClassType(clsType: ClassType) {
+		switch(type) {
+			case Function(func): {
+				func.get().type.get().setClassType(clsType);
+			}
+			default: {}
+		}
 	}
 }

@@ -95,8 +95,11 @@ void qwetre(Blah b) {
 }
 
 
-Blah::Blah() {
+Blah::Blah(int a) {
 	std::cout << "fds".toString() << std::endl;
+}
+
+Blah::Blah(std::string a) {
 }
 
 void Blah::one(int a) {
@@ -116,11 +119,20 @@ void Blah::operator+(float a) {
 	std::cout << "test".toString() << std::endl;
 }
 
+Blah qqds;
+std::string lookforthis = "";
+
 void AAA() {
 }
 
 void pweo() {
 	std::cout << "fdsfds".toString() << std::endl;
+}
+
+void pqpqp(int a) {
+}
+
+void pqpqp(std::string a) {
 }
 
 int main() {
@@ -161,8 +173,11 @@ int main() {
 			float twothree = onetwo + 32;
 		}
 	}
+	qqds = ("jfkdlsjsd");
 	qqds + 32;
 	qqds++;
-	qqds.one(43);
+	qqds.one(435454);
+	lookforthis = qqds.test;
+	pqpqp("32.43");
 	return 0;
 }
