@@ -219,7 +219,11 @@ class TranspileModule_Expression {
 						return transpileExpr(Value(Name(varMember.name, varMember.getNamespaces()), pos, type), context);
 					}
 					case Function(funcMember): {
-						return transpileExpr(Value(Name(funcMember.name, funcMember.getNamespaces()), pos, type), context);
+						var name = funcMember.name;
+						if(!context.allowSameNameFunctions() && funcMember.shouldHaveUniqueName()) {
+							name += funcMember.uniqueFunctionSuffix();
+						}
+						return transpileExpr(Value(Name(name, funcMember.getNamespaces()), pos, type), context);
 					}
 					case GetSet(getsetMember): {
 						final getFunc = getsetMember.get;

@@ -9,7 +9,7 @@ class ParserModule_Class extends ParserModule {
 	public static var it = new ParserModule_Class();
 
 	public override function parse(parser: Parser): Null<Module> {
-		final startIndex = parser.getIndex();
+		final startState = parser.saveParserState();
 
 		final options = ClassOptionHelper.parseClassOptions(parser);
 
@@ -31,7 +31,16 @@ class ParserModule_Class extends ParserModule {
 				failed = true;
 			}
 
+			final template = parser.parseGenericParameters();
+			if(template != null) {
+				parser.parseWhitespaceOrComments();
+			}
+
 			final clsType = new ClassType(name, null);
+
+			if(template != null) {
+				clsType.setTemplateArguments(template);
+			}
 
 			if(parser.parseNextContent(":")) {
 				parser.scope.push();
@@ -53,6 +62,8 @@ class ParserModule_Class extends ParserModule {
 			final clsMemberType = TopLevel(parser.scope.currentNamespaceStack());
 			return Class(new ClassMember(name, clsType.getRef(), clsMemberType, options));
 		}
+
+		parser.restoreParserState(startState);
 
 		return null;
 	}

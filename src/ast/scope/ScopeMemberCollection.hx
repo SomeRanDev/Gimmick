@@ -12,6 +12,7 @@ import ast.scope.members.FunctionMember;
 import parsers.Error;
 import parsers.ErrorType;
 import parsers.ErrorPromise;
+import parsers.expr.Operator;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
@@ -72,13 +73,45 @@ class ScopeMemberCollection {
 		}
 	}
 
+	public function classSort() {
+		haxe.ds.ArraySort.sort(members, function(a, b) {
+			final getPriority = function(mem: ScopeMember) {
+				return switch(mem.type) {
+					case Variable(_): 10000;
+					case GetSet(_): 20000;
+					case Function(func): {
+						final t = func.get().type.get();
+						if(t.isConstructor()) {
+							30000 + (100 * t.arguments.length);
+						} else if(t.isDestructor()) {
+							40000;
+						} else {
+							50000 + (100 * t.arguments.length);
+						}
+					}
+					case PrefixOperator(_): 60000;
+					case SuffixOperator(_): 70000;
+					case InfixOperator(_): 80000;
+					default: 99999;
+				}
+			};
+			return getPriority(a) - getPriority(b);
+		});
+	}
+
 	public function find(name: String): Null<ScopeMember> {
 		return findIn(name, members);
 	}
 
 	public function findWithParameters(name: String, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
 		final options = findAll(name);
-		if(options == null) return null;
+		if(options != null) {
+			return findWithParametersFromOptions(options, params);
+		}
+		return null;
+	}
+
+	public function findWithParametersFromOptions(options: Array<ScopeMember>, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
 		if(options.length == 0) return null;
 		final types = params.map(p -> p.getType());
 		var resultingIndex = 0;
@@ -127,6 +160,20 @@ class ScopeMemberCollection {
 		return result;
 	}
 
+	public function findAllOperators(op: Operator): Null<Array<ScopeMember>> {
+		var result: Array<ScopeMember> = [];
+		for(member in members) {
+			switch(member.type) {
+				case ScopeMemberType.PrefixOperator(otherOp, _): if(otherOp.op == op.op) result.push(member);
+				case ScopeMemberType.InfixOperator(otherOp, _): if(otherOp.op == op.op) result.push(member);
+				case ScopeMemberType.SuffixOperator(otherOp, _): if(otherOp.op == op.op) result.push(member);
+				case ScopeMemberType.CallOperator(otherOp, _): if(otherOp.op == op.op) result.push(member);
+				default: {}
+			}
+		}
+		return result.length == 0 ? null : result;
+	}
+
 	public static function findIn(name: String, members: Array<ScopeMember>): Null<ScopeMember> {
 		for(member in members) {
 			final memName = findName(member);
@@ -143,6 +190,7 @@ class ScopeMemberCollection {
 			case Function(func): func.get().name;
 			case GetSet(getset): getset.get().name;
 			case Namespace(namespace): namespace.get().name;
+			case Class(cls): cls.get().name;
 			default: null;
 		}
 	}
@@ -207,18 +255,38 @@ class ScopeMemberCollection {
 	}
 
 	public function findModify(type: Type, name: String): Null<ScopeMember> {
+		final temp = findAllModify(type, name);
+		if(temp != null && temp.length > 0) {
+			return temp[0];
+		}
+		return null;
+	}
+
+	public function findAllModify(type: Type, name: String): Null<Array<ScopeMember>> {
+		var result: Null<Array<ScopeMember>> = null;
 		for(member in members) {
 			switch(member.type) {
 				case Modify(modify): {
 					if(modify.members != null && modify.type.canBePassed(type) == null) {
-						final result = modify.find(name);
-						if(result != null) {
-							return result;
+						final mem = modify.find(name);
+						if(mem != null) {
+							if(result == null) {
+								result = [];
+							}
+							result.push(mem);
 						}
 					}
 				}
 				default: {}
 			}
+		}
+		return result;
+	}
+
+	public function findAllModifyWithParameters(type: Type, name: String, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+		final options = findAllModify(type, name);
+		if(options != null) {
+			return findWithParametersFromOptions(options, params);
 		}
 		return null;
 	}

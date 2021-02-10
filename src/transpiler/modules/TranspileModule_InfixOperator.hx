@@ -6,6 +6,7 @@ import parsers.expr.Literal;
 import parsers.expr.CallOperator.CallOperators;
 
 import ast.typing.Type;
+import ast.scope.ScopeMember;
 
 import transpiler.TranspilerContext;
 import transpiler.modules.TranspileModule_Expression;
@@ -26,20 +27,7 @@ class TranspileModule_InfixOperator {
 
 	public static function transpileAccess(lexpr: TypedExpression, rexpr: TypedExpression, context: TranspilerContext): String {
 		final type = lexpr.getType();
-		var opText = ".";
-		if(context.isCpp()) {
-			switch(type.type) {
-				case Namespace(_) | TypeSelf(_): opText = "::";
-				case Pointer(_): opText = "->";
-				default: {}
-			}
-		} else if(context.isJs()) {
-			switch(type.type) {
-				case Pointer(_): opText = ".ptr.";
-				case Reference(_): opText = ".ref.";
-				default: {}
-			}
-		}
+		var opText = getDotAccessor(type, context);
 		final left = TranspileModule_Expression.transpileExpr(lexpr, context);
 		final right = TranspileModule_Expression.transpileExpr(rexpr, context);
 		return left + opText + right;
@@ -70,6 +58,20 @@ class TranspileModule_InfixOperator {
 	public static function transpileNormal(op: InfixOperator, lexpr: TypedExpression, rexpr: TypedExpression, context: TranspilerContext): String {
 		final left = TranspileModule_Expression.transpileExpr(lexpr, context);
 		final right = TranspileModule_Expression.transpileExpr(rexpr, context);
+		final scopeMem = lexpr.getType().findOverloadedInfixOperator(op, rexpr.getType());
+		if(scopeMem != null) {
+			switch(scopeMem.type) {
+				case ScopeMemberType.InfixOperator(_, func): {
+					final funcMem = func.get();
+					if(!TranspileModule_OperatorOverload.transpileOperatorOverload(funcMem, context)) {
+						final name = TranspileModule_OperatorOverload.getOperatorFunctionName(funcMem, context);
+						final dot = getDotAccessor(lexpr.getType(), context);
+						return left + dot + name + "(" + right + ")";
+					}
+				}
+				default: {}
+			}
+		}
 		if(usePadding(op)) {
 			return left + " " + op.op + " " + right;
 		}
@@ -78,5 +80,16 @@ class TranspileModule_InfixOperator {
 
 	public static function usePadding(op: InfixOperator): Bool {
 		return op.op != "." && op.op != "->" && op.op != "::";
+	}
+
+	public static function getDotAccessor(type: Type, context: TranspilerContext): String {
+		if(context.isCpp()) {
+			switch(type.type) {
+				case Namespace(_) | TypeSelf(_): return "::";
+				case Pointer(_): return "->";
+				default: {}
+			}
+		}
+		return ".";
 	}
 }

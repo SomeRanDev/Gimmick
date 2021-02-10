@@ -19,8 +19,12 @@ class ParserModule_Variable extends ParserModule {
 
 	public override function parse(parser: Parser): Null<Module> {
 		final isPrelim = parser.isPreliminary();
-		final word = parser.parseMultipleWords(["var", "const", "static"]);
+		final startState = parser.saveParserState();
 		final startIndex = parser.getIndex();
+
+		final isExtern = parser.parseWord("extern");
+		parser.parseWhitespaceOrComments();
+		final word = parser.parseMultipleWords(["var", "const", "static"]);
 		if(word != null) {
 			var failed = false;
 
@@ -47,11 +51,20 @@ class ParserModule_Variable extends ParserModule {
 				type = parser.parseType();
 			}
 
+			if(isExtern && type == null) {
+				Error.addError(ErrorType.TypeRequiredOnExtern, parser, varNameStart);
+				failed = true;
+			}
+
 			parser.parseWhitespaceOrComments();
 
 			var expr = null;
 			var equalsPos: Null<Position> = parser.makePosition(parser.getIndex());
 			if(parser.parseNextContent("=")) {
+				if(isExtern) {
+					Error.addErrorFromPos(ErrorType.InvalidExpressionOnExtern, equalsPos);
+					failed = true;
+				}
 				parser.parseWhitespaceOrComments();
 				expr = parser.parseExpression();
 			} else {
@@ -107,8 +120,10 @@ class ParserModule_Variable extends ParserModule {
 
 			parser.onTypeUsed(finalType, parser.scope.isTopLevel());
 
-			return Variable(new VariableMember(name, finalType, isStatic, position, equalsPos, expr, varMemberType));
+			return Variable(new VariableMember(name, finalType, isStatic, isExtern, position, equalsPos, expr, varMemberType));
 		}
+
+		parser.restoreParserState(startState);
 
 		return null;
 	}

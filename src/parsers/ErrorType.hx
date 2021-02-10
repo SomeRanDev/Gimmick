@@ -18,6 +18,7 @@ enum abstract ErrorType(Int) from Int to Int {
 	var ClassNameAlreadyUsedInCurrentScope = 4013;
 	var ConstructorWithParamsAlreadyInUse = 4014;
 	var DestructorWithParamsAlreadyInUse = 4015;
+	var OperatorWithParamsAlreadyInUse = 4016;
 	var NoNamespaceToEnd = 4020;
 
 	var UnexpectedCharacter = 5000;
@@ -64,15 +65,20 @@ enum abstract ErrorType(Int) from Int to Int {
 	var InvalidFunctionAttributeForConstructor = 16800;
 	var InvalidFunctionAttributeForDestructor = 16900;
 
-	var ExpectedType = 17000;
-	var InvalidTypeForAttribute = 17010;
-	var UnknownAttribute = 17020;
-	var AttributeArgumentsMismatch = 17030;
-	var MissingCompilerAttributeParameter = 17040;
+	var WrongNumberOfArgumentsForOperator = 17000;
+	var InvalidFunctionAttributeForOperator = 17100;
 
-	var MissingFunctionParameter = 18000;
-	var CannotPassThisForThat = 18100;
-	var TooManyFunctionParametersProvided = 18200;
+	var ExpectedType = 18000;
+	var InvalidTypeForAttribute = 18010;
+	var UnknownAttribute = 18020;
+	var AttributeArgumentsMismatch = 18030;
+	var MissingCompilerAttributeParameter = 18040;
+	var TypeRequiredOnExtern = 18050;
+	var InvalidExpressionOnExtern = 18060;
+
+	var MissingFunctionParameter = 19000;
+	var CannotPassThisForThat = 19100;
+	var TooManyFunctionParametersProvided = 19200;
 
 	var InterpreterUnknownLiteral = 20000;
 	var InterpreterLiteralListValuesDoNotMatch = 20010;
@@ -86,6 +92,11 @@ enum abstract ErrorType(Int) from Int to Int {
 	var InterpreterInvalidAccessor = 20400;
 
 	var InvalidThisOrSelf = 30000;
+
+	var MustUseClassTypeOnExtendsGenericDescriber = 31000;
+
+	var JsCannotUseDestructor = 40000;
+	var JsCannotHaveMultipleConstructors = 40100;
 
 	public function getErrorMessage(): String {
 		return switch(this) {
@@ -104,6 +115,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case ClassNameAlreadyUsedInCurrentScope: "Class name already in use.";
 			case ConstructorWithParamsAlreadyInUse: "Constructor with these parameters already exists.";
 			case DestructorWithParamsAlreadyInUse: "Destructor with these parameters already exists.";
+			case OperatorWithParamsAlreadyInUse: "This operator with these parameters already exists.";
 			case NoNamespaceToEnd: "No namespace to end.";
 
 			case UnexpectedCharacter: "Unexpected character encountered.";
@@ -150,11 +162,16 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidFunctionAttributeForConstructor: "Invalid function attribute for constructor.";
 			case InvalidFunctionAttributeForDestructor: "Invalid function attribute for destructor.";
 
+			case WrongNumberOfArgumentsForOperator: "Wrong number of arguments for this operator. Should be %1, but there are %2.";
+			case InvalidFunctionAttributeForOperator: "Invalid function attribute for operator.";
+
 			case ExpectedType: "Expected type.";
 			case InvalidTypeForAttribute: "Invalid type for attribute.";
 			case UnknownAttribute: "Unknown attribute.";
 			case AttributeArgumentsMismatch: "Invalid arguments for attribute.";
 			case MissingCompilerAttributeParameter: "Missing compiler attribute parameter #%1: '%2'.";
+			case TypeRequiredOnExtern: "Type required for extern variable.";
+			case InvalidExpressionOnExtern: "Expression invalid on extern variable.";
 
 			case MissingFunctionParameter: "Missing function parameter.";
 			case CannotPassThisForThat: "Cannot pass '%1' for '%2'.";
@@ -174,6 +191,11 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InterpreterInvalidAccessor: "Invalid accessor value.";
 
 			case InvalidThisOrSelf: "Invalid usage of 'this'.";
+
+			case MustUseClassTypeOnExtendsGenericDescriber: "Must use a class type for 'extends' template descriptor.";
+
+			case JsCannotUseDestructor: "JS export cannot use destructors.";
+			case JsCannotHaveMultipleConstructors: "JS export cannot use multiple constructors.";
 
 			default: "";
 		}
@@ -196,6 +218,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case ClassNameAlreadyUsedInCurrentScope: "class name already in use";
 			case ConstructorWithParamsAlreadyInUse: "constructor already exists";
 			case DestructorWithParamsAlreadyInUse: "destructor already exists";
+			case OperatorWithParamsAlreadyInUse: "operator already exists";
 			case NoNamespaceToEnd: "no namespaces to end";
 
 			case UnexpectedCharacter: "unexpected character";
@@ -240,11 +263,16 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidFunctionAttributeForConstructor: "invalid attribute";
 			case InvalidFunctionAttributeForDestructor: "invalid attribute";
 
+			case WrongNumberOfArgumentsForOperator: "wrong number of arguments";
+			case InvalidFunctionAttributeForOperator: "invalid attribute";
+
 			case ExpectedType: "expected type here";
 			case InvalidTypeForAttribute: "invalid type for attribute";
 			case UnknownAttribute: "unknown attribute";
 			case AttributeArgumentsMismatch: "invalid arguments";
 			case MissingCompilerAttributeParameter: "missing compiler attribute parameter";
+			case TypeRequiredOnExtern: "type required";
+			case InvalidExpressionOnExtern: "expression invalid";
 
 			case MissingFunctionParameter: "missing function parameter";
 			case CannotPassThisForThat: "incorrect type passed";
@@ -264,6 +292,11 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InterpreterInvalidAccessor: "invalid accessor value";
 
 			case InvalidThisOrSelf: "invalid 'this'";
+
+			case MustUseClassTypeOnExtendsGenericDescriber: "cannot extend this type";
+
+			case JsCannotUseDestructor: "cannot use destructor in JS";
+			case JsCannotHaveMultipleConstructors: "cannot use multiple constructors in JS";
 
 			default: "";
 		}

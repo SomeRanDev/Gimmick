@@ -5,6 +5,8 @@
 # =================================================
 
 ###
+start namespace std
+
 extern class ostream:
 	op <<(input: string);
 

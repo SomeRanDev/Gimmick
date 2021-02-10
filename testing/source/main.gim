@@ -5,7 +5,7 @@ import alt
 start namespace dfsfds
 var blafdfdsfd = 43434
 @sortMembersAlphabetically
-class Fuck:
+class AClass:
 	var vwref = 666
 	static aa = 32
 	var fds = "fdsf"
@@ -26,8 +26,11 @@ end namespace
 extern class Test:
 	var bla: int
 
-inline def bla:
+inline def bla432:
 	var ffdfdf = 32
+
+def Test54555(kf: Blah ):
+	print("fdsf")
 
 compiler attribute myAttribute(someInput: string, bla: string list):
 	def toCpp -> string:
@@ -42,7 +45,7 @@ compiler attribute myAttribute(someInput: string, bla: string list):
 
 var a = 32
 
-@if(js == false) var b = bla2;
+#@if(js == false) var b = bla2;
 
 @untyped scope:
 	d.df = 43
@@ -98,13 +101,11 @@ def test(test: int) -> int?:
 
 def test(test2: long?) -> int?:
 
-def test(test3: long):
+def test(test3: long = 0):
 
-def test(test5: float):
+def test(test5: float = 0):
 
 #def test(test: string):
-
-test(null)
 
 var __ttgdf = test2
 
@@ -118,17 +119,116 @@ var __ttgdf = test2
 test(43f);
 
 class MyTestClass:
-	var unqiue
+	def test():
+		unqiue++
+		print("test")
 
 	init(fd: int):
 		unqiue = 32
+		test();
 
 	init(sdfsd: float):
 
 	destroy:
 		print("fjdklfds")
+		unqiue++
+
+	var unqiue
+
+	
+
+#class PleaseWork extends MyTestClass:
 
 scope:
-	var onetwo = 12
+	var onetwo = 12f
 	scope:
 		var twothree = onetwo + 32
+
+extern var llll: string;
+#var qwere = llll ?? 43;
+
+def qwetre(b: Blah):
+	extern var cc: Blah;
+	print(b.test)
+
+#var blahinsta = Blah()
+
+class Blah:
+	var test = "fdfds"
+
+	op ++:
+		print("fdsfds")
+
+	op +(a: int):
+		print("test")
+
+	op +(a: float):
+		print("test")
+
+	init: 
+		print("fds")
+
+	def one(a: int):
+
+	def one(a: string):
+
+extern var qqds: Blah;
+qqds + 32
+#qqds + 43.4
+qqds++
+
+qqds.one(43)
+
+
+def AAA:
+
+class AAA:
+
+
+
+#var ergfd = Blah.new
+
+###
+> This would turn:
+
+print(23)
+print(1.2, "hello")
+
+> to:
+
+std.cout << 23.toString() << std.endl
+std.cout << 1.2.toString() << "hello".toString() << std.endl
+
+> then, finally, to C++:
+
+std::cout << std::to_string(23) << std::endl
+std::cout << std::to_string(1.2) << "hello" << std::endl
+###
+
+###
+macro print<T: has def toString() -> string>(args: T list):
+	return "std.cout << " + args.map(a -> "(" + a + ").toString()").join(" << ") + " << std.endl";
+
+
+macro createClass(name: string):
+	var result = ""
+	result += "class " + name + ":\n";
+	result += "\tinit:\n";
+	result += "\t\tprint(\"Created a \" + " + name + " + \");";
+	return result;
+###
+
+
+###
+class Blah<T: has [def toString() -> string, var hehe: int]>:
+	def getGeneri -> T:
+
+
+var bla = Blah<string>.new
+
+
+def test<T: has def toString() -> string>(input: T) -> T:
+###
+
+def pweo<T = int>:
+	print("fdsfds")

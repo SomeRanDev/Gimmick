@@ -19,6 +19,7 @@ class VariableMember {
 	public var name(default, null): String;
 	public var type(default, null): Type;
 	public var isStatic(default, null): Bool;
+	public var isExtern(default, null): Bool;
 	public var position(default, null): Position;
 	public var assignPosition(default, null): Null<Position>;
 	public var expression(default, null): Null<QuantumExpression>;
@@ -26,10 +27,11 @@ class VariableMember {
 
 	var ref: Null<Ref<VariableMember>>;
 
-	public function new(name: String, type: Type, isStatic: Bool, position: Position, assignPosition: Null<Position>, expression: Null<QuantumExpression>, memberLocation: MemberLocation) {
+	public function new(name: String, type: Type, isStatic: Bool, isExtern: Bool, position: Position, assignPosition: Null<Position>, expression: Null<QuantumExpression>, memberLocation: MemberLocation) {
 		this.name = name;
 		this.type = type;
 		this.isStatic = isStatic;
+		this.isExtern = isExtern;
 		this.position = position;
 		this.assignPosition = assignPosition;
 		this.expression = expression;
@@ -63,7 +65,7 @@ class VariableMember {
 	public function cloneWithoutExpression(): VariableMember {
 		final newType = type.clone();
 		newType.setConst(false);
-		return new VariableMember(name, newType, isStatic, position.clone(), assignPosition != null ? assignPosition.clone() : null, null, memberLocation);
+		return new VariableMember(name, newType, isStatic, isExtern, position.clone(), assignPosition != null ? assignPosition.clone() : null, null, memberLocation);
 	}
 
 	public function constructAssignementExpression(): Null<ExpressionMember> {
@@ -114,5 +116,9 @@ class VariableMember {
 			return true;
 		}
 		return false;
+	}
+
+	public function shouldTranspile() {
+		return !isExtern;
 	}
 }

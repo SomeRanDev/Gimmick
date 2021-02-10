@@ -83,6 +83,13 @@ class FunctionOptionHelper {
 		}
 	}
 
+	public static function operatorValid(option: FunctionOption): Bool {
+		return switch(option) {
+			case Const | Virtual | Abstract | Override | Inject | Extern: true;
+			default: false;
+		}
+	}
+
 	public static function validJs(option: FunctionOption): Bool {
 		return switch(option) {
 			case Static: true;

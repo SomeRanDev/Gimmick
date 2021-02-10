@@ -12,6 +12,3 @@ modify string:
 
 	inject def toString() -> string:
 		return this;
-
-	def bla() -> int:
-		return 12;

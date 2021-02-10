@@ -58,4 +58,11 @@ class LiteralHelper {
 		}
 		return false;
 	}
+
+	public static function changeName(literal: Literal, newName: String): Null<Literal> {
+		return switch(literal) {
+			case Name(name, namespaces): Name(newName, namespaces);
+			default: null;
+		}
+	}
 }

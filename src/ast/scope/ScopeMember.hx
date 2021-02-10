@@ -22,6 +22,7 @@ import parsers.Parser;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
+import parsers.expr.CallOperator;
 import parsers.expr.Position;
 
 import transpiler.TranspilerContext;
@@ -37,6 +38,7 @@ enum ScopeMemberType {
 	PrefixOperator(op: PrefixOperator, func: Ref<FunctionMember>);
 	SuffixOperator(op: SuffixOperator, func: Ref<FunctionMember>);
 	InfixOperator(op: InfixOperator, func: Ref<FunctionMember>);
+	CallOperator(op: CallOperator, func: Ref<FunctionMember>);
 	Expression(expr: ExpressionMember);
 	Attribute(attr: AttributeMember);
 	CompilerAttribute(attr: AttributeMember, params: Null<Array<AttributeArgumentValue>>, position: Position);
@@ -174,6 +176,9 @@ class ScopeMember {
 					return getFunc.type.get().returnType;
 				}
 			}
+			case Class(cls): {
+				return Type.Class(cls.get().type, null);
+			}
 			default: {}
 		}
 		return null;
@@ -215,6 +220,13 @@ class ScopeMember {
 		switch(type) {
 			case GetSet(_): return true;
 			default: return false;
+		}
+	}
+
+	public function toFunction(): Null<FunctionMember> {
+		return switch(type) {
+			case Function(func): func.get();
+			default: null;
 		}
 	}
 

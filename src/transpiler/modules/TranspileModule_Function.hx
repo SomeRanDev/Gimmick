@@ -6,10 +6,13 @@ import ast.scope.ScopeMember;
 import ast.scope.members.FunctionMember;
 import ast.scope.members.FunctionOption.FunctionOptionHelper;
 
+import parsers.Error;
+import parsers.ErrorType;
 import parsers.expr.Position;
 
 import transpiler.modules.TranspileModule_Expression;
 import transpiler.modules.TranspileModule_Type;
+import transpiler.modules.TranspileModule_OperatorOverload;
 
 class TranspileModule_Function {
 	public static function transpile(func: FunctionMember, transpiler: Transpiler) {
@@ -32,7 +35,14 @@ class TranspileModule_Function {
 			"";
 		}
 		
-		final name = getName(data, context);
+		if(context.isJs() && func.isDestructor()) {
+			Error.addErrorFromPos(ErrorType.JsCannotUseDestructor, func.declarePosition);
+		}
+
+		var name = getName(data, context);
+		if(!context.allowSameNameFunctions() && func.shouldHaveUniqueName()) {
+			name += func.uniqueFunctionSuffix();
+		}
 		final functionDeclaration = funcStart + namespacePrefix + name + transpileFunctionArguments(func, context);
 		var result = functionDeclaration + " {\n";
 		var tabs = "";
@@ -40,7 +50,7 @@ class TranspileModule_Function {
 		var prevCond = true;
 		var popThisType = false;
 		if(func.type.get().thisType == StaticExtension) {
-			final args = func.type.get().arguments;
+			final args = func.type.get().allArguments();
 			if(args.length > 0) {
 				context.pushThisExpr(Value(Literal.Name(args[0].name, null), Position.BLANK, args[0].type));
 				popThisType = true;
@@ -79,14 +89,19 @@ class TranspileModule_Function {
 		}
 		return if(context.isCpp()) {
 			TranspileModule_Type.transpile(func.type.get().returnType) + " ";
-		} else {
+		} else if(context.currentClassName() == null) {
 			"function ";
-		};
+		} else {
+			"";
+		}
 	}
 
 	public static function getName(func: FunctionMember, context: TranspilerContext) {
 		var name = func.name;
-		if(context.isCpp()) {
+		final opName = TranspileModule_OperatorOverload.getOperatorFunctionName(func, context);
+		if(opName != null) {
+			name = opName;
+		} else if(context.isCpp()) {
 			var clsName = context.currentClassName();
 			if(clsName == null) clsName = "";
 			if(func.isConstructor()) {
@@ -94,12 +109,18 @@ class TranspileModule_Function {
 			} else if(func.isDestructor()) {
 				name = "~" + clsName;
 			}
+		} else if(context.isJs()) {
+			if(func.isConstructor()) {
+				name = "constructor";
+			} else if(func.isDestructor()) {
+				name = "destructor";
+			}
 		}
 		return name;
 	}
 
 	public static function transpileFunctionArguments(func: FunctionMember, context: TranspilerContext): String {
-		final args = func.type.get().arguments;
+		final args = func.type.get().allArguments();
 		if(context.isCpp()) {
 			return "(" + args.map(a -> TranspileModule_Type.transpile(a.type) + " " + a.name).join(", ") + ")";
 		} else {

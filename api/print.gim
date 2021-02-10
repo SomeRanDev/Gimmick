@@ -3,4 +3,5 @@
 @global
 @cppRequireInclude(iostream, true)
 inject def print###<T: [has toString() -> string]>(a: T)###(a: string):
-	@untyped return std::cout << a.toString() << std::endl;
+	@if(cpp) @untyped return std::cout << a.toString() << std::endl;
+	@elseif(js) @untyped return console.log(a.toString());

@@ -9,4 +9,10 @@ class Tuple2<T, U> {
 		this.a = a;
 		this.b = b;
 	}
+
+	#if macro
+	public macro test(): Expr {
+
+	}
+	#end
 }

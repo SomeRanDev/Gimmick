@@ -11,9 +11,14 @@ import ast.scope.members.NamespaceMember;
 import ast.scope.Scope;
 
 import parsers.Parser;
+import parsers.Error;
 import parsers.ErrorType;
+import parsers.expr.Position;
 import parsers.expr.Literal;
 import parsers.expr.Expression;
+import parsers.expr.InfixOperator;
+import parsers.expr.PrefixOperator;
+import parsers.expr.SuffixOperator;
 using parsers.expr.TypedExpression;
 
 using haxe.EnumTools;
@@ -44,11 +49,17 @@ class Type {
 	public var type(default, null): TypeType;
 	public var isConst(default, null): Bool;
 	public var isOptional(default, null): Bool;
+	public var position(default, null): Null<Position>;
 
 	public function new(type: TypeType, isConst: Bool, isOptional: Bool) {
 		this.type = type;
 		this.isConst = isConst;
 		this.isOptional = isOptional;
+		position = null;
+	}
+
+	public function setPosition(pos: Position) {
+		position = pos;
 	}
 
 	public function clone(): Type {
@@ -114,6 +125,45 @@ class Type {
 			return ErrorType.CannotAssignThisTypeToThatType;
 		}
 		return null;
+	}
+
+	public function resolveUnknownNamedType(parser: Parser): Bool {
+		switch(type) {
+			case TypeType.UnknownNamed(name): {
+				final newType = parser.scope.findTypeFromName(name);
+				if(newType != null) {
+					type = newType.type;
+					return true;
+				} else if(position != null) {
+					Error.addErrorFromPos(ErrorType.UnknownType, position);
+				}
+			}
+			case TypeType.List(t) | TypeType.Pointer(t) | TypeType.Reference(t) | TypeType.TypeSelf(t): {
+				return t.resolveUnknownNamedType(parser);
+			}
+			case TypeType.Function(_, typeParams) | TypeType.Class(_, typeParams) | TypeType.External(_, typeParams): {
+				var result = false;
+				if(typeParams != null) {
+					for(t in typeParams) {
+						if(t.resolveUnknownNamedType(parser)) {
+							result = true;
+						}
+					}
+				}
+				return result;
+			}
+			case TypeType.Tuple(types): {
+				var result = false;
+				for(t in types) {
+					if(t.resolveUnknownNamedType(parser)) {
+						result = true;
+					}
+				}
+				return result;
+			}
+			default: {}
+		}
+		return false;
 	}
 
 	public function bothSameAndNotNull(other: Type): Bool {
@@ -293,6 +343,12 @@ class Type {
 					return member;
 				}
 			}
+			case TypeType.Class(cls, typeParams): {
+				final member = cls.get().members.find(name);
+				if(member != null) {
+					return member;
+				}
+			}
 			default: {}
 		}
 		return null;
@@ -302,6 +358,25 @@ class Type {
 		final result = findAccessorMember(name);
 		if(result != null) {
 			return result.getType();
+		}
+		return null;
+	}
+
+	public function findAllAccessorMembersWithParameters(name: String, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+		switch(type) {
+			case TypeType.Namespace(namespace): {
+				final members = namespace.get().members.findWithParameters(name, params);
+				if(members != null) {
+					return members;
+				}
+			}
+			case TypeType.Class(cls, typeParams): {
+				final members = cls.get().members.findWithParameters(name, params);
+				if(members != null) {
+					return members;
+				}
+			}
+			default: {}
 		}
 		return null;
 	}
@@ -441,5 +516,76 @@ class Type {
 
 	public function isGenericNumber(): Bool {
 		return isNumber() == NumberType.Any;
+	}
+
+	public function findOverloadedInfixOperator(op: InfixOperator, rtype: Type): Null<ScopeMember> {
+		switch(type) {
+			case TypeType.Class(cls, typeParams): {
+				final members = cls.get().members;
+				for(mem in members) {
+					switch(mem.type) {
+						case InfixOperator(infixOp, func): {
+							if(infixOp == op) {
+								final funcType = func.get().type.get();
+								if(funcType.arguments.length == 1) {
+									if(funcType.arguments[0].type.canBePassed(rtype) == null) {
+										return mem;
+									}
+								}
+							}
+						}
+						default: {}
+					}
+				}
+			}
+			default: {}
+		}
+		return null;
+	}
+
+	public function findOverloadedPrefixOperator(op: PrefixOperator): Null<ScopeMember> {
+		switch(type) {
+			case TypeType.Class(cls, typeParams): {
+				final members = cls.get().members;
+				for(mem in members) {
+					switch(mem.type) {
+						case PrefixOperator(prefixOp, func): {
+							if(prefixOp == op) {
+								final funcType = func.get().type.get();
+								if(funcType.arguments.length == 0) {
+									return mem;
+								}
+							}
+						}
+						default: {}
+					}
+				}
+			}
+			default: {}
+		}
+		return null;
+	}
+
+	public function findOverloadedSuffixOperator(op: SuffixOperator): Null<ScopeMember> {
+		switch(type) {
+			case TypeType.Class(cls, typeParams): {
+				final members = cls.get().members;
+				for(mem in members) {
+					switch(mem.type) {
+						case SuffixOperator(suffixOp, func): {
+							if(suffixOp == op) {
+								final funcType = func.get().type.get();
+								if(funcType.arguments.length == 0) {
+									return mem;
+								}
+							}
+						}
+						default: {}
+					}
+				}
+			}
+			default: {}
+		}
+		return null;
 	}
 }

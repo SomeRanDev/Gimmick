@@ -204,7 +204,7 @@ class LiteralParser {
 	}
 
 	public function parseTypeName(): Null<Literal> {
-		final namedType = parser.parseType();
+		final namedType = parser.parseType(false);
 		if(namedType != null) {
 			return TypeName(namedType);
 		}

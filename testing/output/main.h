@@ -8,7 +8,7 @@ namespace dfsfds {
 
 extern int blafdfdsfd;
 
-class Fuck {
+class AClass {
 public:
 	static int aa;
 	std::string fds = "fdsf";
@@ -24,10 +24,11 @@ extern int ffff;
 
 }
 
-inline void bla();
+inline void bla432();
+
+void Test54555(Blah kf);
 
 extern int a;
-extern int b;
 extern std::vector<int*> fds;
 extern std::string fdsd;
 extern std::string dsdsds;
@@ -59,7 +60,29 @@ public:
 	MyTestClass(int fd);
 	MyTestClass(float sdfsd);
 	~MyTestClass();
+	void test();
 };
+
+void qwetre(Blah b);
+
+class Blah {
+public:
+	std::string test = "fdfds";
+
+	Blah();
+	void one(int a);
+	void one(std::string a);
+	void increment();
+	void operator+(int a);
+	void operator+(float a);
+};
+
+void AAA();
+
+class AAA {
+};
+
+void pweo();
 
 int main();
 

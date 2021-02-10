@@ -13,6 +13,7 @@ import ast.scope.members.ModifyMember;
 
 import ast.typing.AttributeArgument.AttributeArgumentValue;
 
+import parsers.expr.Operator;
 import parsers.expr.Expression;
 import parsers.expr.Position;
 
@@ -20,6 +21,7 @@ enum Module {
 	Nothing;
 	Variable(variable: VariableMember);
 	Function(func: FunctionMember);
+	Operator(op: Operator, func: FunctionMember);
 	Class(cls: ClassMember);
 	GetSet(getset: GetSetMember);
 	Modify(modify: ModifyMember);

@@ -4,12 +4,15 @@ import basic.Ref;
 
 import ast.typing.Type;
 import ast.typing.FunctionArgument;
+import ast.typing.TemplateArgument;
 
+import parsers.Parser;
 import parsers.Error;
 import parsers.ErrorType;
 import parsers.ErrorPromise;
 import parsers.expr.TypedExpression;
 import parsers.expr.Position;
+import parsers.expr.Operator;
 
 enum FunctionThisType {
 	None;
@@ -17,6 +20,7 @@ enum FunctionThisType {
 	Class;
 	Constructor;
 	Destructor;
+	Operator(op: Operator);
 }
 
 class FunctionTypePassResult extends ErrorPromise {
@@ -35,15 +39,17 @@ class FunctionTypePassResult extends ErrorPromise {
 
 	public override function completeMulti(positions: Array<Position>) {
 		if(index < positions.length) {
-			Error.addErrorFromPos(error, positions[index + 1], [typeA != null ? typeA.toString() : "", typeB != null ? typeB.toString() : ""]);
+			Error.addErrorFromPos(error, positions[index + 2], [typeA != null ? typeA.toString() : "", typeB != null ? typeB.toString() : ""]);
 		}
 	}
 }
 
 class FunctionType {
 	public var arguments(default, null): Array<FunctionArgument>;
+	public var prependArguments(default, null): Array<FunctionArgument>;
 	public var returnType(default, null): Type;
 	public var thisType(default, null): FunctionThisType;
+	public var templateArguments(default, null): Null<Array<TemplateArgument>>;
 
 	var ref: Null<Ref<FunctionType>>;
 
@@ -51,6 +57,7 @@ class FunctionType {
 		this.arguments = arguments;
 		this.returnType = returnType;
 		thisType = None;
+		prependArguments = [];
 	}
 
 	public function getRef(): Ref<FunctionType> {
@@ -66,7 +73,11 @@ class FunctionType {
 	}
 
 	public function prependArgument(name: String, type: Type) {
-		arguments.insert(0, new FunctionArgument(name, type, null));
+		prependArguments.insert(0, new FunctionArgument(name, type, null));
+	}
+
+	public function allArguments(): Array<FunctionArgument> {
+		return prependArguments.concat(arguments);
 	}
 
 	public function setStaticExtension() {
@@ -85,12 +96,23 @@ class FunctionType {
 		thisType = Destructor;
 	}
 
+	public function setOperator(op: Operator) {
+		thisType = Operator(op);
+	}
+
 	public function isConstructor() {
 		return thisType == Constructor;
 	}
 
 	public function isDestructor() {
 		return thisType == Destructor;
+	}
+
+	public function isOperator(): Null<Operator> {
+		return switch(thisType) {
+			case Operator(op): op;
+			default: null;
+		}
 	}
 
 	public function canPassTypes(types: Array<Type>): Null<FunctionTypePassResult> {
@@ -117,5 +139,21 @@ class FunctionType {
 			}
 		}
 		return null;
+	}
+
+	public function setTemplateArguments(args: Null<Array<TemplateArgument>>) {
+		if(args != null) {
+			templateArguments = args;
+		}
+	}
+
+	public function resolveUnknownTypes(parser: Parser): Bool {
+		var result = false;
+		for(a in arguments) {
+			if(a.resolveUnknownNamedType(parser)) {
+				result = true;
+			}
+		}
+		return returnType.resolveUnknownNamedType(parser) || result;
 	}
 }

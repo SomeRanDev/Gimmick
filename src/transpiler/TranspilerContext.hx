@@ -67,6 +67,13 @@ class TranspilerContext {
 		}
 	}
 
+	public function isClass(): Bool {
+		return switch(getContext()) {
+			case Class: true;
+			default: false;
+		}
+	}
+
 	public function hasNamespace(): Bool {
 		return !namespaceStack.isEmpty();
 	}
@@ -154,5 +161,9 @@ class TranspilerContext {
 
 	public function currentClassName(): Null<String> {
 		return classNameStack.first();
+	}
+
+	public function allowSameNameFunctions(): Bool {
+		return isCpp();
 	}
 }

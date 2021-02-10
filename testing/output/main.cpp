@@ -9,17 +9,17 @@ namespace dfsfds {
 
 int blafdfdsfd = 43434;
 
-static int Fuck::aa = 32;
+static int AClass::aa = 32;
 
-int Fuck::bla() {
+int AClass::bla() {
 	return aa;
 }
 
-int Fuck::bla2() {
+int AClass::bla2() {
 	return 0;
 }
 
-int Fuck::ccc() {
+int AClass::ccc() {
 	return 0;
 }
 
@@ -27,14 +27,17 @@ int ffff = 2323232;
 
 }
 
-void bla() {
+void bla432() {
 	int ffdfdf = 32;
+}
+
+void Test54555(Blah kf) {
+	std::cout << "fdsf".toString() << std::endl;
 }
 
 test
 
 int a = 32;
-int b = 0;
 std::vector<int*> fds;
 std::string fdsd = "fdsklfds";
 std::string dsdsds = "";
@@ -70,6 +73,7 @@ int __ttgdf = 0;
 
 MyTestClass::MyTestClass(int fd) {
 	unqiue = 32;
+	test();
 }
 
 MyTestClass::MyTestClass(float sdfsd) {
@@ -77,10 +81,49 @@ MyTestClass::MyTestClass(float sdfsd) {
 
 MyTestClass::~MyTestClass() {
 	std::cout << "fjdklfds".toString() << std::endl;
+	unqiue++;
+}
+
+void MyTestClass::test() {
+	unqiue++;
+	std::cout << "test".toString() << std::endl;
+}
+
+void qwetre(Blah b) {
+	auto cc;
+	std::cout << b.test.toString() << std::endl;
+}
+
+
+Blah::Blah() {
+	std::cout << "fds".toString() << std::endl;
+}
+
+void Blah::one(int a) {
+}
+
+void Blah::one(std::string a) {
+}
+void Blah::increment() {
+	std::cout << "fdsfds".toString() << std::endl;
+}
+
+void Blah::operator+(int a) {
+	std::cout << "test".toString() << std::endl;
+}
+
+void Blah::operator+(float a) {
+	std::cout << "test".toString() << std::endl;
+}
+
+void AAA() {
+}
+
+void pweo() {
+	std::cout << "fdsfds".toString() << std::endl;
 }
 
 int main() {
-	b = bla2;
 	{
 		d.df = 43;
 		if(bfkld) {
@@ -98,11 +141,11 @@ int main() {
 	std::cout << "fd".toString() << std::endl;
 	dsdsds = fdsd;
 	qwer = help;
-	aaa = floor(floor(111));
+	aaa = floor(this);
 	if(21 == 21) {
 		std::cout << "fds".toString() << std::endl;
 	}
-	std::cout << std::to_string(12).toString() << std::endl;
+	std::cout << std::to_string(this).toString() << std::endl;
 	{
 		blabla = "gfd";
 		blabla = "success!";
@@ -110,14 +153,16 @@ int main() {
 	std::cout << "bla".toString() << std::endl;
 	std::cout << "bla23".toString() << std::endl;
 	grge = dfsfds::ffff;
-	test(nullptr);
 	__ttgdf = get_test2();
 	test(43);
 	{
-		int onetwo = 12;
+		float onetwo = 12;
 		{
-			int twothree = onetwo + 32;
+			float twothree = onetwo + 32;
 		}
 	}
+	qqds + 32;
+	qqds++;
+	qqds.one(43);
 	return 0;
 }

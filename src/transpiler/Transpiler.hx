@@ -101,6 +101,10 @@ class Transpiler {
 					return false;
 				}
 			}
+			case PrefixOperator(_, func) | SuffixOperator(_, func) | InfixOperator(_, func) | CallOperator(_, func): {
+				TranspileModule_Function.transpile(func.get(), this);
+				return func.get().shouldTranspile();
+			}
 			case Class(cls): {
 				TranspileModule_Class.transpile(cls.get(), this, member);
 				return cls.get().shouldTranspile();

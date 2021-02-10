@@ -13,6 +13,9 @@ import transpiler.modules.TranspileModule_Type;
 class TranspileModule_Variable {
 	public static function transpile(variable: Ref<VariableMember>, transpiler: Transpiler, isExtern: Bool = true) {
 		final member = variable.get();
+		if(!member.shouldTranspile()) {
+			return false;
+		}
 		if(TranspileModule_Type.transpilable(member.type)) {
 			final result = transpileVariableSource(variable, transpiler.context);
 			transpiler.addSourceContent(result);

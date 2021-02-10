@@ -8,9 +8,11 @@ import parsers.Parser;
 
 class TypeParser {
 	var parser: Parser;
+	var allowUnknownNamed: Bool;
 
-	public function new(parser: Parser) {
+	public function new(parser: Parser, allowUnknownNamed: Bool = true) {
 		this.parser = parser;
+		this.allowUnknownNamed = allowUnknownNamed;
 	}
 
 	public function parseType(): Null<Type> {
@@ -49,7 +51,7 @@ class TypeParser {
 	function parseAllTypesListed(): Array<Type> {
 		final result: Array<Type> = [];
 		while(true) {
-			parser.parseWhitespaceOrComments();
+			parser.parseWhitespaceOrComments(true);
 			final initialIndex = parser.getIndex();
 			final type = parseTypeName();
 			if(type != null) {
@@ -79,10 +81,11 @@ class TypeParser {
 	}
 
 	function parseTypeName(): Null<Type> {
-		final initialIndex = parser.getIndex();
+		final initialState = parser.saveParserState();
 		var type = null;
 
 		var check = 0;
+		final startPos = parser.getIndex();
 		while(type == null && check <= 3) {
 			switch(check) {
 				case 0: type = checkTuple();
@@ -92,34 +95,50 @@ class TypeParser {
 					final name = parser.parseNextVarName();
 					if(name != null) {
 						type = parser.scope.findTypeFromName(name);
+						if(allowUnknownNamed && type == null) {
+							type = Type.UnknownNamed(name);
+						}
 					}
 				}
 			}
 			check++;
 		}
+
+		if(type != null) {
+			type.setPosition(parser.makePosition(startPos));
+		}
 		
 		if(type != null) {
+
+			final preTypeParams = parser.saveParserState();
 			parser.parseWhitespaceOrComments();
 			var typeParams = parseTypeParameters();
 			if(typeParams != null) {
 				type.setTypeParams(typeParams);
+			} else {
+				parser.restoreParserState(preTypeParams);
 			}
+
 			if(type != null) {
+				final preOptional = parser.saveParserState();
 				parser.parseWhitespaceOrComments();
 				if(parser.parseNextContent("?")) {
 					type.setOptional();
+				} else {
+					parser.restoreParserState(preOptional);
 				}
 			}
+
 			return type;
 		} else {
-			parser.setIndex(initialIndex);
+			parser.restoreParserState(initialState);
 		}
 		return null;
 	}
 
 	function checkTuple(): Null<Type> {
 		if(parser.checkAhead("(")) {
-			final tupleTypes = parseTypeList("(", ")", ",");
+			final tupleTypes = parseTypeList(parser, "(", ")", ",");
 			if(tupleTypes != null) {
 				if(tupleTypes.length == 0) {
 					return Type.Void();
@@ -147,45 +166,52 @@ class TypeParser {
 	function checkFunction(): Null<Type> {
 		if(parser.parseWord("func")) {
 			parser.parseWhitespaceOrComments();
-			var params = null;
-			var returnType = null;
-			if(parser.checkAhead("(")) {
-				params = parseTypeList("(", ")", ",", true);
-			}
-			if(params == null) {
-				params = [];
-			}
-			parser.parseWhitespaceOrComments();
-			if(parser.parseNextContent("->")) {
-				parser.parseWhitespaceOrComments();
-				returnType = parseType();
-			}
-			if(returnType == null) {
-				returnType = Type.Void();
-			}
-			final funcType = new FunctionType(params.map(p -> new FunctionArgument("", p, null)), returnType);
+			final funcType = parseFunctionTypeData(parser);
 			return Type.Function(funcType.getRef(), null);
 		}
 		return null;
 	}
 
 	function parseTypeParameters(): Null<Array<Type>> {
-		return parseTypeList("<", ">", ",");
+		return parseTypeList(parser, "<", ">", ",");
 	}
 
-	function parseTypeList(start: String, end: String, separator: String, allowEmpty: Bool = false): Null<Array<Type>> {
+	public static function parseFunctionTypeData(parser: Parser): FunctionType {
+		var params = null;
+		var returnType = null;
+		if(parser.checkAhead("(")) {
+			params = parseTypeList(parser, "(", ")", ",", true);
+		}
+		if(params == null) {
+			params = [];
+		}
+		parser.parseWhitespaceOrComments();
+		if(parser.parseNextContent("->")) {
+			parser.parseWhitespaceOrComments();
+			returnType = parser.parseType();
+		}
+		if(returnType == null) {
+			returnType = Type.Void();
+		}
+		return new FunctionType(params.map(p -> new FunctionArgument("", p, null)), returnType);
+	}
+
+	public static function parseTypeList(parser: Parser, start: String, end: String, separator: String, allowEmpty: Bool = false): Null<Array<Type>> {
+		final startState = parser.saveParserState();
 		var result: Null<Array<Type>> = null;
+		var success = false;
 		if(parser.parseNextContent(start)) {
 			result = [];
 			while(true) {
 				parser.parseWhitespaceOrComments();
 				final typeStart = parser.getIndexFromLine();
-				final subtype = parseType();
+				final subtype = parser.parseType();
 				if(subtype != null) {
 					result.push(subtype);
 					parser.parseWhitespaceOrComments();
 					if(parser.parseNextContent(separator)) {
 					} else if(parser.parseNextContent(end)) {
+						success = true;
 						break;
 					} else {
 						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
@@ -201,6 +227,10 @@ class TypeParser {
 					break;
 				}
 			}
+		}
+		if(!success) {
+			parser.restoreParserState(startState);
+			return null;
 		}
 		return result;
 	}

@@ -21,6 +21,7 @@ import parsers.Parser;
 import parsers.expr.TypedExpression;
 import parsers.expr.Literal;
 import parsers.expr.Position;
+import parsers.expr.Operator;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 import parsers.expr.InfixOperator;
@@ -250,7 +251,7 @@ class Scope {
 	public function ensureMainExists() {
 		if(mainFunction == null) {
 			final funcType = new FunctionType([], Type.Number(Int));
-			mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null), []);
+			mainFunction = new FunctionMember(file.getMainFunctionName(), funcType.getRef(), TopLevel(null), [], Position.BLANK);
 		}
 	}
 
@@ -308,6 +309,14 @@ class Scope {
 		final top = stack.first();
 		if(top != null) {
 			return top.findAll(varName);
+		}
+		return null;
+	}
+
+	public function operatorExistInCurrentScopeAll(op: Operator): Null<Array<ScopeMember>> {
+		final top = stack.first();
+		if(top != null) {
+			return top.findAllOperators(op);
 		}
 		return null;
 	}
@@ -628,6 +637,47 @@ class Scope {
 						file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
 					}
 					return type;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	public function findModifyFunctionWithParameters(type: Type, name: String, params: Array<TypedExpression>, checkImports: Bool = true, includeGlobals: Bool = true): Null<Array<ScopeMember>> {
+		for(namespace in namespaceStack) {
+			final members = namespace.members.findAllModifyWithParameters(type, name, params);
+			if(members != null) {
+				return members;
+			}
+		}
+
+		for(collection in stack) {
+			final members = collection.findAllModifyWithParameters(type, name, params);
+			if(members != null) {
+				return members;
+			}
+		}
+
+		if(checkImports) {
+			for(imp in imports) {
+				final members = imp.get().findModifyFunctionWithParameters(type, name, params, false, false);
+				if(members != null) {
+					return members;
+				}
+			}
+		}
+
+		if(includeGlobals) {
+			for(g in globalScope) {
+				final members = g.scope.findModifyFunctionWithParameters(type, name, params, false, false);
+				if(members != null) {
+					for(mem in members) {
+						if(mem.shouldTriggerAutomaticInclude()) {
+							file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
+						}
+					}
+					return members;
 				}
 			}
 		}

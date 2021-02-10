@@ -18,7 +18,7 @@ class ParserModule_Attribute extends ParserModule {
 	public static var it = new ParserModule_Attribute();
 
 	public override function parse(parser: Parser): Null<Module> {
-		final startIndex = parser.getIndex();
+		final startState = parser.saveParserState();
 		if(parser.parseNextContent("@")) {
 			var failed = false;
 			final varNameStart = parser.getIndexFromLine();
@@ -95,7 +95,7 @@ class ParserModule_Attribute extends ParserModule {
 			if(initialWord == "compiler") {
 				parser.parseWhitespaceOrComments();
 				if(!parser.parseWord("attribute")) {
-					parser.setIndex(startIndex);
+					parser.restoreParserState(startState);
 					return null;
 				}
 			}

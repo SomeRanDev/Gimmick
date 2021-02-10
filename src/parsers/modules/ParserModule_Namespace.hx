@@ -12,7 +12,7 @@ class ParserModule_Namespace extends ParserModule {
 	public static var it = new ParserModule_Namespace();
 
 	public override function parse(parser: Parser): Null<Module> {
-		final index = parser.getIndex();
+		final startState = parser.saveParserState();
 		final word = parser.parseMultipleWords(["start", "end"]);
 		if(word != null) {
 			final startOfModule = parser.getIndexFromLine() - word.length;
@@ -48,7 +48,7 @@ class ParserModule_Namespace extends ParserModule {
 			}
 		}
 
-		parser.setIndex(index);
+		parser.restoreParserState(startState);
 
 		return null;
 	}

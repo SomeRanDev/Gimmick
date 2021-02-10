@@ -34,7 +34,7 @@ class Typer {
 				}
 				if(a.params != null) {
 					for(arg in a.params) {
-						final v = new VariableMember(arg.name, arg.getType(), true, arg.position, null, null, ClassMember);
+						final v = new VariableMember(arg.name, arg.getType(), true, false, arg.position, null, null, ClassMember);
 						parser.scope.addMemberToCurrentScope(new ScopeMember(Variable(v.getRef())));
 					}
 				}
@@ -47,7 +47,7 @@ class Typer {
 	}
 
 	public function typeScopeCollection(members: ScopeMemberCollection, addMainFunction: Bool) {
-		@:privateAccess members.members = typeScopeNoPush(null, members);
+		@:privateAccess members.members = typeScopeNoPush(null, members, false);
 		if(addMainFunction) {
 			parser.scope.commitMainFunction();
 			/*if(parser.scope.mainFunction != null) {
@@ -56,7 +56,7 @@ class Typer {
 		}
 	}
 
-	public function typeScopeNoPush(members: Null<Array<ScopeMember>>, collection: Null<ScopeMemberCollection>, thisType: Null<Type> = null): Array<ScopeMember> {
+	public function typeScopeNoPush(members: Null<Array<ScopeMember>>, collection: Null<ScopeMemberCollection>, replace: Bool, thisType: Null<Type> = null): Array<ScopeMember> {
 		final allMembers: Array<ScopeMember> = [];
 		if(members == null) {
 			if(collection == null) return [];
@@ -69,7 +69,7 @@ class Typer {
 				typeless = mem.isUntyped();
 				returnToTyped = typeless;
 			}
-			final result = typeScopeMember(mem, i, thisType);
+			final result = typeScopeMember(mem, replace ? i : null, thisType);
 			if(result != null) {
 				if(collection != null) {
 					collection.members[i] = result;
@@ -83,14 +83,34 @@ class Typer {
 		return allMembers;
 	}
 
-	public function typeScope(members: Null<Array<ScopeMember>>, collection: Null<ScopeMemberCollection>, thisType: Null<Type> = null): Array<ScopeMember> {
+	public function typeScope(members: Null<Array<ScopeMember>>, collection: Null<ScopeMemberCollection>, thisType: Null<Type> = null, extraMembers: Null<Array<ScopeMember>> = null): Array<ScopeMember> {
 		parser.scope.push();
-		final result = typeScopeNoPush(members, collection, thisType);
+		if(collection != null) {
+			for(mem in collection.members) {
+				parser.scope.addMember(mem);
+			}
+		}
+		if(extraMembers != null) {
+			for(mem in extraMembers) {
+				parser.scope.addMember(mem);
+			}
+		}
+		final result = typeScopeNoPush(members, collection, collection != null, thisType);
 		parser.scope.pop();
 		return result;
 	}
 
-	public function typeScopeMember(member: ScopeMember, replacementIndex: Int, thisType: Null<Type> = null): Null<ScopeMember> {
+	public function typeScopeMember(member: ScopeMember, replacementIndex: Null<Int>, thisType: Null<Type> = null): Null<ScopeMember> {
+		final registerScopeMember = function(member: ScopeMember) {
+			if(!parser.scope.isTopLevel()) {
+				if(replacementIndex != null) {
+					parser.scope.replaceMember(replacementIndex, member);
+				} else {
+					parser.scope.addMember(member);
+				}
+			}
+		}
+
 		switch(member.type) {
 			case Expression(expr): {
 				final typedExpr = typeExpressionMember(expr, thisType);
@@ -161,25 +181,34 @@ class Typer {
 						}
 					}
 
-					//parser.scope.replaceMember(replacementIndex, varMember);
-					parser.scope.addMember(varMember);
+					registerScopeMember(varMember);
 					return varMember;
 				} else {
-					//parser.scope.addMember(member);
-					parser.scope.addMember(member);
+					registerScopeMember(member);
 					return member;
 				}
 			}
 			case Function(func): {
 				final funcMember = func.get();
-				@:privateAccess funcMember.members = typeScope(funcMember.members, null, thisType);
-				//parser.scope.replaceMember(replacementIndex, member);
+				funcMember.type.get().resolveUnknownTypes(parser);
+				final varMembers = funcMember.type.get().arguments.map(a -> new ScopeMember(Variable(a.toVarMember().getRef())));
+				@:privateAccess funcMember.members = typeScope(funcMember.members, null, thisType, varMembers);
+				registerScopeMember(member);
+				return member;
+			}
+			case PrefixOperator(_, func) | SuffixOperator(_, func) | InfixOperator(_, func) | CallOperator(_, func): {
+				final funcMember = func.get();
+				funcMember.type.get().resolveUnknownTypes(parser);
+				final varMembers = funcMember.type.get().arguments.map(a -> new ScopeMember(Variable(a.toVarMember().getRef())));
+				@:privateAccess funcMember.members = typeScope(funcMember.members, null, thisType, varMembers);
+				registerScopeMember(member);
 				return member;
 			}
 			case Class(cls): {
 				final clsMemberType = cls.get().type.get();
-				@:privateAccess clsMemberType.members.members = typeScope(null, clsMemberType.members, Type.Class(cls.get().type, null));
-				//parser.scope.replaceMember(replacementIndex, member);
+				clsMemberType.members.classSort();
+				@:privateAccess clsMemberType.members.setAllMembers(typeScope(null, clsMemberType.members, Type.Class(cls.get().type, null)));
+				registerScopeMember(member);
 				return member;
 			}
 			case GetSet(getset): {
@@ -190,7 +219,7 @@ class Typer {
 				if(getsetMember.set != null) {
 					@:privateAccess getsetMember.set.members = typeScope(getsetMember.set.members, null, thisType);
 				}
-				//parser.scope.replaceMember(replacementIndex, member);
+				registerScopeMember(member);
 				return member;
 			}
 			case Modify(modify): {

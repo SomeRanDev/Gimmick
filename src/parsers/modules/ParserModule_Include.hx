@@ -9,7 +9,7 @@ class ParserModule_Include extends ParserModule {
 	public static var it = new ParserModule_Include();
 
 	public override function parse(parser: Parser): Null<Module> {
-		final parseStart = parser.getIndex();
+		final startState = parser.saveParserState();
 
 		final isHeader = parser.parseWord("header");
 		parser.parseWhitespaceOrComments();
@@ -24,7 +24,7 @@ class ParserModule_Include extends ParserModule {
 
 			return Include(path, isHeader, isSystem);
 		} else {
-			parser.setIndex(parseStart);
+			parser.restoreParserState(startState);
 		}
 
 		return null;

@@ -5,12 +5,15 @@ using StringTools;
 import haxe.ds.GenericStack;
 
 import io.SourceFileManager;
+import io.SourceFilePathInfo;
+import io.SourceFolderInfo;
 
 import ast.SourceFile;
 import ast.scope.Scope;
 import ast.scope.ScopeMember;
 import ast.scope.ScopeMemberCollection;
 import ast.typing.Type;
+import ast.typing.TemplateArgument;
 
 import parsers.Error;
 import parsers.ErrorType;
@@ -22,6 +25,7 @@ import parsers.expr.Expression;
 import parsers.expr.ExpressionParser;
 import parsers.expr.LiteralParser;
 import parsers.expr.TypeParser;
+import parsers.expr.TemplateParser;
 import parsers.expr.Position;
 
 import parsers.modules.Module;
@@ -35,6 +39,18 @@ import parsers.modules.ParserModule_Attribute;
 import parsers.modules.ParserModule_Modify;
 import parsers.modules.ParserModule_Include;
 import parsers.modules.ParserModule_Class;
+
+class ParserState {
+	public var index: Int;
+	public var lineNumber: Int;
+	public var ended: Bool;
+
+	public function new(parser: Parser) {
+		index = parser.index;
+		lineNumber = parser.lineNumber;
+		ended = parser.ended;
+	}
+}
 
 class Parser {
 	public var content(default, null): String;
@@ -62,6 +78,11 @@ class Parser {
 	public static final singleCommentOperator = "#";
 	public static final multilineCommentOperatorStart = "###";
 	public static final multilineCommentOperatorEnd = "###";
+
+	public static function BLANK(): Parser {
+		final file = new SourceFile(false, new SourceFilePathInfo("", "", "", ""), new SourceFolderInfo("", Source), Js);
+		return new Parser("", new SourceFileManager(Js, ""), file, false);
+	}
 
 	public function new(content: String, manager: SourceFileManager, file: SourceFile, preliminary: Bool) {
 		this.content = content;
@@ -95,6 +116,7 @@ class Parser {
 			}
 			if(oldIndex == index) {
 				Error.addError(UnexpectedContent, this, getIndexFromLine());
+				incrementIndex(1);
 				break;
 			}
 		}
@@ -114,6 +136,7 @@ class Parser {
 			}
 			if(oldIndex == index) {
 				Error.addError(UnexpectedContent, this, getIndexFromLine());
+				incrementIndex(1);
 				break;
 			}
 		}
@@ -190,6 +213,18 @@ class Parser {
 			case Function(func): {
 				scope.addMember(new ScopeMember(Function(func.getRef())));
 			}
+			case Operator(op, func): {
+				final member = switch(op.operatorType()) {
+					case "prefix": PrefixOperator(cast op, func.getRef());
+					case "suffix": SuffixOperator(cast op, func.getRef());
+					case "infix": InfixOperator(cast op, func.getRef());
+					case "call": CallOperator(cast op, func.getRef());
+					default: null;
+				};
+				if(member != null) {
+					scope.addMember(new ScopeMember(member));
+				}
+			}
 			case GetSet(getset): {
 				scope.addMember(new ScopeMember(GetSet(getset.getRef())));
 			}
@@ -237,6 +272,16 @@ class Parser {
 
 	function indexOutsideParser(): Bool {
 		return index >= content.length;
+	}
+
+	public function saveParserState(): ParserState {
+		return new ParserState(this);
+	}
+
+	public function restoreParserState(state: ParserState) {
+		setIndex(state.index);
+		lineNumber = state.lineNumber;
+		ended = state.ended;
 	}
 
 	public function getIndex(): Int {
@@ -369,7 +414,7 @@ class Parser {
 	public function getMode_Modify(): Array<ParserModule> {
 		return [
 			ParserModule_Attribute.it,
-			ParserModule_Function.it
+			ParserModule_Function.modifyIt
 		];
 	}
 
@@ -514,8 +559,8 @@ class Parser {
 		return null;
 	}
 
-	public function parseType(): Null<Type> {
-		final typeParser = new TypeParser(this);
+	public function parseType(allowUnknownNamed: Bool = true): Null<Type> {
+		final typeParser = new TypeParser(this, allowUnknownNamed);
 		return typeParser.parseType();
 	}
 
@@ -577,6 +622,11 @@ class Parser {
 		} else {
 			return new ScopeMemberCollection();
 		}
+	}
+
+	public function parseGenericParameters(): Null<Array<TemplateArgument>> {
+		final templateParser = new TemplateParser(this);
+		return templateParser.parseTemplate();
 	}
 
 	public function parseWhitespace(untilNewline: Bool = false): Bool {
