@@ -6,8 +6,8 @@ using interpreter.Variant;
 import interpreter.RuntimeScope;
 import interpreter.ScopeInterpreter;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 
 import parsers.expr.Expression;
 import parsers.expr.TypedExpression;

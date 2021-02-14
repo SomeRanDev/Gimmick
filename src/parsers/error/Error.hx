@@ -1,12 +1,12 @@
-package parsers;
+package parsers.error;
 
 using StringTools;
 
 import basic.Ref;
 
 import parsers.Parser;
-import parsers.ErrorType;
-import parsers.ErrorPromise;
+import parsers.error.ErrorType;
+import parsers.error.ErrorPromise;
 
 import parsers.expr.Position;
 
@@ -195,6 +195,14 @@ class Error {
 		}
 	}
 
+	public static function clearErrorPromise(key: String) {
+		promises.set(key, []);
+	}
+
+	public static function addErrorPromiseDirect(key: String, errorType: ErrorType, params: Array<String>, index: Null<Int> = null) {
+		addErrorPromise(key, new ErrorPromiseBase(errorType, params, index));
+	}
+
 	public static function completePromiseOne(key: String, position: Position) {
 		@:nullSafety(Off) {
 			if(promises.exists(key)) {
@@ -202,7 +210,7 @@ class Error {
 					promise.completeOne(position);
 				}
 			}
-			promises.set(key, []);
+			clearErrorPromise(key);
 		}
 	}
 
@@ -213,7 +221,7 @@ class Error {
 					promise.completeMulti(positions);
 				}
 			}
-			promises.set(key, []);
+			clearErrorPromise(key);
 		}
 	}
 }

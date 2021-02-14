@@ -4,8 +4,8 @@ import basic.Ref;
 
 import ast.scope.Scope;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.modules.ParserModule;
 
 class ParserModule_Namespace extends ParserModule {

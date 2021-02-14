@@ -4,11 +4,14 @@ import basic.Ref;
 
 import parsers.expr.TypedExpression;
 
+import ast.scope.ScopeMember;
 import ast.scope.members.ClassOption;
 
+import ast.typing.Type;
 import ast.typing.ClassType;
 
 class ClassMember {
+	public var scopeMember(default, null): Null<ScopeMember>;
 	public var name(default, null): String;
 	public var type(default, null): Ref<ClassType>;
 	public var memberLocation(default, null): MemberLocation;
@@ -22,6 +25,10 @@ class ClassMember {
 		this.type = type;
 		this.memberLocation = memberLocation;
 		this.options = options;
+	}
+
+	public function setScopeMember(scopeMember: ScopeMember) {
+		this.scopeMember = scopeMember;
 	}
 
 	public function getRef(): Ref<ClassMember> {
@@ -43,7 +50,7 @@ class ClassMember {
 		return type.get().getAllConstructors();
 	}
 
-	public function findConstructorWithParameters(params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+	public function findConstructorWithParameters(params: Array<Type>): Null<Array<ScopeMember>> {
 		return type.get().findConstructorWithParameters(params);
 	}
 }

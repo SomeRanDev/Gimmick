@@ -6,8 +6,8 @@ import ast.typing.Type;
 import ast.scope.members.VariableMember;
 import ast.scope.members.MemberLocation;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.modules.ParserModule;
 
 import parsers.expr.Position;

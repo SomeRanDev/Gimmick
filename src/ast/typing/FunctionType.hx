@@ -6,10 +6,12 @@ import ast.typing.Type;
 import ast.typing.FunctionArgument;
 import ast.typing.TemplateArgument;
 
+import ast.scope.members.FunctionMember;
+
 import parsers.Parser;
-import parsers.Error;
-import parsers.ErrorType;
-import parsers.ErrorPromise;
+import parsers.error.Error;
+import parsers.error.ErrorType;
+import parsers.error.ErrorPromise;
 import parsers.expr.TypedExpression;
 import parsers.expr.Position;
 import parsers.expr.Operator;
@@ -45,6 +47,7 @@ class FunctionTypePassResult extends ErrorPromise {
 }
 
 class FunctionType {
+	public var member(default, null): Null<FunctionMember>;
 	public var arguments(default, null): Array<FunctionArgument>;
 	public var prependArguments(default, null): Array<FunctionArgument>;
 	public var returnType(default, null): Type;
@@ -62,6 +65,10 @@ class FunctionType {
 		prependArguments = [];
 	}
 
+	public function setMember(member: FunctionMember) {
+		this.member = member;
+	}
+
 	public function getRef(): Ref<FunctionType> {
 		if(ref == null) {
 			ref = new Ref<FunctionType>(this);
@@ -69,9 +76,9 @@ class FunctionType {
 		return ref;
 	}
 
-	public function toString() {
+	public function toString(funcString: String = "func") {
 		final argStr = arguments.map((p) -> p.type.toString()).join(", ");
-		return "func(" + argStr + ") -> " + returnType.toString();
+		return funcString + "(" + argStr + ") -> " + returnType.toString();
 	}
 
 	public function prependArgument(name: String, type: Type) {
@@ -161,5 +168,12 @@ class FunctionType {
 
 	public function setClassType(clsType: ClassType) {
 		classType = clsType.getRef();
+	}
+
+	public function hasAttribute(attributeName: String): Bool {
+		if(member != null && member.scopeMember != null) {
+			return member.scopeMember.hasAttribute(attributeName);
+		}
+		return false;
 	}
 }

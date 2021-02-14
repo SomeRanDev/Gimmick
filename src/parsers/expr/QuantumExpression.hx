@@ -48,4 +48,11 @@ abstract QuantumExpression(QuantumExpressionInternal) from QuantumExpressionInte
 			case Typed(e): e.getPosition();
 		}
 	}
+
+	public function getType(): Null<Type> {
+		return switch(this) {
+			case Untyped(e): null;
+			case Typed(e): e.getType();
+		}
+	}
 }

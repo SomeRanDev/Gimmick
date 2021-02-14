@@ -12,6 +12,8 @@ import ast.typing.FunctionArgument;
 import ast.typing.Type.TypeType;
 
 import parsers.ParserMode;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.expr.Position;
 
 class ParserModule_Attribute extends ParserModule {

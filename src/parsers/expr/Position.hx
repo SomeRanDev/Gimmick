@@ -28,4 +28,18 @@ class Position {
 	public function toString(): String {
 		return file + " " + line + " " + startIndex + " " + endIndex;
 	}
+
+	public function merge(...otherPositions: Null<Position>): Position {
+		var smallestLine = line;
+		var smallestIndex = startIndex;
+		var largestIndex = endIndex;
+		for(pos in otherPositions) {
+			if(pos != null) {
+				if(pos.line < smallestLine) smallestLine = pos.line;
+				if(pos.startIndex < smallestIndex) smallestIndex = pos.startIndex;
+				if(pos.endIndex > largestIndex) largestIndex = pos.endIndex;
+			}
+		}
+		return new Position(file, smallestLine, smallestIndex, largestIndex);
+	}
 }

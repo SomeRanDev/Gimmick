@@ -6,13 +6,14 @@ import ast.scope.ScopeMember;
 import ast.scope.members.ClassMember;
 import ast.typing.Type;
 import ast.typing.ClassType;
+import ast.typing.FunctionType;
 import ast.typing.FunctionType.FunctionTypePassResult;
 
 import ast.scope.members.FunctionMember;
 
-import parsers.Error;
-import parsers.ErrorType;
-import parsers.ErrorPromise;
+import parsers.error.Error;
+import parsers.error.ErrorType;
+import parsers.error.ErrorPromise;
 import parsers.expr.Operator;
 import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
@@ -107,12 +108,16 @@ class ScopeMemberCollection {
 	public function findWithParameters(name: String, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
 		final options = findAll(name);
 		if(options != null) {
-			return findWithParametersFromOptions(options, params);
+			return findWithParametersFromExprOptions(options, params);
 		}
 		return null;
 	}
 
-	public function findConstructorWithParameters(params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+	public function findConstructorWithParameterExprs(params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+		return findConstructorWithParameters(params.map(p -> p.getType()));
+	}
+
+	public function findConstructorWithParameters(params: Array<Type>): Null<Array<ScopeMember>> {
 		final options = findAllConstructors();
 		if(options != null) {
 			return findWithParametersFromOptions(options, params);
@@ -120,7 +125,11 @@ class ScopeMemberCollection {
 		return null;
 	}
 
-	public function findWithParametersFromOptions(options: Array<ScopeMember>, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+	public function findWithParametersFromExprOptions(options: Array<ScopeMember>, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+		return findWithParametersFromOptions(options, params.map(p -> p.getType()));
+	}
+
+	public function findWithParametersFromOptions(options: Array<ScopeMember>, params: Array<Type>): Null<Array<ScopeMember>> {
 		if(options.length == 0) return null;
 
 		var onlyClass = true;
@@ -143,7 +152,6 @@ class ScopeMemberCollection {
 
 		if(options.length == 0) return null;
 
-		final types = params.map(p -> p.getType());
 		var resultingIndex = 0;
 		final possibilities = [];
 		var errorMember: Null<ScopeMember> = null;
@@ -151,7 +159,7 @@ class ScopeMemberCollection {
 		for(member in options) {
 			switch(member.type) {
 				case Function(func): {
-					final result = func.get().type.get().canPassTypes(types);
+					final result = func.get().type.get().canPassTypes(params);
 					if(result != null) {
 						if(errorReason == null || (errorReason.error == ErrorType.TooManyFunctionParametersProvided && result.error != ErrorType.TooManyFunctionParametersProvided)) {
 							errorMember = member;
@@ -241,6 +249,31 @@ class ScopeMemberCollection {
 			case Class(cls): cls.get().name;
 			default: null;
 		}
+	}
+
+	public function hasVariableType(name: String, type: Type): Bool {
+		final options = findAll(name);
+		if(options != null) {
+			for(o in options) {
+				switch(o.type) {
+					case Variable(variable): {
+						if(variable.get().type.equals(type)) {
+							return true;
+						}
+					}
+					default: {}
+				}
+			}
+		}
+		return false;
+	}
+
+	public function hasFunctionType(name: String, funcType: FunctionType): Bool {
+		final options = findAll(name);
+		if(options != null) {
+			return findWithParametersFromOptions(options, funcType.arguments.map(a -> a.type)) != null;
+		}
+		return false;
 	}
 
 	public function findClassType(name: String): Null<Ref<ClassType>> {
@@ -334,7 +367,7 @@ class ScopeMemberCollection {
 	public function findAllModifyWithParameters(type: Type, name: String, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
 		final options = findAllModify(type, name);
 		if(options != null) {
-			return findWithParametersFromOptions(options, params);
+			return findWithParametersFromExprOptions(options, params);
 		}
 		return null;
 	}

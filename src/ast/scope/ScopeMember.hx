@@ -82,6 +82,16 @@ class ScopeMember {
 	public function new(type: ScopeMemberType) {
 		this.type = type;
 		attributes = [];
+
+		switch(type) {
+			case Function(func): {
+				func.get().setScopeMember(this);
+			}
+			case Class(cls): {
+				cls.get().setScopeMember(this);
+			}
+			default: {}
+		}
 	}
 
 	public function onMemberUsed(parser: Parser) {

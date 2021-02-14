@@ -7,9 +7,10 @@ using interpreter.Variant;
 import interpreter.Variant.VariantHelper;
 
 import ast.scope.ScopeMember;
+import ast.scope.ExpressionMember;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.expr.QuantumExpression;
 
 class ScopeInterpreter {
@@ -42,7 +43,7 @@ class ScopeInterpreter {
 				//VariantHelper.typeToVariantDefault
 			}
 			case Expression(expr): {
-				switch(expr) {
+				switch(expr.type) {
 					case Basic(expr): {
 						ExpressionInterpreter.interpret(expr, data);
 					}
@@ -68,7 +69,7 @@ class ScopeInterpreter {
 					}
 					case IfElseStatement(ifState, elseExpressions): {
 						var performElse = false;
-						switch(ifState) {
+						switch(ifState.type) {
 							case IfStatement(expr, subExpressions, checkTrue): {
 								final cond = getBoolFromExpr(expr, data);
 								if(cond == null) return null;
@@ -89,7 +90,7 @@ class ScopeInterpreter {
 					case IfElseIfChain(ifStatements, elseExpressions): {
 						var performElse = true;
 						for(statement in ifStatements) {
-							switch(statement) {
+							switch(statement.type) {
 								case IfStatement(expr, subExpressions, checkTrue): {
 									final cond = getBoolFromExpr(expr, data);
 									if(cond == null) return null;

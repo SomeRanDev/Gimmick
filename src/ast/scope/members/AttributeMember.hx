@@ -13,8 +13,8 @@ using interpreter.Variant;
 
 import transpiler.TranspilerContext;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.expr.Position;
 
 class AttributeMember {

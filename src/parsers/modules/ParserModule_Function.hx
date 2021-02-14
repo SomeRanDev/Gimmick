@@ -14,8 +14,8 @@ import ast.typing.Type;
 import ast.typing.FunctionArgument;
 import ast.typing.FunctionType;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.modules.ParserModule;
 
 import parsers.expr.Position;
@@ -231,6 +231,7 @@ class ParserModule_Function extends ParserModule {
 			}
 			
 			final funcMember = new FunctionMember(functionName, new Ref(funcType), memberLocation, attributes, parser.makePosition(startIndex));
+			funcType.setMember(funcMember);
 
 			if((!isGet && !isSet) && existingMembers != null && existingMembers.length > 0) {
 				funcMember.setUniqueId(existingMembers.length + 1);

@@ -4,8 +4,8 @@ import ast.scope.ScopeMember;
 
 import ast.typing.Type;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.expr.Expression;
 import parsers.expr.Literal;
 import parsers.expr.Operator;
@@ -65,12 +65,14 @@ class ExpressionTypingContext {
 	public var isStaticExtension(default, null): Bool;
 	public var prependedArgs(default, null): Null<Array<TypedExpression>>;
 	public var arguments(default, null): Null<Array<TypedExpression>>;
+	public var handlingTemplateInput(default, null): Bool;
 
 	public function new(incrementCall: Bool) {
 		this.incrementCall = incrementCall;
 		isStaticExtension = false;
 		prependedArgs = null;
 		arguments = null;
+		handlingTemplateInput = false;
 	}
 
 	public function setIsStaticExtension() {
@@ -83,6 +85,10 @@ class ExpressionTypingContext {
 
 	public function setCallParameters(params: Array<TypedExpression>) {
 		arguments = params;
+	}
+
+	public function setHandlingTemplateInput(value: Bool = true) {
+		handlingTemplateInput = value;
 	}
 }
 
@@ -102,7 +108,7 @@ class ExpressionTyper {
 		this.parser = parser;
 		this.mode = mode;
 		this.isInterpret = isInterpret;
-		this.thisType = thisType != null ? Type.Pointer(thisType) : null;
+		this.thisType = thisType;
 		convertAssignmentToArgument = false;
 		exprStack = [];
 	}
@@ -170,7 +176,18 @@ class ExpressionTyper {
 				return null;
 			}
 			case Infix(op, lexpr, rexpr, pos): {
-				var lexprTyped = getInternalTypeStacked(lexpr);
+				final lContext = if(op.isGenericInput() && context != null) {
+					context.setHandlingTemplateInput(true);
+					context;
+				} else {
+					final otherContext = new ExpressionTypingContext(false);
+					otherContext.setHandlingTemplateInput(false);
+					otherContext;
+				}
+				var lexprTyped = getInternalTypeStacked(lexpr, op.isGenericInput() ? accessor : null, lContext);
+				if(op.isGenericInput() && context != null) {
+					context.setHandlingTemplateInput(false);
+				}
 				if(lexprTyped != null) {
 					final accessContext = new ExpressionTypingContext(false);
 					if(op.isAccessor() && context != null && context.arguments != null) {
@@ -197,7 +214,13 @@ class ExpressionTyper {
 						}
 						final rType = rexprTyped.getType();
 						final lType = op.isAccessor() ? null : lexprTyped.getType();
-						final result = op.isAccessor() ? rType : @:nullSafety(Off) op.findReturnType(lType, rType);
+						if(lType != null) {
+							final templateResult = handleTemplateInput(op, lType, rType, pos);
+							if(templateResult != null) {
+								return templateResult;
+							}
+						}
+						final result = lType == null ? rType : op.findReturnType(lType, rType, pos);
 						if(result != null) {
 							parser.onTypeUsed(result);
 							if(!isInterpret && accessContext != null && accessContext.isStaticExtension) {
@@ -229,9 +252,12 @@ class ExpressionTyper {
 				final typedExpr = getInternalTypeStacked(expr, null, context);
 				final exprPos = [ExpressionHelper.getPosition(expr), pos];
 				final otherPos = params.map(p -> ExpressionHelper.getPosition(p));
-				Error.completePromiseMulti("funcWrongParam", exprPos.concat(otherPos));
+				if(!isPrelim) {
+					Error.completePromiseMulti("funcWrongParam", exprPos.concat(otherPos));
+				} else {
+					Error.clearErrorPromise("funcWrongParam");
+				}
 				if(typedExpr != null) {
-
 					final typedParams: Array<TypedExpression> = [];
 					if(context.prependedArgs != null) {
 						for(p in context.prependedArgs) {
@@ -274,14 +300,14 @@ class ExpressionTyper {
 							if(!isPrelim && context != null && context.arguments != null) {
 								switch(type.type) {
 									case Class(cls, _): {
-										final options = cls.get().findConstructorWithParameters(context.arguments);
+										final options = cls.get().findConstructorWithParameters(context.arguments.map(p -> p.getType()));
 										final member = retrieveMemberFromOptions(options, pos);
 										if(member != null) {
 											member.onMemberUsed(parser);
 											valueContext.setResult(member.getType());
 											switch(member.type) {
 												case ScopeMemberType.Function(funcMember): {
-													valueContext.setReplacement(Function(funcMember.get()));
+													valueContext.setReplacement(Literal.TypeName(type));
 													if(valueContext.incrementCall) {
 														funcMember.get().incrementCallCount();
 													}
@@ -299,6 +325,13 @@ class ExpressionTyper {
 
 					result = valueContext.result;
 					if(result != null) {
+						if(!isPrelim && result.templateRequired() && (context == null || !context.handlingTemplateInput)) {
+							Error.addErrorFromPos(if(result.isClassType() != null) {
+								ErrorType.ClassRequiresTypeArguments;
+							} else {
+								ErrorType.FunctionRequiresTypeArguments;
+							}, pos);
+						}
 						parser.onTypeUsed(result);
 						return Value(valueContext.replacementOr(literal), pos, result);
 					} else if(!isPrelim) {
@@ -338,7 +371,9 @@ class ExpressionTyper {
 					valueContext.setReplacement(Variable(varMember.get()));
 				}
 				case ScopeMemberType.Function(funcMember): {
-					valueContext.setReplacement(Function(funcMember.get()));
+					if(valueContext.result == null || !valueContext.result.isTypeSelf()) {
+						valueContext.setReplacement(Function(funcMember.get()));
+					}
 					if(valueContext.incrementCall) {
 						funcMember.get().incrementCallCount();
 					}
@@ -451,5 +486,64 @@ class ExpressionTyper {
 		} else {
 			null;
 		}
+	}
+
+	public function handleTemplateInput(op: InfixOperator, ltype: Type, rtype: Type, position: Position): Null<TypedExpression> {
+		if(op.op == "!") {
+			var resultType: Null<Type> = null;
+			var leftType: Null<Type> = null;
+			var rightType: Null<Type> = null;
+			switch([ltype.type, switch(rtype.type) {
+				case Tuple(types): TypeSelf(rtype);
+				default: rtype.type;
+			}]) {
+				case [TypeSelf(lt), TypeSelf(rt)]: {
+					leftType = lt;
+					rightType = rt;
+				}
+				case [Function(_, _), TypeSelf(rt)] | [External(_, _), TypeSelf(rt)]: {
+					leftType = ltype;
+					rightType = rt;
+				}
+				default: {}
+			}
+			if(leftType != null && rightType != null) {
+				final typeList = switch(rightType.type) {
+					case Tuple(types): types;
+					default: [rightType];
+				}
+				final newType = leftType.applyTemplateArgs(typeList);
+				resultType = if(newType != null) {
+					Type.TypeSelf(newType);
+				} else {
+					final positions: Array<Position> = [position];
+					for(t in typeList) {
+						positions.push(t.position == null ? Position.BLANK : t.position);
+					}
+					final isPrelim = mode != Normal;
+					if(!isPrelim) {
+						Error.completePromiseMulti("matchTemplateArgs", positions);
+					} else {
+						Error.clearErrorPromise("matchTemplateArgs");
+					}
+					ltype;
+				}
+			}
+			if(resultType != null) {
+				return Value(switch(resultType.type) {
+					case TypeSelf(t): Literal.TypeName(resultType);
+					case Function(funcType, _): {
+						final mem = funcType.get().member;
+						if(mem != null) {
+							Literal.Function(mem);
+						} else {
+							null;
+						}
+					}
+					default: null;
+				}, position.merge(ltype.position, rtype.position), resultType);
+			}
+		}
+		return null;
 	}
 }

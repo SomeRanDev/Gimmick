@@ -1,4 +1,4 @@
-package parsers;
+package parsers.error;
 
 import parsers.expr.Position;
 

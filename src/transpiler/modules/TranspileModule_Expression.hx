@@ -20,7 +20,7 @@ class TranspileModule_Expression {
 	}
 
 	public static function transpileExprMember(expr: ExpressionMember, context: TranspilerContext, tabLevel: Int): String {
-		switch(expr) {
+		switch(expr.type) {
 			case Basic(expr): {
 				return switch(expr) {
 					case Untyped(_): "";
@@ -72,11 +72,10 @@ class TranspileModule_Expression {
 			}
 			case ReturnStatement(expr): {
 				final exprStr = switch(expr) {
-					case Untyped(_): null;
+					case null | Untyped(_): null;
 					case Typed(texpr): transpileExpr(texpr, context, true);
 				}
-				if(exprStr == null) return "";
-				return "return " + exprStr + ";";
+				return "return" + (exprStr == null ? "" : " " + exprStr) + ";";
 			}
 			default: {}
 		}
@@ -145,7 +144,7 @@ class TranspileModule_Expression {
 									if(returnExpr != null) {
 										switch(returnExpr.type) {
 											case Expression(exprMember): {
-												switch(exprMember) {
+												switch(exprMember.type) {
 													case ReturnStatement(expr): {
 														context.pushVarReplacements();
 														var popThisType = false;

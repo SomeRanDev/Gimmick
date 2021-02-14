@@ -7,12 +7,20 @@ import ast.scope.ExpressionMember;
 import ast.scope.ScopeMemberCollection;
 import ast.scope.members.FunctionMember;
 import ast.scope.members.VariableMember;
+
 import ast.typing.FunctionType;
 import ast.typing.Type;
 
 import parsers.Parser;
+
+import parsers.error.Error;
+import parsers.error.ErrorType;
+
 using parsers.expr.TypedExpression;
 using parsers.expr.QuantumExpression;
+import parsers.expr.Position;
+
+import parsers.typing.ReturnSweepContext;
 
 class Typer {
 	public var parser(default, null): Parser;
@@ -193,6 +201,20 @@ class Typer {
 				funcMember.type.get().resolveUnknownTypes(parser);
 				final varMembers = funcMember.type.get().arguments.map(a -> new ScopeMember(Variable(a.toVarMember().getRef())));
 				@:privateAccess funcMember.members = typeScope(funcMember.members, null, thisType, varMembers);
+
+				{
+					var returnType: Null<Type> = funcMember.type.get().returnType;
+					if(returnType.isVoid()) {
+						returnType = null;
+					}
+					final context = new ReturnSweepContext(returnType);
+					if(!ReturnSweepContext.findReturnStatementFromMembers(funcMember.members, context)) {
+						if(returnType != null) {
+							Error.addErrorFromPos(ErrorType.NoReturnOnFunction, funcMember.declarePosition);
+						}
+					}
+				}
+
 				registerScopeMember(member);
 				return member;
 			}
@@ -207,7 +229,7 @@ class Typer {
 			case Class(cls): {
 				final clsMemberType = cls.get().type.get();
 				clsMemberType.members.classSort();
-				@:privateAccess clsMemberType.members.setAllMembers(typeScope(null, clsMemberType.members, Type.Class(cls.get().type, null)));
+				@:privateAccess clsMemberType.members.setAllMembers(typeScope(null, clsMemberType.members, Type.Pointer(Type.Class(cls.get().type, null))));
 				registerScopeMember(member);
 				return member;
 			}
@@ -236,23 +258,23 @@ class Typer {
 		return member;
 	}
 
-	public function typeExpressionMember(expr: ExpressionMember, thisType: Null<Type>): Null<ExpressionMember> {
-		switch(expr) {
+	public function typeExpressionMember(inputExpr: ExpressionMember, thisType: Null<Type>): Null<ExpressionMember> {
+		switch(inputExpr.type) {
 			case Basic(expr): {
 				final typed = expr.typeExpression(parser, typeless, isInterpret, thisType);
 				if(typed != null) {
-					return Basic(typed);
+					return new ExpressionMember(Basic(typed), inputExpr.position);
 				} else {
 					return null;
 				}
 			}
 			case Scope(subExpressions): {
-				return Scope(typeScope(subExpressions, null));
+				return new ExpressionMember(Scope(typeScope(subExpressions, null)), inputExpr.position);
 			}
 			case IfStatement(expr, subExpressions, checkTrue): {
 				final typed = expr.typeExpression(parser, typeless, isInterpret, thisType);
 				if(typed != null) {
-					return IfStatement(typed, typeScope(subExpressions, null), checkTrue);
+					return new ExpressionMember(IfStatement(typed, typeScope(subExpressions, null), checkTrue), inputExpr.position);
 				} else {
 					return null;
 				}
@@ -260,7 +282,7 @@ class Typer {
 			case IfElseStatement(ifState, elseExpressions): {
 				final exprMember = typeExpressionMember(ifState, thisType);
 				if(exprMember != null) {
-					return IfElseStatement(exprMember, typeScope(elseExpressions, null));
+					return new ExpressionMember(IfElseStatement(exprMember, typeScope(elseExpressions, null)), inputExpr.position);
 				} else {
 					return null;
 				}
@@ -274,7 +296,7 @@ class Typer {
 					}
 				}
 				if(typedIfStatements.length > 0) {
-					return IfElseIfChain(typedIfStatements, elseExpressions == null ? null : typeScope(elseExpressions, null));
+					return new ExpressionMember(IfElseIfChain(typedIfStatements, elseExpressions == null ? null : typeScope(elseExpressions, null)), inputExpr.position);
 				} else {
 					return null;
 				}
@@ -284,18 +306,21 @@ class Typer {
 				if(expr != null) {
 					typedExpr = expr.typeExpression(parser, typeless, isInterpret, thisType);
 				}
-				return Loop(expr == null ? null : typedExpr, typeScope(subExpressions, null), checkTrue);
+				return new ExpressionMember(Loop(expr == null ? null : typedExpr, typeScope(subExpressions, null), checkTrue), inputExpr.position);
 			}
-			case ReturnStatement(expr): {
-				final typed = expr.typeExpression(parser, typeless, isInterpret, thisType);
-				if(typed != null) {
-					return ReturnStatement(typed);
-				} else {
-					return null;
+			case ReturnStatement(e): {
+				if(e != null) {
+					final typed = e.typeExpression(parser, typeless, isInterpret, thisType);
+					if(typed != null) {
+						return new ExpressionMember(ReturnStatement(typed), inputExpr.position);
+					} else {
+						return null;
+					}
 				}
+				return inputExpr;
 			}
 			default: {}
 		}
-		return expr;
+		return inputExpr;
 	}
 }

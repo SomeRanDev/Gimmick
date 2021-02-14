@@ -1,8 +1,8 @@
 package parsers.expr;
 
 import parsers.Parser;
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.expr.Literal;
 using parsers.expr.Expression;
 using parsers.expr.TypedExpression;

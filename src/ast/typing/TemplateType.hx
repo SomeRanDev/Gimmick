@@ -1,6 +1,7 @@
 package ast.typing;
 
-import ast.typing.TemplateArgument.TemplateArgumentRequirement;
+import ast.typing.TemplateArgument;
+import ast.typing.TemplateArgumentRequirement;
 
 class TemplateType {
 	public var name: String;

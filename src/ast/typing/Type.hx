@@ -11,8 +11,11 @@ import ast.scope.members.NamespaceMember;
 import ast.scope.Scope;
 
 import parsers.Parser;
-import parsers.Error;
-import parsers.ErrorType;
+
+import parsers.error.ErrorTypeAndParams;
+
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.expr.Position;
 import parsers.expr.Literal;
 import parsers.expr.Expression;
@@ -66,12 +69,45 @@ class Type {
 		return new Type(type, isConst, isOptional);
 	}
 
+	static function compareTypeArrays(one: Null<Array<Type>>, two: Null<Array<Type>>) {
+		if(one == null) return two == null;
+		if(two == null) return false;
+		if(one.length != two.length) return false;
+		var result = true;
+		for(i in 0...one.length) {
+			if(!one[i].baseTypesEqual(two[i])) {
+				result = false;
+				break;
+			}
+		}
+		return result;
+	}
+
 	public function baseTypesEqual(other: Type): Bool {
 		final refType = isRefType();
-		if(refType != null) refType.type.equals(other.type);
+		if(refType != null) return refType.baseTypesEqual(other);
 
 		final otherRefType = other.isRefType();
-		if(otherRefType != null) type.equals(otherRefType.type);
+		if(otherRefType != null) return baseTypesEqual(otherRefType);
+
+		switch([type, other.type]) {
+			case [TypeType.List(t), TypeType.List(otherT)]: { return t.baseTypesEqual(otherT); }
+			case [TypeType.Pointer(t), TypeType.Pointer(otherT)]: { return t.baseTypesEqual(otherT); }
+			case [TypeType.TypeSelf(t), TypeType.TypeSelf(otherT)]: { return t.baseTypesEqual(otherT); }
+			case [TypeType.Tuple(types), TypeType.Tuple(otherTypes)]: {
+				return compareTypeArrays(types, otherTypes);
+			}
+			case [TypeType.Function(func, params), TypeType.Function(otherFunc, otherParams)]: {
+				return func.get() == otherFunc.get() && compareTypeArrays(params, otherParams);
+			}
+			case [TypeType.Class(cls, params), TypeType.Class(otherCls, otherParams)]: {
+				return cls.get() == otherCls.get() && compareTypeArrays(params, otherParams);
+			}
+			case [TypeType.External(name, params), TypeType.External(otherName, otherParams)]: {
+				return name == otherName && compareTypeArrays(params, otherParams);
+			}
+			default: {}
+		}
 
 		return type.equals(other.type);
 	}
@@ -96,6 +132,9 @@ class Type {
 	}
 
 	public function canBePassed(other: Type): Null<ErrorType> {
+		if(isAny() || other.isAny()) {
+			return null;
+		}
 		if(other.isNull()) {
 			return isOptional ? null : ErrorType.CannotAssignNullToNonOptional;
 		}
@@ -115,6 +154,9 @@ class Type {
 	}
 
 	public function canBeAssigned(other: Type): Null<ErrorType> {
+		if(isAny() || other.isAny()) {
+			return null;
+		}
 		if(!baseTypesEqual(other)) {
 			return ErrorType.CannotAssignThisTypeToThatType;
 		}
@@ -493,10 +535,31 @@ class Type {
 		}
 	}
 
+	public function isAny(): Bool {
+		return switch(type) {
+			case TypeType.Any: true;
+			default: false;
+		}
+	}
+
+	public function isVoid(): Bool {
+		return switch(type) {
+			case TypeType.Void: true;
+			default: false;
+		}
+	}
+
 	public function isClassType(): Null<Ref<ClassType>> {
 		return switch(type) {
 			case TypeType.Class(cls, _): cls;
 			default: null;
+		}
+	}
+
+	public function isTypeSelf(): Bool {
+		return switch(type) {
+			case TypeType.TypeSelf(_): true;
+			default: false;
 		}
 	}
 
@@ -516,6 +579,181 @@ class Type {
 
 	public function isGenericNumber(): Bool {
 		return isNumber() == NumberType.Any;
+	}
+
+	public function hasTemplate(): Bool {
+		return templateArgMaximum() > 0;
+	}
+
+	public function templateArguments(): Null<Array<TemplateArgument>> {
+		return switch(type) {
+			case TypeType.Function(funcType, _): funcType.get().templateArguments;
+			case TypeType.Class(clsType, _): clsType.get().templateArguments;
+			case TypeType.External(_, _): [];
+			default: null;
+		}
+	}
+
+	public function templateArgMaximum(): Int {
+		return switch(type) {
+			case TypeType.Function(_, _) | TypeType.Class(_, _): {
+				final args = templateArguments();
+				args != null ? args.length : 0;
+			}
+			case TypeType.External(_, _): {
+				99999999;
+			}
+			default: {
+				0;
+			}
+		}
+	}
+
+	public function applyTemplateArgs(args: Array<Type>): Null<Type> {
+		if(matchesTemplateArgs(args)) {
+			return switch(type) {
+				case TypeType.Function(funcType, _): Type.Function(funcType, args, isConst, isOptional);
+				case TypeType.Class(clsType, _): Type.Class(clsType, args, isConst, isOptional);
+				case TypeType.External(name, _): Type.External(name, args, isConst, isOptional);
+				default: null;
+			}
+		}
+		return null;
+	}
+
+	public function matchesTemplateArgs(args: Array<Type>): Bool {
+		if(args.length > templateArgMaximum()) {
+			Error.addErrorPromiseDirect("matchTemplateArgs", ErrorType.TooManyTemplateParameters, [Std.string(templateArgMaximum()), Std.string(args.length)], 0);
+			return false;
+		}
+		switch(type) {
+			case TypeType.External(_, _): return true;
+			default: {}
+		}
+		final typeArgs = templateArguments();
+		if(typeArgs == null) {
+			Error.addErrorPromiseDirect("matchTemplateArgs", ErrorType.TypeDoesNotHaveTemplate, [], 0);
+			return false;
+		}
+		for(i in 0...args.length) {
+			final invalidRestriction = args[i].validTemplateArgument(typeArgs[i].type);
+			if(invalidRestriction != null) {
+				Error.addErrorPromiseDirect("matchTemplateArgs", ErrorType.TypeDoesNotMeetRequirement, [args[i].toString(), invalidRestriction.toString()], i + 1);
+				return false;
+			}
+		}
+		for(i in args.length...typeArgs.length) {
+			if(typeArgs[i].defaultType == null) {
+				Error.addErrorPromiseDirect("matchTemplateArgs", ErrorType.NotEnoughTemplateParameters, [Std.string(typeArgs.length), Std.string(i - 1)], 0);
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public function validTemplateArgument(templateType: TemplateType): Null<TemplateArgumentRequirement> {
+		final restrictions = templateType.restrictions;
+		if(restrictions != null) {
+			for(r in restrictions) {
+				switch(r.type) {
+					case HasVariable(name, type): {
+						if(!hasVariableType(name, type)) {
+							return r;
+						}
+					}
+					case HasFunction(name, funcType): {
+						if(!hasFunctionType(name, funcType)) {
+							return r;
+						}
+					}
+					case HasAttribute(name): {
+						switch(type) {
+							case TypeType.Class(cls, _): {
+								if(!cls.get().hasAttribute(name)) {
+									return r;
+								}
+							}
+							default: return r;
+						}
+					}
+					case Extends(type): {
+						if(!extendsFrom(type)) {
+							return r;
+						}
+					}
+					case Matches(template): {
+						if(validTemplateArgument(template) != null) {
+							return r;
+						}
+					}
+				}
+			}
+		}
+		return null;
+	}
+
+	public function hasVariableType(name: String, varType: Type): Bool {
+		switch(type) {
+			case TypeType.Class(cls, _): {
+				return cls.get().members.hasVariableType(name, varType);
+			}
+			default: {}
+		}
+		return false;
+	}
+
+	public function hasFunctionType(name: String, funcType: FunctionType): Bool {
+		switch(type) {
+			case TypeType.Class(cls, _): {
+				return cls.get().members.hasFunctionType(name, funcType);
+			}
+			default: {}
+		}
+		return false;
+	}
+
+	public function extendsFrom(other: Type): Bool {
+		switch(type) {
+			case TypeType.Class(cls, _): {
+				return cls.get().extendsFrom(other);
+			}
+			default: {}
+		}
+		return false;
+	}
+
+	public function templateRequired(): Bool {
+		function getResult(args: Null<Array<TemplateArgument>>): Bool {
+			if(args != null) {
+				for(a in args) {
+					if(a.defaultType == null) return true;
+				}
+			}
+			return false;
+		}
+		switch(type) {
+			case TypeType.TypeSelf(t): {
+				switch(t.type) {
+					case TypeType.Class(cls, params): {
+						if(params == null) {
+							if(getResult(cls.get().templateArguments)) {
+								return true;
+							}
+						}
+					}
+					default: {}
+				}
+			}
+			case TypeType.Function(funcType, params): {
+				if(params == null) {
+					if(getResult(funcType.get().templateArguments)) {
+						return true;
+					}
+				}
+			}
+			default: {}
+		}
+		return false;
 	}
 
 	public function findOverloadedInfixOperator(op: InfixOperator, rtype: Type): Null<ScopeMember> {

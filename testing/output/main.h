@@ -1,6 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include <tuple>
 #include <string>
 #include <vector>
 
@@ -79,6 +80,7 @@ public:
 };
 
 extern Blah qqds;
+extern std::vector<std::tuple<int, int>> asasa;
 extern std::string lookforthis;
 
 void AAA();
@@ -88,9 +90,25 @@ class AAA {
 
 void pweo();
 
+extern Popo<int> dsfds2;
+
+class Popo {
+public:
+	Popo();
+	Popo(int test);
+};
+
+extern Popo<int> dsfds;
+
+void qpos();
+
+extern void kofdsk;
+
 void pqpqp(int a);
 
-void pqpqp(std::string a);
+int pqpqp(std::string a);
+
+extern std::tuple<int, int> bla;
 
 int main();
 

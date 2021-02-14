@@ -94,12 +94,15 @@ get test2 -> int:
 set test2(bla: int):
 
 def test1() -> int:
+	return 0
 
 #def test() -> int:
 
 def test(test: int) -> int?:
+	return null
 
 def test(test2: long?) -> int?:
+	return null
 
 def test(test3: long = 0):
 
@@ -153,11 +156,8 @@ def qwetre(b: Blah):
 
 #var blahinsta = Blah()
 
-
-
 class Blah:
 	var test = "fdfds"
-
 	op ++:
 		print("fdsfds")
 
@@ -183,6 +183,10 @@ qqds++
 
 qqds.one(435454)
 
+Test54555(qqds);
+
+
+var asasa: (int, int) list;
 
 var lookforthis = qqds.test
 
@@ -235,11 +239,32 @@ var bla = Blah<string>.new
 def test<T: has def toString() -> string>(input: T) -> T:
 ###
 
-def pweo<T = int>:
+def pweo<T: { has def blabla() -> int, has var hey: int }>:
 	print("fdsfds")
+
+###
+pweo
+
+pweo()
+###
+var dsfds2 = Popo!int(4)
+
+class Popo<T = int>:
+	init:
+	init(test: int = 32):
+
+var dsfds = Popo!int(4)
+
+def qpos:
+
+var kofdsk = qpos()
 
 def pqpqp(a: int):
 
-def pqpqp(a: string):
+def pqpqp(a: string) -> int:
+	return 2
 
-pqpqp("32.43")
+#pqpqp("32.43")
+
+
+var bla = (pqpqp("32.43"), 1)

@@ -6,8 +6,8 @@ import ast.scope.ScopeMember;
 import ast.scope.members.FunctionMember;
 import ast.scope.members.FunctionOption.FunctionOptionHelper;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.expr.Position;
 
 import transpiler.modules.TranspileModule_Expression;

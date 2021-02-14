@@ -1,4 +1,4 @@
-package parsers;
+package parsers.error;
 
 enum abstract ErrorType(Int) from Int to Int {
 	var UnknownImportPath = 1000;
@@ -94,6 +94,17 @@ enum abstract ErrorType(Int) from Int to Int {
 	var InvalidThisOrSelf = 30000;
 
 	var MustUseClassTypeOnExtendsGenericDescriber = 31000;
+	var TooManyTemplateParameters = 31100;
+	var TypeDoesNotHaveTemplate = 31200;
+	var TypeDoesNotMeetRequirement = 31300;
+	var NotEnoughTemplateParameters = 31400;
+	var FunctionRequiresTypeArguments = 31500;
+	var ClassRequiresTypeArguments = 31600;
+
+	var ReturnedTypeDoesNotMatchReturnType = 32100;
+	var ReturnExpressionExpected = 32200;
+	var NoReturnExpressionExpected = 32300;
+	var NoReturnOnFunction = 32400;
 
 	var JsCannotUseDestructor = 40000;
 	var JsCannotHaveMultipleConstructors = 40100;
@@ -193,6 +204,17 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidThisOrSelf: "Invalid usage of 'this'.";
 
 			case MustUseClassTypeOnExtendsGenericDescriber: "Must use a class type for 'extends' template descriptor.";
+			case TooManyTemplateParameters: "Too many template parameters provided. Should be at most %1, but there are %2.";
+			case TypeDoesNotHaveTemplate: "Type parameters provided to class or function without template.";
+			case TypeDoesNotMeetRequirement: "Provided type parameter '%1' does not meet requirement: '%2'.";
+			case NotEnoughTemplateParameters: "Not enough template parameters provided. Should be at least %1, but there are only %2.";
+			case FunctionRequiresTypeArguments: "Function requires type arguments for template.";
+			case ClassRequiresTypeArguments: "Class requires type arguments for template.";
+
+			case ReturnedTypeDoesNotMatchReturnType: "The returned expression type, '%1', does not match the desired return type, '%2'.";
+			case ReturnExpressionExpected: "Expression returning value of type '%1' expected.";
+			case NoReturnExpressionExpected: "Lack of expression expected for this return.";
+			case NoReturnOnFunction: "End of function can be reached without guaranteed return.";
 
 			case JsCannotUseDestructor: "JS export cannot use destructors.";
 			case JsCannotHaveMultipleConstructors: "JS export cannot use multiple constructors.";
@@ -294,6 +316,17 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidThisOrSelf: "invalid 'this'";
 
 			case MustUseClassTypeOnExtendsGenericDescriber: "cannot extend this type";
+			case TooManyTemplateParameters: "too many template parameters";
+			case TypeDoesNotHaveTemplate: "type parameters not required";
+			case TypeDoesNotMeetRequirement: "type fails requirements";
+			case NotEnoughTemplateParameters: "not enough template parameters";
+			case FunctionRequiresTypeArguments: "type arguments required";
+			case ClassRequiresTypeArguments: "type arguments required";
+
+			case ReturnedTypeDoesNotMatchReturnType: "type does not match return type";
+			case ReturnExpressionExpected: "return expression expected";
+			case NoReturnExpressionExpected: "no expression should be present";
+			case NoReturnOnFunction: "function missing return statement";
 
 			case JsCannotUseDestructor: "cannot use destructor in JS";
 			case JsCannotHaveMultipleConstructors: "cannot use multiple constructors in JS";

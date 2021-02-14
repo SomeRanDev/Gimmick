@@ -4,6 +4,9 @@ import ast.typing.Type;
 
 import ast.scope.members.ModifyMember;
 
+import parsers.error.Error;
+import parsers.error.ErrorType;
+
 class ParserModule_Modify extends ParserModule {
 	public static var it = new ParserModule_Modify();
 

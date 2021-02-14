@@ -65,4 +65,11 @@ class LiteralHelper {
 			default: null;
 		}
 	}
+
+	public static function isTypeName(literal: Literal): Null<Type> {
+		return switch(literal) {
+			case TypeName(t): t;
+			default: null;
+		}
+	}
 }

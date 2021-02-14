@@ -3,23 +3,20 @@ package ast.typing;
 import ast.typing.Type;
 import ast.typing.FunctionType;
 import ast.typing.TemplateType;
+import ast.typing.TemplateArgumentRequirement;
 
-enum TemplateArgumentRequirement {
-	HasVariable(name: String, type: Type);
-	HasFunction(name: String, func: FunctionType);
-	HasAttribute(name: String);
-	Extends(type: Type);
-	Matches(template: TemplateType);
-}
+import parsers.expr.Position;
 
 class TemplateArgument {
 	public var name: String;
 	public var type: TemplateType;
+	public var position: Position;
 	public var defaultType: Null<Type>;
 
-	public function new(name: String, restrictions: Null<Array<TemplateArgumentRequirement>>, defaultType: Null<Type> = null) {
+	public function new(name: String, restrictions: Null<Array<TemplateArgumentRequirement>>, position: Position, defaultType: Null<Type> = null) {
 		this.name = name;
 		this.type = new TemplateType("", restrictions);
+		this.position = position;
 		this.defaultType = defaultType;
 	}
 }

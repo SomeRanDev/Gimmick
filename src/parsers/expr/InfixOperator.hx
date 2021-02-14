@@ -6,9 +6,12 @@ using ast.scope.ScopeMember;
 
 using ast.typing.NumberType;
 
+import parsers.error.Error;
+
 import parsers.expr.Expression;
 import parsers.expr.Expression.ExpressionHelper;
 import parsers.expr.Operator;
+import parsers.expr.Position;
 
 class InfixOperator extends Operator {
 	public override function operatorType(): String {
@@ -19,7 +22,7 @@ class InfixOperator extends Operator {
 		return 1;
 	}
 
-	public function findReturnType(ltype: Type, rtype: Type): Null<Type> {
+	public function findReturnType(ltype: Type, rtype: Type, position: Position): Null<Type> {
 		if(isAccessor()) {
 			// to access stuff
 			switch(ltype.type) {
@@ -33,9 +36,6 @@ class InfixOperator extends Operator {
 						}
 						default: {}
 					}
-				}
-				case String: {
-					
 				}
 				default: {}
 			}
@@ -118,9 +118,15 @@ class InfixOperator extends Operator {
 	public function isWholeNumberOperator(): Bool {
 		return isNumericOperator() || op == "%" || op == "&" || op == "^" || op == "|";
 	}
+
+	public function isGenericInput(): Bool {
+		return op == "!";
+	}
 }
 
 class InfixOperators {
+	public static var GenericInput = new InfixOperator("!", 0xff00, "genericInput", ToFunction);
+
 	public static var DotAccess = new InfixOperator(".", 0xf000, "dotAccess", ToAccessFunction);
 	public static var ArrowAccess = new InfixOperator("->", 0xf000, "pointerAccess", ToAccessFunction);
 	public static var StaticAccess = new InfixOperator("::", 0xf000, "staticAccess", ToAccessFunction);
@@ -169,6 +175,7 @@ class InfixOperators {
 	public static function all(): Array<InfixOperator> {
 		return [
 			DotAccess, ArrowAccess, StaticAccess,
+			GenericInput,
 			Multiply, Divide, Mod,
 			Add, Subtract,
 			BitLeft, BitRight,

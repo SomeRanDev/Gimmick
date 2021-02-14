@@ -281,14 +281,14 @@ class Scope {
 		final literal = Literal.Name(func.get().name, null);
 		final val = TypedExpression.Value(literal, parser.emptyPosition(), Type.Function(func.get().type, null, false, false));
 		final expr = TypedExpression.Call(CallOperators.Call, val, [], parser.emptyPosition(), func.get().type.get().returnType);
-		addExpressionMember(Basic(expr));
+		addExpressionMember(new ExpressionMember(Basic(expr), parser.emptyPosition()));
 	}
 
 	public function commitMainFunction() {
 		if(mainFunction != null) {
 			final literal = Literal.Number("0", Decimal, NumberType.Int);
 			final value = TypedExpression.Value(literal, Position.empty(file), Type.Number(NumberType.Int));
-			mainFunction.addMember(new ScopeMember(Expression(ExpressionMember.ReturnStatement(value))));
+			mainFunction.addMember(new ScopeMember(Expression(new ExpressionMember(ExpressionMemberType.ReturnStatement(value), Position.empty(file)))));
 			addMember(new ScopeMember(Function(mainFunction.getRef())));
 		}
 	}

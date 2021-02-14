@@ -5,7 +5,7 @@ import io.SourceFileExtracter;
 import io.SourceFileManager;
 import io.OutputFileSaver;
 
-import parsers.Error;
+import parsers.error.Error;
 
 import transpiler.Language;
 import transpiler.TranspilerOptions;

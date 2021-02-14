@@ -10,7 +10,7 @@ import parsers.expr.QuantumExpression;
 using parsers.expr.TypedExpression;
 using parsers.expr.Expression;
 import parsers.expr.InfixOperator.InfixOperators;
-import parsers.ErrorType;
+import parsers.error.ErrorType;
 
 import ast.typing.Type;
 import ast.scope.ExpressionMember;
@@ -81,12 +81,12 @@ class VariableMember {
 			case Untyped(expr): {
 				final lexpr = Expression.Value(Literal.Name(name, namespaces), position);
 				final assign = Expression.Infix(InfixOperators.Assignment, lexpr, expr, position);
-				ExpressionMember.Basic(assign);
+				new ExpressionMember(ExpressionMemberType.Basic(assign), position);
 			}
 			case Typed(texpr): {
 				final lexpr = TypedExpression.Value(Literal.Name(name, namespaces), position, Type.Unknown());
 				final assign = TypedExpression.Infix(InfixOperators.Assignment, lexpr, texpr, position, type);
-				ExpressionMember.Basic(assign);
+				new ExpressionMember(ExpressionMemberType.Basic(assign), position);
 			}
 		}
 	}

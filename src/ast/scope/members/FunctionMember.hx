@@ -4,6 +4,7 @@ import basic.Ref;
 
 import ast.typing.FunctionType;
 
+import ast.scope.ScopeMember;
 import ast.scope.ScopeMemberCollection;
 import ast.scope.members.MemberLocation;
 import ast.scope.members.FunctionOption;
@@ -14,6 +15,7 @@ import parsers.expr.Operator;
 import parsers.expr.Position;
 
 class FunctionMember {
+	public var scopeMember(default, null): Null<ScopeMember>;
 	public var name(default, null): String;
 	public var type(default, null): Ref<FunctionType>;
 	public var memberLocation(default, null): MemberLocation;
@@ -36,6 +38,10 @@ class FunctionMember {
 		callCount = 0;
 		members = [];
 		uniqueId = 0;
+	}
+
+	public function setScopeMember(scopeMember: ScopeMember) {
+		this.scopeMember = scopeMember;
 	}
 
 	public function toString() {

@@ -5,6 +5,9 @@ import ast.scope.members.ClassMember;
 import ast.scope.members.MemberLocation;
 import ast.scope.members.ClassOption.ClassOptionHelper;
 
+import parsers.error.Error;
+import parsers.error.ErrorType;
+
 class ParserModule_Class extends ParserModule {
 	public static var it = new ParserModule_Class();
 
@@ -60,7 +63,9 @@ class ParserModule_Class extends ParserModule {
 			}
 
 			final clsMemberType = TopLevel(parser.scope.currentNamespaceStack());
-			return Class(new ClassMember(name, clsType.getRef(), clsMemberType, options));
+			final member = new ClassMember(name, clsType.getRef(), clsMemberType, options);
+			clsType.setMember(member);
+			return Class(member);
 		}
 
 		parser.restoreParserState(startState);

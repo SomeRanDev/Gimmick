@@ -5,6 +5,8 @@ import ast.typing.FunctionType;
 import ast.typing.FunctionArgument;
 
 import parsers.Parser;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 
 class TypeParser {
 	var parser: Parser;
@@ -222,6 +224,7 @@ class TypeParser {
 				} else {
 					if(allowEmpty && result.length == 0) {
 						if(parser.parseNextContent(end)) {
+							success = true;
 							break;
 						}
 					}

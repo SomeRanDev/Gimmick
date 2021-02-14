@@ -1,10 +1,11 @@
 package parsers.expr;
 
 import ast.typing.TemplateArgument;
+import ast.typing.TemplateArgumentRequirement;
 
 import parsers.Parser;
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 
 import parsers.expr.TypeParser;
 
@@ -33,6 +34,7 @@ class TemplateParser {
 				break;
 			} else {
 
+				final posStart = parser.getIndex();
 				final varNameStart = parser.getIndexFromLine();
 				final name = parser.parseNextVarName();
 				if(name == null) {
@@ -43,7 +45,7 @@ class TemplateParser {
 				parser.parseWhitespaceOrComments();
 
 				if(parser.parseNextContent(",")) {
-					result.push(new TemplateArgument(name, null));
+					result.push(new TemplateArgument(name, null, parser.makePosition(posStart)));
 				} else {
 					var describers = null;
 					parser.parseWhitespaceOrComments();
@@ -58,7 +60,7 @@ class TemplateParser {
 					} else {
 						null;
 					}
-					result.push(new TemplateArgument(name, describers, defaultType));
+					result.push(new TemplateArgument(name, describers, parser.makePosition(posStart), defaultType));
 					parser.parseWhitespaceOrComments();
 					if(parser.parseNextContent(",")) {
 					}
@@ -78,9 +80,10 @@ class TemplateParser {
 		final word = parser.parseMultipleWords(["has", "extends", "matches"]);
 		if(word != null) {
 			parser.parseWhitespaceOrComments();
+			final posStart = parser.getIndex();
 			switch(word) {
 				case "has": {
-					final result = parseSingleDescriber(parser);
+					final result = parseSingleDescriber(parser, posStart);
 					if(result != null) {
 						return [ result ];
 					}
@@ -96,7 +99,7 @@ class TemplateParser {
 								Error.addError(ErrorType.MustUseClassTypeOnExtendsGenericDescriber, parser, start);
 							}
 						}
-						return [ TemplateArgumentRequirement.Extends(type) ];
+						return [ TemplateArgumentRequirement.Extends(type, parser.makePosition(posStart)) ];
 					} else {
 						Error.addError(ErrorType.ExpectedType, parser, start);
 					}
@@ -134,7 +137,7 @@ class TemplateParser {
 		return null;
 	}
 
-	public static function parseSingleDescriber(parser: Parser): Null<TemplateArgumentRequirement> {
+	public static function parseSingleDescriber(parser: Parser, posStart: Int): Null<TemplateArgumentRequirement> {
 		final word = parser.parseMultipleWords(["var", "def", "attribute"]);
 		if(word != null) {
 			parser.parseWhitespaceOrComments();
@@ -154,20 +157,21 @@ class TemplateParser {
 						parser.parseWhitespaceOrComments();
 						final type = parser.parseType();
 						if(type != null) {
-							return HasVariable(name, type);
+							return TemplateArgumentRequirement.HasVariable(name, type, parser.makePosition(posStart));
 						}
 					} else {
 						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+						parser.incrementIndex(1);
 					}
 				}
 				case "def": {
 					final typeFunc = TypeParser.parseFunctionTypeData(parser);
 					if(typeFunc != null) {
-						return HasFunction(name, typeFunc);
+						return TemplateArgumentRequirement.HasFunction(name, typeFunc, parser.makePosition(posStart));
 					}
 				}
 				case "attribute": {
-					return HasAttribute(name);
+					return TemplateArgumentRequirement.HasAttribute(name, parser.makePosition(posStart));
 				}
 				default: {}
 			}

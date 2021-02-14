@@ -15,8 +15,8 @@ import ast.scope.ScopeMemberCollection;
 import ast.typing.Type;
 import ast.typing.TemplateArgument;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.ParserLevel;
 import parsers.ParserMode;
 

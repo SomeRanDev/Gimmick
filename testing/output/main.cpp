@@ -54,12 +54,15 @@ void set_test2(int bla) {
 }
 
 int test1() {
+	return 0;
 }
 
 int test(int test) {
+	return nullptr;
 }
 
 int test(long test2) {
+	return nullptr;
 }
 
 void test(long test3) {
@@ -120,6 +123,7 @@ void Blah::operator+(float a) {
 }
 
 Blah qqds;
+std::vector<std::tuple<int, int>> asasa;
 std::string lookforthis = "";
 
 void AAA() {
@@ -129,11 +133,29 @@ void pweo() {
 	std::cout << "fdsfds".toString() << std::endl;
 }
 
+Popo<int> dsfds2;
+
+Popo::Popo() {
+}
+
+Popo::Popo(int test) {
+}
+
+Popo<int> dsfds;
+
+void qpos() {
+}
+
+void kofdsk;
+
 void pqpqp(int a) {
 }
 
-void pqpqp(std::string a) {
+int pqpqp(std::string a) {
+	return 2;
 }
+
+std::tuple<int, int> bla;
 
 int main() {
 	{
@@ -173,11 +195,15 @@ int main() {
 			float twothree = onetwo + 32;
 		}
 	}
-	qqds = ("jfkdlsjsd");
+	qqds = Blah("jfkdlsjsd");
 	qqds + 32;
 	qqds++;
 	qqds.one(435454);
+	Test54555(qqds);
 	lookforthis = qqds.test;
-	pqpqp("32.43");
+	dsfds2 = Popo<int>(4);
+	dsfds = Popo<int>(4);
+	kofdsk = qpos();
+	bla = std::make_tuple(pqpqp("32.43"), 1);
 	return 0;
 }

@@ -13,7 +13,7 @@ import io.SourceFolderInfo;
 
 import parsers.Parser;
 import parsers.Typer;
-import parsers.Error;
+import parsers.error.Error;
 import parsers.modules.Module;
 
 import ast.scope.ScopeMemberCollection;

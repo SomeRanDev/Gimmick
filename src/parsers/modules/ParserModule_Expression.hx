@@ -2,12 +2,15 @@ package parsers.modules;
 
 import ast.scope.ScopeMember;
 
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
+
 import parsers.modules.ParserModule;
+
 using parsers.expr.Expression;
 using parsers.expr.TypedExpression;
 import parsers.expr.ExpressionParser;
+import parsers.expr.Position;
 
 import ast.scope.ExpressionMember;
 
@@ -17,12 +20,16 @@ class ParserModule_Expression extends ParserModule {
 	public override function parse(parser: Parser): Null<Module> {
 		var shouldParseEnd = true;
 		var result: Null<ExpressionMember> = null;
+		final startIndex = parser.getIndex();
 		if(isPass(parser)) {
-			result = Pass;
+			parser.parseWord("pass");
+			result = new ExpressionMember(Pass, parser.makePosition(startIndex));
 		} else if(isBreak(parser)) {
-			result = Break;
+			parser.parseWord("break");
+			result = new ExpressionMember(Break, parser.makePosition(startIndex));
 		} else if(isContinue(parser)) {
-			result = Continue;
+			parser.parseWord("continue");
+			result = new ExpressionMember(Continue, parser.makePosition(startIndex));
 		} else if(isScope(parser)) {
 			result = parseScope(parser);
 		} else if(isReturn(parser)) {
@@ -51,8 +58,11 @@ class ParserModule_Expression extends ParserModule {
 		return null;
 	}
 
-	function getNextExpression(parser: Parser): Null<Expression> {
-		parser.parseWhitespaceOrComments();
+	function getNextExpression(parser: Parser, sameLine: Bool = false): Null<Expression> {
+		parser.parseWhitespaceOrComments(sameLine);
+		if(sameLine && parser.currentChar() == "\n") {
+			return null;
+		}
 		final result = parser.parseExpression();
 		if(result != null) {
 			return result;
@@ -73,45 +83,50 @@ class ParserModule_Expression extends ParserModule {
 	}
 
 	function parseExpression(parser: Parser): Null<ExpressionMember> {
+		final startIndex = parser.getIndex();
 		final expr = getNextExpression(parser);//getNextTypedExpression(parser);
 		if(expr != null) {
-			return Basic(expr);
+			return new ExpressionMember(Basic(expr), parser.makePosition(startIndex));
 		}
 		return null;
 	}
 
 	function isPass(parser: Parser): Bool {
-		return parser.parseWord("pass");
+		return parser.checkAheadWord("pass");
 	}
 
 	function isBreak(parser: Parser): Bool {
-		return parser.parseWord("break");
+		return parser.checkAheadWord("break");
 	}
 
 	function isContinue(parser: Parser): Bool {
-		return parser.parseWord("continue");
+		return parser.checkAheadWord("continue");
 	}
 
 	function isReturn(parser: Parser): Bool {
-		return parser.parseWord("return");
+		return parser.checkAheadWord("return");
 	}
 
 	function parseReturn(parser: Parser): Null<ExpressionMember> {
-		final expr = getNextExpression(parser);//getNextTypedExpression(parser);
-		if(expr != null) {
-			return ReturnStatement(expr);
-		}
-		return null;
+		final startIndex = parser.getIndex();
+		parser.parseWord("return");
+		final wordPos = parser.makePosition(startIndex);
+		final expr = getNextExpression(parser, true);//getNextTypedExpression(parser);
+		return new ExpressionMember(ReturnStatement(expr), parser.makePosition(startIndex), wordPos);
 	}
 
 	function isScope(parser: Parser): Bool {
-		return parser.parseWord("scope");
+		return parser.checkAheadWord("scope");
 	}
 
 	function parseScope(parser: Parser): Null<ExpressionMember> {
+		final startIndex = parser.getIndex();
+		parser.parseWord("scope");
+		final scopePos = parser.makePosition(startIndex);
 		if(parser.parseNextContent(":")) {
+			final pos = parser.makePosition(startIndex);
 			final members = parser.parseNextLevelContent();
-			return Scope(members == null ? [] : members.members);
+			return new ExpressionMember(Scope(members == null ? [] : members.members), pos, scopePos);
 		} else {
 			Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndexFromLine(), 0, [":"]);
 		}
@@ -123,8 +138,9 @@ class ParserModule_Expression extends ParserModule {
 	}
 
 	function parseLoop(parser: Parser): Null<ExpressionMember> {
-		final word = parser.parseMultipleWords(["loop", "while", "until"]);
 		final startIndex = parser.getIndex();
+		final word = parser.parseMultipleWords(["loop", "while", "until"]);
+		final wordPos = parser.makePosition(startIndex);
 		if(word != null) {
 			var expr: Null<Expression> = null;
 			if(word != "loop") {
@@ -136,8 +152,9 @@ class ParserModule_Expression extends ParserModule {
 				}
 			}
 			if(parser.parseNextContent(":")) {
+				final pos = parser.makePosition(startIndex);
 				final members = parser.parseNextLevelContent();
-				return Loop(expr, members == null ? [] : members.members, word != "until");
+				return new ExpressionMember(Loop(expr, members == null ? [] : members.members, word != "until"), pos, wordPos);
 			} else {
 				Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndexFromLine(), 0, [":"]);
 			}
@@ -150,8 +167,9 @@ class ParserModule_Expression extends ParserModule {
 	}
 
 	function parseIf(parser: Parser): Null<ExpressionMember> {
-		final word = parser.parseMultipleWords(["if", "unless"]);
 		final startIndex = parser.getIndex();
+		final word = parser.parseMultipleWords(["if", "unless"]);
+		final wordPos = parser.makePosition(startIndex);
 		if(word != null) {
 			parser.parseWhitespaceOrComments();
 
@@ -166,8 +184,9 @@ class ParserModule_Expression extends ParserModule {
 
 			var ifStatement: Null<ExpressionMember> = null;
 			if(parser.parseNextContent(":")) {
+				final pos = parser.makePosition(startIndex);
 				final members = parser.parseNextLevelContent();
-				ifStatement = IfStatement(cond, members != null ? members.members : [], word == "if");
+				ifStatement = new ExpressionMember(IfStatement(cond, members != null ? members.members : [], word == "if"), pos, wordPos);
 			} else {
 				Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndexFromLine(), 0, [":"]);
 				return null;
@@ -210,6 +229,7 @@ class ParserModule_Expression extends ParserModule {
 				parser.parseWhitespaceOrComments();
 
 				if(parser.parseNextContent(":")) {
+					final pos = parser.makePosition(startIndex);
 					final memberScope = parser.parseNextLevelContent();
 					final members = memberScope == null ? [] : memberScope.members;
 					if(type == 0) {
@@ -219,7 +239,7 @@ class ParserModule_Expression extends ParserModule {
 						if(elseIfStatements == null && ifStatement != null) {
 							elseIfStatements = [ifStatement];
 						}
-						elseIfStatements.push(IfStatement(cond, members, type == 1));
+						elseIfStatements.push(new ExpressionMember(IfStatement(cond, members, type == 1), pos));
 					}
 				} else {
 					Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndexFromLine(), 0, [":"]);
@@ -229,9 +249,9 @@ class ParserModule_Expression extends ParserModule {
 
 
 			if(elseIfStatements != null) {
-				return IfElseIfChain(elseIfStatements, elseStatements);
+				return new ExpressionMember(IfElseIfChain(elseIfStatements, elseStatements), Position.BLANK);
 			} else if(elseStatements != null && ifStatement != null) {
-				return IfElseStatement(ifStatement, elseStatements);
+				return new ExpressionMember(IfElseStatement(ifStatement, elseStatements), Position.BLANK);
 			} else {
 				return ifStatement;
 			}

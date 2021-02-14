@@ -1,6 +1,9 @@
 package parsers.expr;
 
 import parsers.Parser;
+
+import parsers.error.Error;
+
 import parsers.expr.Expression;
 import parsers.expr.Literal;
 import parsers.expr.Operator;

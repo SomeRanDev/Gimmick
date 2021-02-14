@@ -1,8 +1,8 @@
 package parsers.modules;
 
 import parsers.Parser;
-import parsers.Error;
-import parsers.ErrorType;
+import parsers.error.Error;
+import parsers.error.ErrorType;
 import parsers.modules.ParserModule;
 
 class ParserModule_Include extends ParserModule {
