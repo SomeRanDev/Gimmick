@@ -129,7 +129,7 @@ class ParserModule_Function extends ParserModule {
 					parser.incrementIndex(opOverload.operatorLength());
 				}
 			} else {
-				funcNameStart = parser.getIndexFromLine();
+				funcNameStart = parser.getIndex();
 				var tempName = parser.parseNextVarName();
 				if(tempName == null) {
 					Error.addError(ErrorType.ExpectedVariableName, parser, funcNameStart);
@@ -245,7 +245,7 @@ class ParserModule_Function extends ParserModule {
 				}
 			} else if(parser.parseNextContent(";")) {
 			} else {
-				Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndexFromLine(), 0, [":", ";"]);
+				Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndex(), 0, [":", ";"]);
 				return Nothing;
 			}
 
@@ -323,7 +323,7 @@ class ParserModule_Function extends ParserModule {
 	}
 
 	public function parseParameters(): Bool {
-		argListStart = parser.getIndexFromLine();
+		argListStart = parser.getIndex();
 		arguments = [];
 		if(parser.parseNextContent("(")) {
 			var indexTracker = 0;
@@ -376,7 +376,7 @@ class ParserModule_Function extends ParserModule {
 				}
 
 				if(indexTracker != parser.getIndex() && argTracker == arguments.length) {
-					Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+					Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 					result = Nothing;
 					return true;
 				}
@@ -467,7 +467,7 @@ class ParserModule_Function extends ParserModule {
 	}
 
 	public function parseReturnType(): Type {
-		final returnStart = parser.getIndexFromLine();
+		final returnStart = parser.getIndex();
 		var returnType: Null<Type> = null;
 		if(parser.parseNextContent("->")) {
 			parser.parseWhitespaceOrComments();
@@ -476,7 +476,7 @@ class ParserModule_Function extends ParserModule {
 
 		if(returnType == null) {
 			if(isGet) {
-				Error.addError(ErrorType.GetRequiresAReturn, parser, parser.getIndexFromLine());
+				Error.addErrorAtChar(ErrorType.GetRequiresAReturn, parser);
 				failed = true;
 			}
 			returnType = Type.Void();

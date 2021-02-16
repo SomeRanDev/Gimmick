@@ -17,7 +17,7 @@ class MultiIterator<T> {
 		return false;
 	}
 
-	public function next(): T {
+	public function next(): Null<T> {
 		if(curr < iterators.length) {
 			final it = iterators[curr];
 			final result = it.next();
@@ -32,7 +32,7 @@ class MultiIterator<T> {
 
 class Multi {
 	@:generic
-	public static function iter<T>(iterators: Array<Iterator<T>>) {
-		return new MultiIterator(iterators);
+	public static function iter<T>(...iterators: Iterator<T>) {
+		return new MultiIterator(iterators.toArray());
 	}
 }

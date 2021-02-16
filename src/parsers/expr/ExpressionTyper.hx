@@ -541,7 +541,17 @@ class ExpressionTyper {
 						}
 					}
 					default: null;
-				}, position.merge(ltype.position, rtype.position), resultType);
+				}, 
+
+				#if js
+				// Using this because Rest args appear broken on JS target.
+				// Should remove after future Haxe update fixes.
+				position.mergeArray([ltype.position, rtype.position])
+				#else
+				position.merge(ltype.position, rtype.position)
+				#end
+
+				, resultType);
 			}
 		}
 		return null;

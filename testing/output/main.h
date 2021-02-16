@@ -96,6 +96,7 @@ class Popo {
 public:
 	Popo();
 	Popo(int test);
+	Popo operator+(int a);
 };
 
 extern Popo<int> dsfds;
@@ -103,12 +104,13 @@ extern Popo<int> dsfds;
 void qpos();
 
 extern void kofdsk;
+extern void rqed;
 
-void pqpqp(int a);
+bool pqpqp(int a);
 
-int pqpqp(std::string a);
+bool pqpqp(std::string a);
 
-extern std::tuple<int, int> bla;
+extern std::tuple<bool, int> bla;
 
 int main();
 

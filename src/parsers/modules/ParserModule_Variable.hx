@@ -30,7 +30,7 @@ class ParserModule_Variable extends ParserModule {
 
 			parser.parseWhitespaceOrComments();
 
-			final varNameStart = parser.getIndexFromLine();
+			final varNameStart = parser.getIndex();
 			final name = parser.parseNextVarName();
 			if(name == null) {
 				Error.addError(ErrorType.ExpectedVariableName, parser, varNameStart);
@@ -105,7 +105,7 @@ class ParserModule_Variable extends ParserModule {
 			}*/
 
 			if(!parser.parseNextExpressionEnd()) {
-				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+				Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 				return Nothing;
 			}
 

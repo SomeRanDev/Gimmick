@@ -17,7 +17,7 @@ class ParserModule_Modify extends ParserModule {
 			parser.parseWhitespaceOrComments();
 
 			// parse type
-			final typeStart = parser.getIndexFromLine();
+			final typeStart = parser.getIndex();
 			final type = parser.parseType();
 			if(type == null) {
 				Error.addError(ErrorType.ExpectedType, parser, typeStart);
@@ -34,7 +34,7 @@ class ParserModule_Modify extends ParserModule {
 				parser.scope.pop();
 			} else if(parser.parseNextContent(";")) {
 			} else {
-				Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndexFromLine(), 0, [":", ";"]);
+				Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndex(), 0, [":", ";"]);
 				return Nothing;
 			}
 

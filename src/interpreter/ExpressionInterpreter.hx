@@ -243,11 +243,16 @@ class ExpressionInterpreter {
 						final scope = data.fromTopScope();
 						var index = 0;
 						for(n in names) {
-							scope.add(n, args[index]);
+							final val = args[index];
+							if(val != null) {
+								scope.add(n, val);
+							}
 							index++;
 						}
 						final resultInfo = ScopeInterpreter.interpret(members, scope);
-						return resultInfo.returnValue;
+						if(resultInfo != null) {
+							return resultInfo.returnValue;
+						}
 					}
 					case NativeFunction(func, t): {
 						return func(null, args);
@@ -400,28 +405,39 @@ class ExpressionInterpreter {
 				return Bool(value);
 			}
 			case Number(number, format, type): {
-				return Num(Std.parseInt(number));
+				final numValue = Std.parseInt(number);
+				if(numValue != null) {
+					return Num(numValue);
+				} else {
+					// TODO: Error, could not parse number value "number" (string)
+				}
 			}
 			case String(content, isMultiline, isRaw): {
 				return Str(content);
 			}
 			case List(exprs): {
-				final variants = [];
+				final variants: Array<Variant> = [];
 				var variantListType: Null<VariantType> = null;
 				for(e in exprs) {
 					final currVariant = interpret(e, data);
-					final currVariantType: VariantType = currVariant.type();
-					if(variantListType == null) variantListType = currVariantType;
-					if(variantListType != currVariantType) {
-						Error.addErrorFromPos(ErrorType.InterpreterLiteralListValuesDoNotMatch, pos, [
-							VariantHelper.typeToString(currVariantType),
-							VariantHelper.typeToString(variantListType)
-						]);
-						return null;
+					if(currVariant != null) {
+						final currVariantType: VariantType = currVariant.type();
+						if(variantListType == null) variantListType = currVariantType;
+						if(variantListType != currVariantType) {
+							Error.addErrorFromPos(ErrorType.InterpreterLiteralListValuesDoNotMatch, pos, [
+								VariantHelper.typeToString(currVariantType),
+								VariantHelper.typeToString(variantListType)
+							]);
+							return null;
+						}
+						variants.push(currVariant);
 					}
-					variants.push(currVariant);
 				}
-				return List(variants, variantListType);
+				if(variantListType != null) {
+					return List(variants, variantListType);
+				} else {
+					// TODO: Error could not determine list type
+				}
 			}
 			default: {}
 		}

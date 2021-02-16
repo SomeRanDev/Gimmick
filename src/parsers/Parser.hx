@@ -115,7 +115,7 @@ class Parser {
 				break;
 			}
 			if(oldIndex == index) {
-				Error.addError(UnexpectedContent, this, getIndexFromLine());
+				Error.addErrorAtChar(UnexpectedContent, this);
 				incrementIndex(1);
 				break;
 			}
@@ -135,7 +135,7 @@ class Parser {
 				break;
 			}
 			if(oldIndex == index) {
-				Error.addError(UnexpectedContent, this, getIndexFromLine());
+				Error.addErrorAtChar(UnexpectedContent, this);
 				incrementIndex(1);
 				break;
 			}
@@ -193,7 +193,7 @@ class Parser {
 			}
 
 			if(newLevel == -1) {
-				Error.addError(ErrorType.InconsistentIndent, this, 0);
+				Error.addError(ErrorType.InconsistentIndent, this, currLineIndex);
 			} else if(newLevel < indents.length - 1) {
 				return true;
 			}
@@ -313,15 +313,15 @@ class Parser {
 	}
 
 	public function makePosition(start: Int) {
-		return new Position(file, lineNumber, start, index);
+		return new Position(file, start, index);
 	}
 
 	public function makePositionEx(line: Int, start: Int, end: Int) {
-		return new Position(file, line, start, end);
+		return new Position(file, start, end);
 	}
 
 	public function emptyPosition() {
-		return new Position(file, 0, 0, 0);
+		return new Position(file, 0, 0);
 	}
 
 	public function isPreliminary(): Bool {
@@ -550,9 +550,9 @@ class Parser {
 		return literalParser.parseLiteral();
 	}
 
-	public function parseExpression(): Null<Expression> {
+	public function parseExpression(sameLine: Bool = true): Null<Expression> {
 		final start = getIndex();
-		final exprParser = new ExpressionParser(this);
+		final exprParser = new ExpressionParser(this, sameLine);
 		if(exprParser.successful()) {
 			return exprParser.buildExpression();
 		}
@@ -656,6 +656,9 @@ class Parser {
 		while(index < content.length) {
 			final preParseIndex = index;
 			parseWhitespace(untilNewline);
+			if(checkAhead("\\\r\n")) {
+				incrementIndex(2);
+			}
 			parseMultilineComment();
 			parseComment();
 			if(preParseIndex == index) {

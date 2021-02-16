@@ -15,13 +15,13 @@ class ParserModule_Namespace extends ParserModule {
 		final startState = parser.saveParserState();
 		final word = parser.parseMultipleWords(["start", "end"]);
 		if(word != null) {
-			final startOfModule = parser.getIndexFromLine() - word.length;
+			final startOfModule = parser.getIndex() - word.length;
 			parser.parseWhitespaceOrComments();
 			if(parser.parseWord("namespace")) {
 				if(word == "start") {
 					parser.parseWhitespaceOrComments();
 
-					final nameStart = parser.getIndexFromLine();
+					final nameStart = parser.getIndex();
 					final names = parser.parseDotConnectedVarNames();
 					if(names == null) {
 						Error.addError(ErrorType.ExpectedNamespaceName, parser, nameStart);
@@ -29,7 +29,7 @@ class ParserModule_Namespace extends ParserModule {
 					}
 
 					if(!parser.parseNextExpressionEnd()) {
-						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+						Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 						return Nothing;
 					}
 
@@ -40,7 +40,7 @@ class ParserModule_Namespace extends ParserModule {
 						return Nothing;
 					}
 					if(!parser.parseNextExpressionEnd()) {
-						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+						Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 						return Nothing;
 					}
 					return NamespaceEnd;

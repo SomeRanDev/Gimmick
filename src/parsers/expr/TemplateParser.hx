@@ -35,7 +35,7 @@ class TemplateParser {
 			} else {
 
 				final posStart = parser.getIndex();
-				final varNameStart = parser.getIndexFromLine();
+				final varNameStart = parser.getIndex();
 				final name = parser.parseNextVarName();
 				if(name == null) {
 					Error.addError(ErrorType.ExpectedVariableName, parser, varNameStart);
@@ -68,7 +68,7 @@ class TemplateParser {
 			}
 
 			if(indexTracker != parser.getIndex() && argTracker == result.length) {
-				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+				Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 				return null;
 			}
 		}
@@ -90,7 +90,7 @@ class TemplateParser {
 					return null;
 				}
 				case "extends": {
-					final start = parser.getIndexFromLine();
+					final start = parser.getIndex();
 					final type = parser.parseType();
 					if(type != null) {
 						switch(type.type) {
@@ -128,7 +128,7 @@ class TemplateParser {
 				if(parser.parseNextContent("}")) {
 					break;
 				} else if(!parser.parseNextContent(",")) {
-					Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndexFromLine(), 0, [",", "}"]);
+					Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndex(), 0, [",", "}"]);
 					parser.incrementIndex(1);
 				}
 			}
@@ -142,7 +142,7 @@ class TemplateParser {
 		if(word != null) {
 			parser.parseWhitespaceOrComments();
 
-			final varNameStart = parser.getIndexFromLine();
+			final varNameStart = parser.getIndex();
 			final name = parser.parseNextVarName();
 			if(name == null) {
 				Error.addError(ErrorType.ExpectedVariableName, parser, varNameStart);
@@ -160,7 +160,7 @@ class TemplateParser {
 							return TemplateArgumentRequirement.HasVariable(name, type, parser.makePosition(posStart));
 						}
 					} else {
-						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+						Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 						parser.incrementIndex(1);
 					}
 				}

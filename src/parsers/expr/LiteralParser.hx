@@ -122,7 +122,7 @@ class LiteralParser {
 					}
 				} else if(validNumberSuffixCharacters().contains(char)) {
 					if(charStart == null) {
-						charStart = parser.getIndexFromLine();
+						charStart = parser.getIndex();
 					}
 					var amount = 0;
 					switch(char) {
@@ -239,7 +239,7 @@ class LiteralParser {
 					wasSlash = true;
 				} else if(wasSlash) {
 					if(char != null && !validEscapeCharacters().contains(char)) {
-						Error.addError(UnknownEscapeCharacter, parser, parser.getIndexFromLine() - 1, 1);
+						Error.addError(UnknownEscapeCharacter, parser, parser.getIndex() - 1, 1);
 					}
 					wasSlash = false;
 				}
@@ -278,11 +278,11 @@ class LiteralParser {
 				} else if(!wasSlash && char == "\\") {
 					wasSlash = true;
 				} else if(char == "\n") {
-					Error.addError(UnexpectedEndOfString, parser, parser.getIndexFromLine());
+					Error.addError(UnexpectedEndOfString, parser, parser.getIndex());
 					break;
 				} else if(wasSlash) {
 					if(char != null && !validEscapeCharacters().contains(char)) {
-						Error.addError(UnknownEscapeCharacter, parser, parser.getIndexFromLine() - 1, 1);
+						Error.addError(UnknownEscapeCharacter, parser, parser.getIndex() - 1, 1);
 					}
 					wasSlash = false;
 					@:nullSafety(Off) result += char;
@@ -323,7 +323,7 @@ class LiteralParser {
 					break;
 				}
 				parser.parseWhitespaceOrComments();
-				final expr = parser.parseExpression();
+				final expr = parser.parseExpression(false);
 				if(expr != null) {
 					final typedExpr = expr.getType(parser, parser.isPreliminary() ? Preliminary : Normal);
 					if(typedExpr != null) {

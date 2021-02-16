@@ -11,4 +11,4 @@
 --macro nullSafety("modules", Loose)
 --macro nullSafety("transpiler", Loose)
 
--hl bin/hl/Gimmick.hl
+-cpp bin/cpp/Gimmick

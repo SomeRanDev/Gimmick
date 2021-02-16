@@ -161,7 +161,7 @@ class TypeParser {
 			if(extName != null) {
 				return Type.External(extName, null);
 			} else {
-				Error.addError(ExpectedExternalName, parser, parser.getIndexFromLine());
+				Error.addError(ExpectedExternalName, parser, parser.getIndex());
 			}
 		}
 		return null;
@@ -208,7 +208,7 @@ class TypeParser {
 			result = [];
 			while(true) {
 				parser.parseWhitespaceOrComments();
-				final typeStart = parser.getIndexFromLine();
+				final typeStart = parser.getIndex();
 				final subtype = parser.parseType();
 				if(subtype != null) {
 					result.push(subtype);
@@ -218,7 +218,7 @@ class TypeParser {
 						success = true;
 						break;
 					} else {
-						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+						Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 						return null;
 					}
 				} else {

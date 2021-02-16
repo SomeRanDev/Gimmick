@@ -21,7 +21,7 @@ class ParserModule_Class extends ParserModule {
 
 			parser.parseWhitespaceOrComments();
 
-			final varNameStart = parser.getIndexFromLine();
+			final varNameStart = parser.getIndex();
 			var name = parser.parseNextVarName();
 			if(name == null) {
 				Error.addError(ErrorType.ExpectedAttributeName, parser, varNameStart);
@@ -54,7 +54,7 @@ class ParserModule_Class extends ParserModule {
 				parser.scope.pop();
 			} else if(parser.parseNextContent(";")) {
 			} else {
-				Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndexFromLine(), 0, [":", ";"]);
+				Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndex(), 0, [":", ";"]);
 				return null;
 			}
 

@@ -35,6 +35,7 @@ enum ExpressionParserPiece {
 
 class ExpressionParser {
 	var parser: Parser;
+	var sameLine: Bool;
 	var mode: ExpressionParserMode;
 	var pieces: Array<ExpressionParserPiece>;
 	var expectedEndStrings: Null<Array<String>>;
@@ -56,13 +57,14 @@ class ExpressionParser {
 		}
 	}
 
-	public function new(parser: Parser, expectedEndStrings: Null<Array<String>> = null) {
+	public function new(parser: Parser, sameLine: Bool = true, expectedEndStrings: Null<Array<String>> = null) {
 		this.parser = parser;
+		this.sameLine = sameLine;
 		this.expectedEndStrings = expectedEndStrings;
 		this.mode = Prefix;
 		pieces = [];
 
-		startingIndex = parser.getIndexFromLine();
+		startingIndex = parser.getIndex();
 		foundExpectedString = expectedEndStrings == null;
 
 		parse();
@@ -75,7 +77,7 @@ class ExpressionParser {
 	function parse() {
 		var cancelThreshold = 0;
 		while(parser.getIndex() < parser.getContent().length) {
-			parser.parseWhitespaceOrComments();
+			parser.parseWhitespaceOrComments(sameLine);
 			var oldIndex = parser.getIndex();
 			switch(mode) {
 				case Prefix: {
@@ -117,7 +119,7 @@ class ExpressionParser {
 		}
 
 		if(expectedEndStrings != null) {
-			parser.parseWhitespaceOrComments();
+			parser.parseWhitespaceOrComments(sameLine);
 			for(str in expectedEndStrings) {
 				if(parser.checkAhead(str)) {
 					foundString = str;
@@ -125,7 +127,7 @@ class ExpressionParser {
 				}
 			}
 			if(!foundExpectedString) {
-				Error.addError(UnexpectedCharacterAfterExpression, parser, parser.getIndexFromLine());
+				Error.addError(UnexpectedCharacterAfterExpression, parser, parser.getIndex());
 			}
 		}
 	}
@@ -177,7 +179,7 @@ class ExpressionParser {
 
 			final exprs: Array<Expression> = [];
 			while(true) {
-				final exprParser = new ExpressionParser(parser, [",", op.endOp]);
+				final exprParser = new ExpressionParser(parser, false, [",", op.endOp]);
 				if(exprParser.successful()) {
 					final result = exprParser.buildExpression();
 					if(result != null) {

@@ -253,16 +253,22 @@ class Popo<T = int>:
 	init:
 	init(test: int = 32):
 
+	op +(a: int) -> Popo:
+		return (32 + 54);
+
 var dsfds = Popo!int(4)
 
 def qpos:
 
 var kofdsk = qpos()
 
-def pqpqp(a: int):
+var rqed = pqpqp(433)
 
-def pqpqp(a: string) -> int:
-	return 2
+def pqpqp(a: int):
+	return true
+
+def pqpqp(a: string) -> bool:
+	return false
 
 #pqpqp("32.43")
 

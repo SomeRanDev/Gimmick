@@ -78,6 +78,9 @@ function ProcessArgument(arg) {
 		case "hl":
 			BuildObj = new BuildHl();
 			break;
+		case "cpp":
+			BuildObj = new BuildCpp();
+			break;
 		case "runonly":
 			ShouldBuild = false;
 		case "run":
@@ -199,6 +202,16 @@ class BuildHl extends BuildBase {
 
 	run(args) {
 		exec(`hl bin/hl/Gimmick.hl ${args}`, OnRunComplete);
+	}
+}
+
+class BuildCpp extends BuildBase {
+	build(args) {
+		exec(`haxe builds/build.cpp.hxml ${args}`, OnBuildComplete);
+	}
+
+	run(args) {
+		exec(`"bin/cpp/Gimmick/Main.exe" ${args}`, OnRunComplete);
 	}
 }
 

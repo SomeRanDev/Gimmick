@@ -201,20 +201,7 @@ class Typer {
 				funcMember.type.get().resolveUnknownTypes(parser);
 				final varMembers = funcMember.type.get().arguments.map(a -> new ScopeMember(Variable(a.toVarMember().getRef())));
 				@:privateAccess funcMember.members = typeScope(funcMember.members, null, thisType, varMembers);
-
-				{
-					var returnType: Null<Type> = funcMember.type.get().returnType;
-					if(returnType.isVoid()) {
-						returnType = null;
-					}
-					final context = new ReturnSweepContext(returnType);
-					if(!ReturnSweepContext.findReturnStatementFromMembers(funcMember.members, context)) {
-						if(returnType != null) {
-							Error.addErrorFromPos(ErrorType.NoReturnOnFunction, funcMember.declarePosition);
-						}
-					}
-				}
-
+				discoverReturnType(funcMember);
 				registerScopeMember(member);
 				return member;
 			}
@@ -223,6 +210,7 @@ class Typer {
 				funcMember.type.get().resolveUnknownTypes(parser);
 				final varMembers = funcMember.type.get().arguments.map(a -> new ScopeMember(Variable(a.toVarMember().getRef())));
 				@:privateAccess funcMember.members = typeScope(funcMember.members, null, thisType, varMembers);
+				discoverReturnType(funcMember);
 				registerScopeMember(member);
 				return member;
 			}
@@ -322,5 +310,21 @@ class Typer {
 			default: {}
 		}
 		return inputExpr;
+	}
+
+	public function discoverReturnType(funcMember: FunctionMember) {
+		var returnType: Null<Type> = funcMember.type.get().returnType;
+		if(returnType.isVoid()) {
+			returnType = null;
+		}
+		final context = new ReturnSweepContext(returnType);
+		if(!ReturnSweepContext.findReturnStatementFromMembers(funcMember.members, context)) {
+			if(returnType != null) {
+				Error.addErrorFromPos(ErrorType.NoReturnOnFunction, funcMember.declarePosition);
+			}
+		}
+		if(returnType == null && context.expectedTypeKnown && context.expectedType != null) {
+			funcMember.type.get().discoverReturnType(context.expectedType);
+		}
 	}
 }

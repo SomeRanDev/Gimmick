@@ -16,7 +16,7 @@ class ParserModule_Import extends ParserModule {
 		if(parser.parseWord("import")) {
 			parser.parseWhitespaceOrComments();
 
-			final pathStart = parser.getIndexFromLine();
+			final pathStart = parser.getIndex();
 			final path = parser.parseContentUntilCharOrNewLine([";"]);
 			final hitSemicolon = parser.hitCharFlag;
 			final file = parser.manager.beginParseFromPath(path);
@@ -40,7 +40,7 @@ class ParserModule_Import extends ParserModule {
 			}
 
 			if(!parser.parseNextExpressionEnd()) {
-				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+				Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 				return Nothing;
 			}
 			

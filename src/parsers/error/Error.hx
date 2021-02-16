@@ -3,6 +3,7 @@ package parsers.error;
 using StringTools;
 
 import basic.Ref;
+import basic.Tuple2;
 
 import parsers.Parser;
 import parsers.error.ErrorType;
@@ -22,69 +23,110 @@ class TabReformatResult {
 	}
 }
 
-class Error {
-	public var errorType(default, null): ErrorType;
-	public var lineStr(default, null): String;
-	public var file(default, null): String;
-	public var line(default, null): Int;
-	public var start(default, null): Int;
-	public var end(default, null): Int;
+class LineCacheData {
+	public var line: String;
+	public var indexStart: Int;
 
-	var params: Null<Array<String>>;
+	public function new(line: String, indexStart: Int) {
+		this.line = line;
+		this.indexStart = indexStart;
+	}
+}
+
+class Error {
+	var errorString: String;
 
 	static var errors: Array<Error> = [];
 	static var promises: Map<String, Array<ErrorPromise>> = [];
+	static var lineCache: Map<String, Array<LineCacheData>> = [];
 
-	public function new(errorType: ErrorType, lineStr: String, file: String, line: Int, start: Int, end: Int, params: Null<Array<String>>) {
-		this.errorType = errorType;
-		this.lineStr = lineStr;
-		this.file = file;
-		this.line = line;
-		this.start = start;
-		this.end = end;
-		this.params = params;
-	}
-
-	function errorDescLine(): String {
-		return "\"" + file + "\" - Line #" + line + " (" + start + ", " + end + "):";
+	public function new(errorString: String) {
+		this.errorString = errorString;
 	}
 
 	public function toString(): String {
-		final msg = formatString(errorType.getErrorMessage(), params);
-		var result = "";
-		result += msg + "\n";
-		result += repeatChar("-", msg.length) + "\n";
-		result += errorDescLine() + "\n";
-		result += lineStr;
-		return result;
+		return errorString;
 	}
 
 	public static function addError(errorType: ErrorType, parser: Parser, start: Int, endOffset: Int = 0, params: Null<Array<String>> = null) {
-		final lineNumber = parser.getLineNumber();
-		final lineStr = findLine(parser.content, lineNumber);
-		final end = parser.getIndexFromLine() + endOffset;
-		final errorLineString = formatLineString(lineStr, lineNumber, start, end, errorType, params);
-		final error = new Error(errorType, errorLineString, parser.getRelativePath(), lineNumber, start, end, params);
-		errors.push(error);
+		addErrorWithStartEnd(errorType, parser, start, parser.getIndex() + endOffset, params);
+	}
+
+	public static function addErrorAtChar(errorType: ErrorType, parser: Parser) {
+		addError(errorType, parser, parser.getIndex());
 	}
 
 	public static function addErrorWithStartEnd(errorType: ErrorType, parser: Parser, start: Int, end: Int, params: Null<Array<String>> = null) {
-		final lineNumber = parser.getLineNumber();
-		final lineStr = findLine(parser.content, lineNumber);
-		final errorLineString = formatLineString(lineStr, lineNumber, start, end, errorType, params);
-		final error = new Error(errorType, errorLineString, parser.getRelativePath(), lineNumber, start, end, params);
-		errors.push(error);
+		addErrorFromData(errorType, parser.content, parser.getRelativePath(), start, end, params);
 	}
 
 	public static function addErrorFromPos(errorType: ErrorType, position: Position, params: Null<Array<String>> = null) {
-		final lineNumber = position.line;
-		final lineStart = new Ref(0);
-		final lineStr = findLine(position.file.source, lineNumber, lineStart);
-		final start = position.startIndex - lineStart.get() - 1;
-		final end = position.endIndex - lineStart.get() - 1;
-		final errorLineString = formatLineString(lineStr, lineNumber, start, end, errorType, params);
-		final error = new Error(errorType, errorLineString, position.file.pathInfo.relativePath, lineNumber, start, end, params);
-		errors.push(error);
+		addErrorFromData(errorType, position.file.source, position.file.pathInfo.relativePath, position.startIndex, position.endIndex, params);
+	}
+
+	public static function addErrorFromData(errorType: ErrorType, content: String, path: String, start: Int, end: Int, params: Null<Array<String>>) {
+		final data = getContentData(content, path);
+		while(end > start && StringTools.isSpace(content, end - 1)) {
+			end--;
+		}
+		if(data != null) {
+			final lines = findStartEndLines(data, start, end);
+			final lineStart = start - data[lines.a].indexStart;
+			final lineEnd = end - data[lines.b].indexStart;
+			if(lines.a == lines.b) {
+				final errorString = formatSingleLineString(data[lines.a].line, lines.a + 1, lineStart, lineEnd, errorType, params);
+				final errorDesc = errorDescSingleLine(path, lines.a + 1, lineStart, lineEnd);
+				errors.push(new Error(formatErrorOutput(errorString, errorDesc, errorType, params)));
+			} else if(lines.a < lines.b) {
+				final errorString = formatMultiLineString(data, lines.a, lines.b, start, end, errorType, params);
+				final errorDesc = errorDescSingleLine(path, lines.a + 1, lineStart, lineEnd);
+				errors.push(new Error(formatErrorOutput(errorString, errorDesc, errorType, params)));
+			}
+		}
+	}
+
+	static function findStartEndLines(data: Array<LineCacheData>, start: Int, end: Int): Tuple2<Int, Int> {
+		var startLine = -1;
+		var endLine = -1;
+		for(i in 0...data.length) {
+			final curr = data[i];
+			if(startLine == -1 && curr.indexStart > start) {
+				startLine = i - 1;
+			}
+			if(endLine == -1 && curr.indexStart > end) {
+				endLine = i - 1;
+			}
+		}
+		if(startLine == -1) startLine = data.length - 1;
+		if(endLine == -1) endLine = data.length - 1;
+		return new Tuple2(startLine, endLine);
+	}
+
+	static function getContentData(content: String, path: String): Null<Array<LineCacheData>> {
+		if(!lineCache.exists(path)) {
+			final result: Array<LineCacheData> = [];
+
+			var lineText = "";
+			var currLine = 1;
+			var currIndex = 0;
+			var lineStart = 0;
+			while(currIndex < content.length) {
+				if(content.fastCodeAt(currIndex) == 10) {
+					currLine++;
+					result.push(new LineCacheData(lineText, lineStart));
+					lineText = "";
+					lineStart = currIndex + 1;
+				} else {
+					lineText += content.charAt(currIndex);
+				}
+				currIndex++;
+			}
+
+			lineCache.set(path, result);
+			return result;
+		}
+
+		return lineCache.get(path);
 	}
 
 	static function findLine(content: String, lineNumber: Int, lineStartIndex: Null<Ref<Int>> = null): String {
@@ -112,7 +154,21 @@ class Error {
 		return result;
 	}
 
-	static function formatLineString(line: String, lineNumber: Int, start: Int, end: Int, err: ErrorType, params: Null<Array<String>>): String {
+	static function formatErrorOutput(errorContent: String, errorDesc: String, errorType: ErrorType, params: Null<Array<String>>): String {
+		final msg = formatString(errorType.getErrorMessage(), params);
+		var result = "";
+		result += msg + "\n";
+		result += repeatChar("-", msg.length) + "\n";
+		result += errorDesc + "\n";
+		result += errorContent;
+		return result;
+	}
+
+	static function errorDescSingleLine(file: String, line: Int, start: Int, end: Int): String {
+		return "\"" + file + "\" - Line #" + line + " (" + start + ", " + end + "):";
+	}
+
+	static function formatSingleLineString(line: String, lineNumber: Int, start: Int, end: Int, err: ErrorType, params: Null<Array<String>>): String {
 		final lineNumberOffset = Std.string(lineNumber).length + 1;
 
 		final tabSize = 4;
@@ -130,6 +186,45 @@ class Error {
 
 		result += repeatChar(" ", lineNumberOffset) + "| ";
 		result += repeatChar(" ", start) + repeatChar("^", Std.int(Math.max(1, end - start)));
+		result += " " + formatString(err.getErrorLabel(), params) + "\n";
+
+		return result;
+	}
+
+	static function formatMultiLineString(data: Array<LineCacheData>, startLine: Int, endLine: Int, startIndex: Int, endIndex: Int, err: ErrorType, params: Null<Array<String>>): String {
+		final lineNumberOffset = Std.string((startLine + 1)).length + 1;
+
+		final startLineData = data[startLine];
+		final endLineData = data[endLine];
+
+		final lineStartIndex = startIndex - startLineData.indexStart;
+		final lineEndIndex = endIndex - endLineData.indexStart;
+
+		final tabSize = 4;
+
+		var result = "";
+		result += repeatChar(" ", lineNumberOffset) + "|\n";
+
+		var first = true;
+		var tabResult: Null<TabReformatResult> = null;
+		for(i in startLine...endLine + 1) {
+			final lineData = data[i];
+			final index = first ? lineStartIndex : (i == endLine ? lineEndIndex : 0);
+			tabResult = reformatTabs(lineData.line, tabSize, index == 0 ? 0 : index, index == 0 ? lineData.line.length - 1 : index + 1);
+			final formattedLine = tabResult.line;
+
+			result += "" + (i + 1) + " | " + (first ? " " : "|");
+			result += formattedLine.rtrim() + "\n";
+
+			if(first) {
+				result += repeatChar(" ", lineNumberOffset) + "|";
+				result += "  " + repeatChar("_", tabResult.start) + repeatChar("^", 1) + "\n";
+				first = false;
+			}
+		}
+
+		result += repeatChar(" ", lineNumberOffset) + "| ";
+		result += "|" + repeatChar("_", tabResult.start - 1) + repeatChar("^", 1);
 		result += " " + formatString(err.getErrorLabel(), params) + "\n";
 
 		return result;

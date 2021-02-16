@@ -48,7 +48,7 @@ class ReturnSweepContext {
 	public static function findReturnStatement(expr: ExpressionMember, context: ReturnSweepContext): Bool {
 		switch(expr.type) {
 			case ReturnStatement(e): {
-				var pos = e == null ? expr.wordPosition : expr.position;
+				var pos = e == null ? expr.wordPosition : e.getPosition();
 				context.onReturnFound(e == null ? null : e.getType(), pos == null ? expr.position : pos);
 				return true;
 			}

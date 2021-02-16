@@ -23,7 +23,7 @@ class ParserModule_Attribute extends ParserModule {
 		final startState = parser.saveParserState();
 		if(parser.parseNextContent("@")) {
 			var failed = false;
-			final varNameStart = parser.getIndexFromLine();
+			final varNameStart = parser.getIndex();
 			final name = parser.parseNextVarName();
 			if(name == null) {
 				Error.addError(ErrorType.ExpectedAttributeName, parser, varNameStart);
@@ -78,7 +78,7 @@ class ParserModule_Attribute extends ParserModule {
 					}
 
 					if(indexTracker == parser.getIndex()) {
-						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+						Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 						failed = true;
 					}
 
@@ -104,7 +104,7 @@ class ParserModule_Attribute extends ParserModule {
 
 			parser.parseWhitespaceOrComments();
 
-			final varNameStart = parser.getIndexFromLine();
+			final varNameStart = parser.getIndex();
 			final name = parser.parseNextVarName();
 			if(name == null) {
 				Error.addError(ErrorType.ExpectedAttributeName, parser, varNameStart);
@@ -144,7 +144,7 @@ class ParserModule_Attribute extends ParserModule {
 					}
 
 					if(indexTracker == parser.getIndex() && argTracker == arguments.length) {
-						Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+						Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 						return null;
 					}
 				}
@@ -164,7 +164,7 @@ class ParserModule_Attribute extends ParserModule {
 					parser.scope.pop();
 				} else if(parser.parseNextContent(";")) {
 				} else {
-					Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndexFromLine(), 0, [":", ";"]);
+					Error.addError(ErrorType.UnexpectedCharacterExpectedThisOrThat, parser, parser.getIndex(), 0, [":", ";"]);
 					return null;
 				}
 			}
@@ -176,7 +176,7 @@ class ParserModule_Attribute extends ParserModule {
 	}
 
 	public static function parseAttributeArugment(parser: Parser, position: Position): Null<AttributeArgument> {
-		final argNameStart = parser.getIndexFromLine();
+		final argNameStart = parser.getIndex();
 		final argName = parser.parseNextVarName();
 		if(argName == null) {
 			Error.addError(ErrorType.ExpectedFunctionParameterName, parser, argNameStart);
@@ -184,15 +184,15 @@ class ParserModule_Attribute extends ParserModule {
 		}
 		parser.parseWhitespaceOrComments();
 
-		var argStart = parser.getIndexFromLine();
-		var typeArgStart = parser.getIndexFromLine();
+		var argStart = parser.getIndex();
+		var typeArgStart = parser.getIndex();
 		var argRealType = null;
 		if(parser.parseNextContent(":")) {
 			parser.parseWhitespaceOrComments();
-			typeArgStart = parser.getIndexFromLine();
+			typeArgStart = parser.getIndex();
 			argRealType = parser.parseType();
 		} else {
-			Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+			Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 			return null;
 		}
 

@@ -140,6 +140,9 @@ Popo::Popo() {
 
 Popo::Popo(int test) {
 }
+Popo Popo::operator+(int a) {
+	return Popo(32 + 54);
+}
 
 Popo<int> dsfds;
 
@@ -147,15 +150,17 @@ void qpos() {
 }
 
 void kofdsk;
+void rqed;
 
-void pqpqp(int a) {
+bool pqpqp(int a) {
+	return true;
 }
 
-int pqpqp(std::string a) {
-	return 2;
+bool pqpqp(std::string a) {
+	return false;
 }
 
-std::tuple<int, int> bla;
+std::tuple<bool, int> bla;
 
 int main() {
 	{
@@ -204,6 +209,7 @@ int main() {
 	dsfds2 = Popo<int>(4);
 	dsfds = Popo<int>(4);
 	kofdsk = qpos();
+	rqed = pqpqp(433);
 	bla = std::make_tuple(pqpqp("32.43"), 1);
 	return 0;
 }

@@ -176,4 +176,10 @@ class FunctionType {
 		}
 		return false;
 	}
+
+	public function discoverReturnType(type: Type) {
+		if(returnType == null || returnType.isVoid()) {
+			returnType = type;
+		}
+	}
 }

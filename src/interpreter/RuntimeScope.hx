@@ -25,7 +25,7 @@ class RuntimeScope {
 	}
 
 	public function fromTopScope(): RuntimeScope {
-		var s = null;
+		var s: Null<Map<String,Variant>> = null;
 		for(_s in stack) {
 			s = _s;
 		}

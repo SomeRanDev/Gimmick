@@ -45,7 +45,7 @@ class ParserModule_Expression extends ParserModule {
 		}
 		if(shouldParseEnd) {
 			if(!parser.parseNextExpressionEnd()) {
-				Error.addError(ErrorType.UnexpectedCharacter, parser, parser.getIndexFromLine());
+				Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 				return Nothing;
 			}
 		}
@@ -128,7 +128,7 @@ class ParserModule_Expression extends ParserModule {
 			final members = parser.parseNextLevelContent();
 			return new ExpressionMember(Scope(members == null ? [] : members.members), pos, scopePos);
 		} else {
-			Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndexFromLine(), 0, [":"]);
+			Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndex(), 0, [":"]);
 		}
 		return null;
 	}
@@ -144,7 +144,7 @@ class ParserModule_Expression extends ParserModule {
 		if(word != null) {
 			var expr: Null<Expression> = null;
 			if(word != "loop") {
-				final startCond = parser.getIndexFromLine();
+				final startCond = parser.getIndex();
 				expr = getNextExpression(parser);//getNextTypedExpression(parser);
 				if(expr == null) {
 					Error.addError(ErrorType.ExpectedCondition, parser, startCond);
@@ -156,7 +156,7 @@ class ParserModule_Expression extends ParserModule {
 				final members = parser.parseNextLevelContent();
 				return new ExpressionMember(Loop(expr, members == null ? [] : members.members, word != "until"), pos, wordPos);
 			} else {
-				Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndexFromLine(), 0, [":"]);
+				Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndex(), 0, [":"]);
 			}
 		}
 		return null;
@@ -173,7 +173,7 @@ class ParserModule_Expression extends ParserModule {
 		if(word != null) {
 			parser.parseWhitespaceOrComments();
 
-			final startCond = parser.getIndexFromLine();
+			final startCond = parser.getIndex();
 			final cond = getNextExpression(parser);//getNextTypedExpression(parser);
 			if(cond == null) {
 				Error.addError(ErrorType.ExpectedCondition, parser, startCond);
@@ -188,7 +188,7 @@ class ParserModule_Expression extends ParserModule {
 				final members = parser.parseNextLevelContent();
 				ifStatement = new ExpressionMember(IfStatement(cond, members != null ? members.members : [], word == "if"), pos, wordPos);
 			} else {
-				Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndexFromLine(), 0, [":"]);
+				Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndex(), 0, [":"]);
 				return null;
 			}
 
@@ -218,7 +218,7 @@ class ParserModule_Expression extends ParserModule {
 
 				var cond: Null<Expression> = null;
 				if(type != 0) {
-					final startCond = parser.getIndexFromLine();
+					final startCond = parser.getIndex();
 					cond = getNextExpression(parser);//getNextTypedExpression(parser);
 					if(cond == null) {
 						Error.addError(ErrorType.ExpectedCondition, parser, startCond);
@@ -242,7 +242,7 @@ class ParserModule_Expression extends ParserModule {
 						elseIfStatements.push(new ExpressionMember(IfStatement(cond, members, type == 1), pos));
 					}
 				} else {
-					Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndexFromLine(), 0, [":"]);
+					Error.addError(ErrorType.UnexpectedCharacterExpectedThis, parser, parser.getIndex(), 0, [":"]);
 					return null;
 				}
 			}

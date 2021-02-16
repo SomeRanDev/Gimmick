@@ -20,7 +20,7 @@ enum Variant {
 	List(l: Array<Variant>, t: VariantType);
 	Nullable(v: Null<Variant>, t: VariantType);
 	Function(members: Array<ScopeMember>, paramNames: Array<String>, t: VariantType);
-	NativeFunction(func: (self: Null<Variant>, params: Array<Variant>) -> Variant, t: VariantType);
+	NativeFunction(func: (self: Null<Variant>, params: Array<Null<Variant>>) -> Variant, t: VariantType);
 }
 
 class VariantHelper {
@@ -74,63 +74,63 @@ class VariantHelper {
 		}
 	}
 
-	public static function isBool(v: Variant): Bool {
+	public static function isBool(v: Null<Variant>): Bool {
 		return switch(v) {
 			case Bool(_): true;
 			default: false;
 		}
 	}
 
-	public static function isNumber(v: Variant): Bool {
+	public static function isNumber(v: Null<Variant>): Bool {
 		return switch(v) {
 			case Num(_): true;
 			default: false;
 		}
 	}
 
-	public static function isString(v: Variant): Bool {
+	public static function isString(v: Null<Variant>): Bool {
 		return switch(v) {
 			case Str(_): true;
 			default: false;
 		}
 	}
 
-	public static function isNullable(v: Variant): Bool {
+	public static function isNullable(v: Null<Variant>): Bool {
 		return switch(v) {
 			case Nullable(_, _): true;
 			default: false;
 		}
 	}
 
-	public static function toBool(v: Variant, def: Bool = false): Bool {
+	public static function toBool(v: Null<Variant>, def: Bool = false): Bool {
 		return switch(v) {
 			case Bool(b): b;
 			default: def;
 		}
 	}
 
-	public static function toNumber(v: Variant, def: Float = 0): Float {
+	public static function toNumber(v: Null<Variant>, def: Float = 0): Float {
 		return switch(v) {
 			case Num(i): i;
 			default: def;
 		}
 	}
 
-	public static function toInt(v: Variant, def: Int = 0): Int {
+	public static function toInt(v: Null<Variant>, def: Int = 0): Int {
 		return switch(v) {
 			case Num(i): Std.int(i);
 			default: def;
 		}
 	}
 
-	public static function toString(v: Variant, def: String = ""): String {
+	public static function toString(v: Null<Variant>, def: String = ""): String {
 		return switch(v) {
 			case Str(s): s;
 			default: def;
 		}
 	}
 
-	public static function toNullableVariant(v: Variant, def: Null<Variant> = null): Null<Variant> {
+	public static function toNullableVariant(v: Null<Variant>, def: Null<Variant> = null): Null<Variant> {
 		return switch(v) {
 			case Nullable(v, _): v;
 			default: def;

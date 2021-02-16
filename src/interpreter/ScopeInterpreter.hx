@@ -55,7 +55,7 @@ class ScopeInterpreter {
 					}
 					case Scope(subExpressions/*: Array<ScopeMember>*/): {
 						final result = interpret(subExpressions, data);
-						if(result.returnValue != null) {
+						if(result != null && result.returnValue != null) {
 							return result.returnValue;
 						}
 					}
@@ -104,7 +104,7 @@ class ScopeInterpreter {
 								default: {}
 							}
 						}
-						if(performElse) {
+						if(performElse && elseExpressions != null) {
 							final result = interpretSubExpressions(elseExpressions, data);
 							if(result != null) return result;
 						}
@@ -113,7 +113,9 @@ class ScopeInterpreter {
 
 					}
 					case ReturnStatement(expr/*: QuantumExpression*/): {
-						return ExpressionInterpreter.interpret(expr, data);
+						if(expr != null) {
+							return ExpressionInterpreter.interpret(expr, data);
+						}
 					}
 				}
 			}
@@ -133,6 +135,6 @@ class ScopeInterpreter {
 
 	public static function interpretSubExpressions(subExpressions: Array<ScopeMember>, data: RuntimeScope): Null<Variant> {
 		final result = interpret(subExpressions, data);
-		return result.returnValue;
+		return result == null ? null : result.returnValue;
 	}
 }

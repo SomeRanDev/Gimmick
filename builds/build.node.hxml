@@ -6,6 +6,8 @@
 -dce no
 
 --macro nullSafety("ast", Loose)
+--macro nullSafety("basic", Loose)
+--macro nullSafety("interpreter", Loose)
 --macro nullSafety("io", Loose)
 --macro nullSafety("parsers", Loose)
 --macro nullSafety("modules", Loose)
