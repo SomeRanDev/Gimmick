@@ -1,5 +1,6 @@
 package parsers.expr;
 
+import haxe.macro.Type.TypedExpr;
 import ast.typing.Type;
 
 using parsers.expr.Literal;
@@ -17,13 +18,14 @@ enum TypedExpression {
 
 class TypedExpressionHelper {
 	public static function getType(typeExpr: TypedExpression): Type {
-		switch(typeExpr) {
-			case Prefix(_, _, _, type): return type;
-			case Suffix(_, _, _, type): return type;
-			case Infix(_, _, _, _, type): return type;
-			case Call(_, _, _, _, type): return type;
-			case Value(_, _, type): return type;
+		final type = switch(typeExpr) {
+			case Prefix(_, _, _, t): t;
+			case Suffix(_, _, _, t): t;
+			case Infix(_, _, _, _, t): t;
+			case Call(_, _, _, _, t): t;
+			case Value(_, _, t): t;
 		}
+		return type.applyTypeArguments();
 	}
 
 	public static function isConst(typeExpr: TypedExpression): Bool {
@@ -43,7 +45,17 @@ class TypedExpressionHelper {
 			case Infix(_, _, _, pos, _): pos;
 			case Value(_, pos, _): pos;
 			case Call(_, _, _, pos, _): pos;
-		};
+		}
+	}
+
+	public static function getFullPosition(expr: TypedExpression): Position {
+		return switch(expr) {
+			case Prefix(_, e, _, _): getPosition(expr).merge(getFullPosition(e));
+			case Suffix(_, e, _, _): getPosition(expr).merge(getFullPosition(e));
+			case Infix(_, le, re, _, _): getPosition(expr).merge(getFullPosition(le), getFullPosition(re));
+			case Call(_, e, params, _, _): getPosition(expr).merge(getFullPosition(e));
+			case Value(_, _, _): getPosition(expr);
+		}
 	}
 
 	public static function discoverVariableType(expr: TypedExpression, type: Type): Null<TypedExpression> {
@@ -59,6 +71,21 @@ class TypedExpressionHelper {
 				}
 			}
 			default: {}
+		}
+		return null;
+	}
+
+	public static function convertToAlloc(expr: Null<TypedExpression>): Null<TypedExpression> {
+		if(expr != null) {
+			switch(expr) {
+				case Value(literal, pos, type): {
+					final allocedType = type.convertToAlloc();
+					if(allocedType != null) {
+						return Value(Literal.TypeName(allocedType), pos, allocedType);
+					}
+				}
+				default: {}
+			}
 		}
 		return null;
 	}

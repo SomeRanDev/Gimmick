@@ -5,10 +5,12 @@ import basic.Ref;
 import parsers.expr.TypedExpression;
 
 import ast.scope.ScopeMember;
+import ast.scope.ScopeParameterSearchResult;
 import ast.scope.members.ClassOption;
 
 import ast.typing.Type;
 import ast.typing.ClassType;
+import ast.typing.TemplateArgumentCollection;
 
 class ClassMember {
 	public var scopeMember(default, null): Null<ScopeMember>;
@@ -50,7 +52,17 @@ class ClassMember {
 		return type.get().getAllConstructors();
 	}
 
-	public function findConstructorWithParameters(params: Array<Type>): Null<Array<ScopeMember>> {
+	public function findConstructorWithParameters(params: Array<Type>): ScopeParameterSearchResult {
 		return type.get().findConstructorWithParameters(params);
+	}
+
+	public function toType(): Type {
+		return Type.Class(type, null);
+	}
+
+	public function applyTypeArguments(args: Array<Type>, templateArguments: Null<TemplateArgumentCollection> = null): ClassMember {
+		final newType = type.get().applyTypeArguments(args, templateArguments);
+		if(newType == type.get()) return this;
+		return new ClassMember(name, newType.getRef(), memberLocation, options);
 	}
 }

@@ -2,6 +2,7 @@ package parsers.expr;
 
 import ast.typing.Type;
 
+import ast.scope.Scope;
 using ast.scope.ScopeMember;
 
 using ast.typing.NumberType;
@@ -22,19 +23,31 @@ class InfixOperator extends Operator {
 		return 1;
 	}
 
-	public function findReturnType(ltype: Type, rtype: Type, position: Position): Null<Type> {
+	public function findReturnType(ltype: Type, rtype: Type, position: Position, scope: Scope): Null<Type> {
 		if(isAccessor()) {
 			// to access stuff
 			switch(ltype.type) {
 				case Class(cls, typeParams): {
 					switch(rtype.type) {
-						case UnknownNamed(name): {
+						case UnknownNamed(name, _): {
 							final member = cls.get().members.find(name);
 							if(member != null) {
 								return member.getType();
 							}
 						}
 						default: {}
+					}
+				}
+				case TypeSelf(t, isAlloc): {
+					if(!isAlloc) {
+						switch(rtype.type) {
+							case TypeType.UnknownNamed(name, _): {
+								if(name == "alloc") {
+									return Type.TypeSelf(t, true);
+								}
+							}
+							default: {}
+						}
 					}
 				}
 				default: {}

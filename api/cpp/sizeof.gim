@@ -1,0 +1,7 @@
+# =================================================
+# * SizeOf
+#
+# Binds the sizeof operator as a function.
+# =================================================
+
+@if(cpp) @global extern def sizeof(a: any) -> int;

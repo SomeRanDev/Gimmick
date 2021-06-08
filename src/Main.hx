@@ -1,5 +1,7 @@
 package;
 
+import interpreter.RuntimeScope;
+
 import io.CompilerArgumentParser;
 import io.SourceFileExtracter;
 import io.SourceFileManager;
@@ -23,6 +25,7 @@ function main() {
 	final outputPaths = OutputFileSaver.getOutputFolders(argParser);
 
 	final language = LanguageHelper.getLanguage(argParser);
+	RuntimeScope.setLanguage(language);
 	final manager = new SourceFileManager(language, argParser.getValue("main"));
 	for(path in sourcePaths) {
 		manager.addPath(path);

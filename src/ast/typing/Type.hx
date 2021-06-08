@@ -1,11 +1,13 @@
 package ast.typing;
 
 import basic.Ref;
+using basic.Null;
 
 import ast.typing.NumberType;
 import ast.typing.FunctionType;
 
 using ast.scope.ScopeMember;
+import ast.scope.ScopeParameterSearchResult;
 import ast.scope.members.NamespaceMember;
 
 import ast.scope.Scope;
@@ -40,12 +42,12 @@ enum TypeType {
 	Class(cls: Ref<ClassType>, typeParams: Null<Array<Type>>);
 	Namespace(namespace: Ref<NamespaceMember>);
 	Tuple(types: Array<Type>);
-	TypeSelf(cls: Type);
+	TypeSelf(cls: Type, isAlloc: Bool);
 	External(name: Null<String>, typeParams: Null<Array<Type>>);
 	Unknown;
 	UnknownFunction;
-	UnknownNamed(name: String);
-	Template(index: Int);
+	UnknownNamed(name: String, typeParams: Null<Array<Type>>);
+	Template(name: String);
 }
 
 class Type {
@@ -84,24 +86,44 @@ class Type {
 	}
 
 	public function baseTypesEqual(other: Type): Bool {
+		if(isAlloc() || other.isAlloc()) return false;
+
 		final refType = isRefType();
 		if(refType != null) return refType.baseTypesEqual(other);
 
 		final otherRefType = other.isRefType();
 		if(otherRefType != null) return baseTypesEqual(otherRefType);
 
+		/*
+		{
+			final templateName = isTemplate();
+			final otherName = other.isTemplate();
+			if(templateName != null && otherName != null) {
+				return templateName == otherName;
+			} else if(templateName != null) {
+				final newType = scope.getTemplateOverride(templateName);
+				if(newType != null) return newType.baseTypesEqual(other, scope);
+			} else if(otherName != null) {
+				final newType = scope.getTemplateOverride(otherName);
+				if(newType != null) return baseTypesEqual(newType, scope);
+			}
+		}
+		*/
+
 		switch([type, other.type]) {
 			case [TypeType.List(t), TypeType.List(otherT)]: { return t.baseTypesEqual(otherT); }
 			case [TypeType.Pointer(t), TypeType.Pointer(otherT)]: { return t.baseTypesEqual(otherT); }
-			case [TypeType.TypeSelf(t), TypeType.TypeSelf(otherT)]: { return t.baseTypesEqual(otherT); }
+			case [TypeType.TypeSelf(t, _), TypeType.TypeSelf(otherT, _)]: {
+				return t.baseTypesEqual(otherT);
+			}
 			case [TypeType.Tuple(types), TypeType.Tuple(otherTypes)]: {
 				return compareTypeArrays(types, otherTypes);
 			}
 			case [TypeType.Function(func, params), TypeType.Function(otherFunc, otherParams)]: {
-				return func.get() == otherFunc.get() && compareTypeArrays(params, otherParams);
+				return func.get().equals(otherFunc.get()) && compareTypeArrays(params, otherParams);
 			}
 			case [TypeType.Class(cls, params), TypeType.Class(otherCls, otherParams)]: {
-				return cls.get() == otherCls.get() && compareTypeArrays(params, otherParams);
+				return cls.get().equals(otherCls.get()) && compareTypeArrays(params, otherParams);
 			}
 			case [TypeType.External(name, params), TypeType.External(otherName, otherParams)]: {
 				return name == otherName && compareTypeArrays(params, otherParams);
@@ -171,17 +193,31 @@ class Type {
 
 	public function resolveUnknownNamedType(parser: Parser): Bool {
 		switch(type) {
-			case TypeType.UnknownNamed(name): {
+			case TypeType.UnknownNamed(name, params): {
 				final newType = parser.scope.findTypeFromName(name);
 				if(newType != null) {
+					final resolvedParams = if(params == null) {
+						null;
+					} else {
+						params.map(p -> {
+							p.resolveUnknownNamedType(parser);
+							p;
+						});
+					}
+					newType.setTypeParams(resolvedParams);
 					type = newType.type;
 					return true;
 				} else if(position != null) {
 					Error.addErrorFromPos(ErrorType.UnknownType, position);
 				}
 			}
-			case TypeType.List(t) | TypeType.Pointer(t) | TypeType.Reference(t) | TypeType.TypeSelf(t): {
+			case TypeType.List(t) | TypeType.Pointer(t) | TypeType.Reference(t): {
 				return t.resolveUnknownNamedType(parser);
+			}
+			case TypeType.TypeSelf(t, isAlloc): {
+				if(!isAlloc) {
+					return t.resolveUnknownNamedType(parser);
+				}
 			}
 			case TypeType.Function(_, typeParams) | TypeType.Class(_, typeParams) | TypeType.External(_, typeParams): {
 				var result = false;
@@ -264,8 +300,8 @@ class Type {
 		return new Type(TypeType.Tuple(types), isConst, isOptional);
 	}
 
-	public static function TypeSelf(cls: Type, isConst: Bool = false, isOptional: Bool = false): Type {
-		return new Type(TypeType.TypeSelf(cls), isConst, isOptional);
+	public static function TypeSelf(cls: Type, isAlloc: Bool = false, isConst: Bool = false, isOptional: Bool = false): Type {
+		return new Type(TypeType.TypeSelf(cls, isAlloc), isConst, isOptional);
 	}
 
 	public static function External(name: Null<String>, typeParams: Null<Array<Type>>, isConst: Bool = false, isOptional: Bool = false): Type {
@@ -280,8 +316,12 @@ class Type {
 		return new Type(TypeType.UnknownFunction, isConst, isOptional);
 	}
 
-	public static function UnknownNamed(name: String, isConst: Bool = false, isOptional: Bool = false): Type {
-		return new Type(TypeType.UnknownNamed(name), isConst, isOptional);
+	public static function UnknownNamed(name: String, typeParams: Null<Array<Type>>, isConst: Bool = false, isOptional: Bool = false): Type {
+		return new Type(TypeType.UnknownNamed(name, typeParams), isConst, isOptional);
+	}
+
+	public static function Template(name: String, isConst: Bool = false, isOptional: Bool = false): Type {
+		return new Type(TypeType.Template(name), isConst, isOptional);
 	}
 
 	public static function fromLiteral(literal: Literal, scope: Scope, thisType: Null<Type>): Null<Type> {
@@ -304,7 +344,12 @@ class Type {
 				types == null ? null : Type.Tuple(types);
 			}
 			case Literal.Name(name, namespaces): {
-				Type.UnknownNamed(name);
+				final templateType = scope.getTemplateOverride(name);
+				if(templateType != null) {
+					Type.TypeSelf(templateType);
+				} else {
+					Type.UnknownNamed(name, null);
+				}
 			}
 			case Literal.TypeName(type): {
 				Type.TypeSelf(type);
@@ -319,7 +364,8 @@ class Type {
 		}
 	}
 
-	public function setTypeParams(typeParams: Array<Type>) {
+	public function setTypeParams(typeParams: Null<Array<Type>>) {
+		if(typeParams == null) return;
 		final result: TypeType = switch(type) {
 			case TypeType.Function(func, _): {
 				TypeType.Function(func, typeParams);
@@ -335,6 +381,9 @@ class Type {
 			}
 			case TypeType.Reference(type): {
 				TypeType.Reference(typeParams.length > 0 ? typeParams[0] : type);
+			}
+			case TypeType.UnknownNamed(name, _): {
+				TypeType.UnknownNamed(name, typeParams);
 			}
 			case TypeType.External(name, _): {
 				TypeType.External(name, typeParams);
@@ -404,23 +453,23 @@ class Type {
 		return null;
 	}
 
-	public function findAllAccessorMembersWithParameters(name: String, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+	public function findAllAccessorMembersWithParameters(name: String, typeArgs: Null<Array<Type>>, params: Array<TypedExpression>): ScopeParameterSearchResult {
 		switch(type) {
 			case TypeType.Namespace(namespace): {
-				final members = namespace.get().members.findWithParameters(name, params);
+				final members = namespace.get().members.findWithParameters(name, typeArgs, params);
 				if(members != null) {
 					return members;
 				}
 			}
 			case TypeType.Class(cls, typeParams): {
-				final members = cls.get().members.findWithParameters(name, params);
+				final members = cls.get().members.findWithParameters(name, typeArgs, params);
 				if(members != null) {
 					return members;
 				}
 			}
 			default: {}
 		}
-		return null;
+		return ScopeParameterSearchResult.fromEmpty();
 	}
 
 	public function toString(): String {
@@ -445,34 +494,61 @@ class Type {
 				result += "string";
 			}
 			case TypeType.List(t): {
-				result += "list<" + t.toString() + ">";
+				result += t.toString() + " list";
 			}
 			case TypeType.Function(func, typeParams): {
 				result += func.get().toString();
+				if(typeParams != null) {
+					result = "(" + result + ")!" + typeParams;
+				}
 			}
 			case TypeType.Class(cls, typeParams): {
 				result += cls.get().name;
+				if(typeParams != null) {
+					final len = typeParams.length;
+					final argStr = typeParams.map((p) -> p.toString()).join(", ");
+					if(len == 1) result += "!";
+					else if(len > 1) result += "!(";
+					result += argStr;
+					if(len > 1) result += ")";
+				}
 			}
 			case TypeType.Namespace(namespace): {
 				result += "namespace " + namespace.get().name;
 			}
 			case TypeType.Tuple(types): {
 				final argStr = types.map((p) -> p.toString()).join(", ");
-				result += "tuple<" + argStr + ">";
+				result += "tuple!(" + argStr + ")";
 			}
 			case TypeType.Pointer(t): {
-				result += "ptr<" + t.toString() + ">";
+				result += t.toString() + " ptr";
 			}
 			case TypeType.Reference(t): {
-				result += "ref<" + t.toString() + ">";
+				result += t.toString() + " ref";
 			}
 			case TypeType.External(name, typeParams): {
 				if(typeParams != null) {
 					final paramStr = typeParams.map(function(p) { return p.toString(); }).join(", ");
-					result += "external<" + name + "<" + paramStr + ">>";
+					result += "external!(" + name + "!(" + paramStr + "))";
 				} else {
-					result += "external<" + name + ">";
+					result += "external!" + name;
 				}
+			}
+			case TypeType.UnknownNamed(name, typeParams): {
+				result += "unknown (";
+				if(typeParams != null) {
+					final paramStr = typeParams.map(function(p) { return p.toString(); }).join(", ");
+					result += name + "!(" + paramStr + ")";
+				} else {
+					result += name;
+				}
+				result += ")";
+			}
+			case TypeType.Template(name): {
+				result += name + " (template)";
+			}
+			case TypeType.TypeSelf(type, _): {
+				result += "class " + type.toString();
 			}
 			default: {
 				result += Std.string(type);
@@ -556,9 +632,16 @@ class Type {
 		}
 	}
 
-	public function isTypeSelf(): Bool {
+	public function isTypeSelf(): Null<Type> {
 		return switch(type) {
-			case TypeType.TypeSelf(_): true;
+			case TypeType.TypeSelf(t, _): t;
+			default: null;
+		}
+	}
+
+	public function isAlloc(): Bool {
+		return switch(type) {
+			case TypeType.TypeSelf(_, isAlloc): isAlloc;
 			default: false;
 		}
 	}
@@ -577,6 +660,29 @@ class Type {
 		}
 	}
 
+	public function isTemplate(): Null<String> {
+		return switch(type) {
+			case TypeType.Template(name): name;
+			default: null;
+		}
+	}
+
+	public function toTypeArgs(): Array<Type> {
+		return switch(type) {
+			case TypeType.Tuple(types): types.map(t -> t.isTypeSelf().or(t));
+			default: [isTypeSelf().or(this)];
+		}
+	}
+
+	public function resolveTemplateType(scope: Scope): Type {
+		final name = isTemplate();
+		if(name != null) {
+			final result = scope.getTemplateOverride(name);
+			return result == null ? this : result;
+		}
+		return this;
+	}
+
 	public function isGenericNumber(): Bool {
 		return isNumber() == NumberType.Any;
 	}
@@ -590,6 +696,13 @@ class Type {
 			case TypeType.Function(funcType, _): funcType.get().templateArguments;
 			case TypeType.Class(clsType, _): clsType.get().templateArguments;
 			case TypeType.External(_, _): [];
+			default: null;
+		}
+	}
+
+	public function typeArguments(): Null<Array<Type>> {
+		return switch(type) {
+			case TypeType.Function(_, args) | TypeType.Class(_, args) | TypeType.External(_, args): args;
 			default: null;
 		}
 	}
@@ -692,6 +805,23 @@ class Type {
 		return null;
 	}
 
+	public function revealTemplateArgsToScope(scope: Scope) {
+		final templateArgs = templateArguments();
+		final typeArgs = typeArguments();
+		if(templateArgs != null && typeArgs != null) {
+			for(i in 0...templateArgs.length) {
+				final type = if(i >= 0 && i < typeArgs.length) {
+					typeArgs[i];
+				} else {
+					templateArgs[i].defaultType;
+				}
+				if(type != null) {
+					scope.setTemplateOverride(templateArgs[i].name, type);
+				}
+			}
+		}
+	}
+
 	public function hasVariableType(name: String, varType: Type): Bool {
 		switch(type) {
 			case TypeType.Class(cls, _): {
@@ -732,7 +862,7 @@ class Type {
 			return false;
 		}
 		switch(type) {
-			case TypeType.TypeSelf(t): {
+			case TypeType.TypeSelf(t, _): {
 				switch(t.type) {
 					case TypeType.Class(cls, params): {
 						if(params == null) {
@@ -754,6 +884,36 @@ class Type {
 			default: {}
 		}
 		return false;
+	}
+
+	public function applyTypeArguments(args: Null<Array<Type>> = null, templateArguments: Null<TemplateArgumentCollection> = null): Type {
+		if(hasTemplate()) {
+			if(args == null) args = this.typeArguments();
+			if(args != null) {
+				return switch(type) {
+					case TypeType.Function(funcType, typeArgs): {
+						final newFuncType = funcType.get().applyTypeArguments(args, templateArguments).getRef();
+						Type.Function(newFuncType, typeArgs, isConst, isOptional);
+					}
+					case TypeType.Class(clsType, typeArgs): {
+						final newClsType = clsType.get().applyTypeArguments(args, templateArguments).getRef();
+						Type.Class(newClsType, typeArgs, isConst, isOptional);
+					}
+					case TypeType.External(name, typeArgs): {
+						Type.External(name, typeArgs, isConst, isOptional);
+					}
+					default: this;
+				}
+			}
+		}
+		return this;
+	}
+
+	public function convertToAlloc(): Null<Type> {
+		return switch(type) {
+			case TypeType.TypeSelf(type, isAlloc): TypeSelf(type, true);
+			default: null;
+		}
 	}
 
 	public function findOverloadedInfixOperator(op: InfixOperator, rtype: Type): Null<ScopeMember> {

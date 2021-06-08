@@ -49,9 +49,21 @@ class CallOperator extends Operator {
 				var result = func.get().returnType;
 				if(typeParams != null) {
 					switch(result.type) {
-						case Template(index): {
-							if(index > 0 && index < typeParams.length) {
-								result = typeParams[index];
+						case Template(name): {
+							final templateArgs = func.get().templateArguments;
+							if(templateArgs != null) {
+								for(i in 0...templateArgs.length) {
+									if(templateArgs[i].name == name) {
+										if(i > 0 && i < typeParams.length) {
+											result = typeParams[i];
+										} else {
+											final defaultType = templateArgs[i].defaultType;
+											if(defaultType != null) {
+												result = defaultType;
+											}
+										}
+									}
+								}
 							}
 						}
 						default: {}
@@ -59,8 +71,12 @@ class CallOperator extends Operator {
 				}
 				result;
 			}
-			case TypeSelf(type): {
-				type;
+			case TypeSelf(type, isAlloc): {
+				if(isAlloc) {
+					Type.Pointer(type);
+				} else {
+					type;
+				}
 			}
 			case String: {
 				if(op == "[") {

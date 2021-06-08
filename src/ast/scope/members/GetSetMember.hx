@@ -6,6 +6,7 @@ import ast.scope.Scope;
 import ast.scope.members.FunctionMember;
 
 import ast.typing.Type;
+import ast.typing.TemplateArgumentCollection;
 
 class GetSetMember {
 	public var name(default, null): String;
@@ -87,5 +88,22 @@ class GetSetMember {
 
 	public static function generateSetFunctionName(originalName: String, scope: Scope): String {
 		return generateFunctionName("set_", originalName, scope);
+	}
+
+	public function applyTypeArguments(args: Array<Type>, templateArguments: TemplateArgumentCollection): GetSetMember {
+		final newGet = if(get != null) {
+			get.applyTypeArguments(args, templateArguments);
+		} else {
+			null;
+		}
+		final newSet = if(set != null) {
+			set.applyTypeArguments(args, templateArguments);
+		} else {
+			null;
+		}
+		if(newGet != get || newSet != set) {
+			return new GetSetMember(name, newGet, newSet);
+		}
+		return this;
 	}
 }

@@ -2,6 +2,7 @@ package ast.scope.members;
 
 import basic.Ref;
 
+import ast.scope.Scope;
 import ast.typing.FunctionType;
 
 import parsers.modules.Module;

@@ -5,7 +5,9 @@ import basic.Ref;
 import ast.typing.Type;
 import ast.typing.FunctionArgument;
 import ast.typing.TemplateArgument;
+import ast.typing.TemplateArgumentCollection;
 
+import ast.scope.Scope;
 import ast.scope.members.FunctionMember;
 
 import parsers.Parser;
@@ -56,13 +58,21 @@ class FunctionType {
 
 	public var classType(default, null): Null<Ref<ClassType>>;
 
+	var id: Int;
 	var ref: Null<Ref<FunctionType>>;
+
+	static var latestId: Int = 0;
 
 	public function new(arguments: Array<FunctionArgument>, returnType: Type) {
 		this.arguments = arguments;
 		this.returnType = returnType;
 		thisType = None;
 		prependArguments = [];
+		id = latestId++;
+	}
+
+	public function equals(other: FunctionType): Bool {
+		return id == other.id;
 	}
 
 	public function setMember(member: FunctionMember) {
@@ -181,5 +191,32 @@ class FunctionType {
 		if(returnType == null || returnType.isVoid()) {
 			returnType = type;
 		}
+	}
+
+	public function applyTypeArguments(args: Array<Type>, templateArguments: Null<TemplateArgumentCollection> = null): FunctionType {
+		if(templateArguments == null) templateArguments = this.templateArguments;
+		if(templateArguments == null) return this;
+
+		var changed = false;
+		final newReturnType = templateArguments.convertTemplateType(returnType, args);
+		changed = newReturnType != returnType;
+
+		final newArgs = [];
+		for(a in arguments) {
+			final newArgType = templateArguments.convertTemplateType(a.type, args);
+			if(!changed) changed = newArgType != a.type;
+			final newArg = a.clone();
+			newArg.setType(newArgType);
+			newArgs.push(newArg);
+		}
+
+		if(!changed) return this;
+
+		final result = new FunctionType(newArgs, newReturnType);
+		if(member != null) result.setMember(member);
+		result.thisType = thisType;
+		result.setTemplateArguments(this.templateArguments);
+		result.id = id;
+		return result;
 	}
 }

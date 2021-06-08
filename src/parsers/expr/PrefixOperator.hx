@@ -41,14 +41,21 @@ class PrefixOperator extends Operator {
 		// do overloaded stuff
 
 		if(op == "*") {
-			return Type.Pointer(type);
+			switch(type.type) {
+				case Pointer(t): {
+					return t;
+				}
+				default: {}
+			}
 		}
 		if(op == "&") {
 			switch(type.type) {
 				case Reference(internalType): {
-					return internalType;
+					return Type.Pointer(internalType);
 				}
-				default: {}
+				default: {
+					return Type.Pointer(type);
+				}
 			}
 		}
 

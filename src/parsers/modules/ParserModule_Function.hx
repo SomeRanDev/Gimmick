@@ -187,6 +187,11 @@ class ParserModule_Function extends ParserModule {
 			final template = parser.parseGenericParameters();
 			if(template != null) {
 				parser.parseWhitespaceOrComments();
+
+				parser.scope.push();
+				for(i in 0...template.length) {
+					parser.scope.addMember(new ScopeMember(TemplateType(i, template[i].getRef())));
+				}
 			}
 
 			// Parse parameters
@@ -200,6 +205,10 @@ class ParserModule_Function extends ParserModule {
 
 			// Parse return type
 			final returnType: Type = parseReturnType();
+
+			if(template != null) {
+				parser.scope.pop();
+			}
 
 			parser.parseWhitespaceOrComments();
 
@@ -337,6 +346,8 @@ class ParserModule_Function extends ParserModule {
 				if(parser.parseNextContent(")")) {
 					break;
 				} else {
+					var resultArgument: Null<FunctionArgument> = null;
+					final startArgIndex = parser.getIndex();
 					final argNameStart = parser.getIndexFromLine();
 					final argName = parser.parseNextVarName();
 					if(argName == null) {
@@ -346,7 +357,7 @@ class ParserModule_Function extends ParserModule {
 					}
 					parser.parseWhitespaceOrComments();
 					if(parser.parseNextContent(",")) {
-						arguments.push(new FunctionArgument(argName, Type.Unknown(), null));
+						resultArgument = new FunctionArgument(argName, Type.Unknown(), null);
 					} else {
 						var argType = null;
 						parser.parseWhitespaceOrComments();
@@ -362,15 +373,22 @@ class ParserModule_Function extends ParserModule {
 								if(argType == null && typedExpr != null) {
 									argType = typedExpr.getType();
 								}
-								arguments.push(new FunctionArgument(argName, argType, typedExpr));
+								resultArgument = new FunctionArgument(argName, argType, typedExpr);
 								createdArg = true;
 							}
 						}
 						if(!createdArg) {
-							arguments.push(new FunctionArgument(argName, argType == null ? Type.Unknown() : argType, null));
+							resultArgument = new FunctionArgument(argName, argType == null ? Type.Unknown() : argType, null);
 						}
 						parser.parseWhitespaceOrComments();
 						if(parser.parseNextContent(",")) {
+						}
+					}
+
+					if(resultArgument != null) {
+						arguments.push(resultArgument);
+						if(resultArgument.type.isUnknown()) {
+							Error.addError(ErrorType.CannotDetermineParameterType, parser, startArgIndex, 0, [resultArgument.name]);
 						}
 					}
 				}

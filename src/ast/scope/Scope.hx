@@ -6,6 +6,7 @@ import basic.Ref;
 import basic.Multi;
 
 import ast.SourceFile;
+import ast.scope.ScopeParameterSearchResult;
 import ast.scope.ExpressionMember;
 import ast.scope.GlobalScopeMember;
 import ast.scope.members.VariableMember;
@@ -16,6 +17,7 @@ import ast.scope.members.AttributeMember;
 import ast.typing.Type;
 import ast.typing.NumberType;
 import ast.typing.FunctionType;
+import ast.typing.TemplateArgument;
 
 import parsers.Parser;
 import parsers.expr.TypedExpression;
@@ -39,6 +41,8 @@ class Scope {
 	var attributes: Array<ScopeMember>;
 	var attributeInstances: GenericStack<Array<Module>>;
 	var imports: Array<Ref<Scope>>;
+	var templateTypeOverrides: GenericStack<Map<String,Type>>;
+	var prevExistedStack: GenericStack<Bool>;
 
 	var ref: Null<Ref<Scope>>;
 
@@ -56,6 +60,8 @@ class Scope {
 		attributes = [];
 		attributeInstances = new GenericStack();
 		imports = [];
+		templateTypeOverrides = new GenericStack();
+		prevExistedStack = new GenericStack();
 		stackSize = 0;
 	}
 
@@ -77,6 +83,8 @@ class Scope {
 	public function push() {
 		stack.add(new ScopeMemberCollection());
 		attributeInstances.add([]);
+		templateTypeOverrides.add([]);
+		prevExistedStack.add(true);
 		stackSize++;
 	}
 
@@ -84,6 +92,8 @@ class Scope {
 		if(stackSize > 1) {
 			stackSize--;
 			attributeInstances.pop();
+			templateTypeOverrides.pop();
+			prevExistedStack.pop();
 			return stack.pop();
 		}
 		return null;
@@ -151,10 +161,20 @@ class Scope {
 
 	public function addMember(member: ScopeMember) {
 		attachAttributesToMember(member);
-		if(isTopLevel()) {
-			addTopLevelMember(member);
+
+		var prevExisted = prevExistedStack.first();
+		if(prevExisted == null) prevExisted = true;
+		prevExistedStack.pop();
+
+		if(member.shouldExist(prevExisted)) {
+			prevExistedStack.add(true);
+			if(isTopLevel()) {
+				addTopLevelMember(member);
+			} else {
+				addMemberToCurrentScope(member);
+			}
 		} else {
-			addMemberToCurrentScope(member);
+			prevExistedStack.add(false);
 		}
 	}
 
@@ -416,14 +436,14 @@ class Scope {
 		for(namespace in namespaceStack) {
 			final clsType = namespace.members.findClassType(name);
 			if(clsType != null) {
-				return Type.Class(clsType, null);
+				return clsType;
 			}
 		}
 
 		for(collection in stack) {
 			final clsType = collection.findClassType(name);
 			if(clsType != null) {
-				return Type.Class(clsType, null);
+				return clsType;
 			}
 		}
 
@@ -488,25 +508,25 @@ class Scope {
 		return null;
 	}
 
-	public function findMemberWithParameters(name: String, params: Array<TypedExpression>, checkImports: Bool = true, includeGlobals: Bool = true): Null<Array<ScopeMember>> {
+	public function findMemberWithParameters(name: String, typeArgs: Null<Array<Type>>, params: Array<TypedExpression>, checkImports: Bool = true, includeGlobals: Bool = true): ScopeParameterSearchResult {
 		for(namespace in namespaceStack) {
-			final members = namespace.members.findWithParameters(name, params);
-			if(members != null) {
+			final members = namespace.members.findWithParameters(name, typeArgs, params);
+			if(members.found) {
 				return members;
 			}
 		}
 
 		for(collection in stack) {
-			final members = collection.findWithParameters(name, params);
-			if(members != null) {
+			final members = collection.findWithParameters(name, typeArgs, params);
+			if(members.found) {
 				return members;
 			}
 		}
 
 		if(checkImports) {
 			for(imp in imports) {
-				final types = imp.get().findMemberWithParameters(name, params, false, false);
-				if(types != null) {
+				final types = imp.get().findMemberWithParameters(name, typeArgs, params, false, false);
+				if(types.found) {
 					return types;
 				}
 			}
@@ -514,14 +534,14 @@ class Scope {
 
 		if(includeGlobals) {
 			for(g in globalScope) {
-				final types = g.scope.findMemberWithParameters(name, params, false, false);
-				if(types != null) {
+				final types = g.scope.findMemberWithParameters(name, typeArgs, params, false, false);
+				if(types.found) {
 					return types;
 				}
 			}
 		}
 
-		return null;
+		return ScopeParameterSearchResult.fromEmpty();
 	}
 
 	public function findPrefixOperator(op: PrefixOperator, checkImports: Bool = true): Null<Type> {
@@ -644,17 +664,17 @@ class Scope {
 		return null;
 	}
 
-	public function findModifyFunctionWithParameters(type: Type, name: String, params: Array<TypedExpression>, checkImports: Bool = true, includeGlobals: Bool = true): Null<Array<ScopeMember>> {
+	public function findModifyFunctionWithParameters(type: Type, name: String, params: Array<TypedExpression>, checkImports: Bool = true, includeGlobals: Bool = true): ScopeParameterSearchResult {
 		for(namespace in namespaceStack) {
 			final members = namespace.members.findAllModifyWithParameters(type, name, params);
-			if(members != null) {
+			if(members.found) {
 				return members;
 			}
 		}
 
 		for(collection in stack) {
 			final members = collection.findAllModifyWithParameters(type, name, params);
-			if(members != null) {
+			if(members.found) {
 				return members;
 			}
 		}
@@ -662,7 +682,7 @@ class Scope {
 		if(checkImports) {
 			for(imp in imports) {
 				final members = imp.get().findModifyFunctionWithParameters(type, name, params, false, false);
-				if(members != null) {
+				if(members.found) {
 					return members;
 				}
 			}
@@ -671,8 +691,8 @@ class Scope {
 		if(includeGlobals) {
 			for(g in globalScope) {
 				final members = g.scope.findModifyFunctionWithParameters(type, name, params, false, false);
-				if(members != null) {
-					for(mem in members) {
+				if(members.found && members.foundMembers != null) {
+					for(mem in members.foundMembers) {
 						if(mem.shouldTriggerAutomaticInclude()) {
 							file.requireInclude(g.scope.file.getHeaderOutputFile(), false);
 						}
@@ -682,7 +702,7 @@ class Scope {
 			}
 		}
 
-		return null;
+		return ScopeParameterSearchResult.fromEmpty();
 	}
 
 	function findPrimitiveType(name: String): Null<Type> {
@@ -733,5 +753,28 @@ class Scope {
 
 			default: null;
 		}
+	}
+
+	public function addTemplateArguments(templateArguments: Array<TemplateArgument>) {
+		for(arg in templateArguments) {
+			setTemplateOverride(arg.name, arg.toClassMember(this).toType());
+			//addMember(new ScopeMember(ScopeMemberType.Class(arg.toClassMember(this).getRef())));
+		}
+	}
+
+	public function setTemplateOverride(name: String, type: Type) {
+		final first = templateTypeOverrides.first();
+		if(first != null) {
+			first[name] = type;
+		}
+	}
+
+	public function getTemplateOverride(name: String): Null<Type> {
+		for(o in templateTypeOverrides) {
+			if(o.exists(name)) {
+				return o.get(name);
+			}
+		}
+		return null;
 	}
 }

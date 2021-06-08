@@ -49,6 +49,13 @@ abstract QuantumExpression(QuantumExpressionInternal) from QuantumExpressionInte
 		}
 	}
 
+	public function getFullPosition(): Position {
+		return switch(this) {
+			case Untyped(e): e.getFullPosition();
+			case Typed(e): e.getFullPosition();
+		}
+	}
+
 	public function getType(): Null<Type> {
 		return switch(this) {
 			case Untyped(e): null;

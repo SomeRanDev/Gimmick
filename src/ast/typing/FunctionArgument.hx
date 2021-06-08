@@ -19,6 +19,14 @@ class FunctionArgument {
 		this.expr = expr;
 	}
 
+	public function clone(): FunctionArgument {
+		return new FunctionArgument(name, type, expr);
+	}
+
+	public function setType(type: Type) {
+		this.type = type;
+	}
+
 	public function toVarMember(): VariableMember {
 		return new VariableMember(name, type, false, false, Position.BLANK, null, null, TopLevel(null));
 	}

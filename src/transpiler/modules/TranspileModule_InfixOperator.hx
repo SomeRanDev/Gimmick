@@ -58,6 +58,9 @@ class TranspileModule_InfixOperator {
 	public static function transpileNormal(op: InfixOperator, lexpr: TypedExpression, rexpr: TypedExpression, context: TranspilerContext): String {
 		final left = TranspileModule_Expression.transpileExpr(lexpr, context);
 		final right = TranspileModule_Expression.transpileExpr(rexpr, context);
+
+		// TODO: do conversion earlier
+		/*
 		final scopeMem = lexpr.getType().findOverloadedInfixOperator(op, rexpr.getType());
 		if(scopeMem != null) {
 			switch(scopeMem.type) {
@@ -72,6 +75,8 @@ class TranspileModule_InfixOperator {
 				default: {}
 			}
 		}
+		*/
+
 		if(usePadding(op)) {
 			return left + " " + op.op + " " + right;
 		}

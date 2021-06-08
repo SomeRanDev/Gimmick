@@ -122,6 +122,7 @@ class Error {
 				currIndex++;
 			}
 
+			result.push(new LineCacheData(lineText, lineStart));
 			lineCache.set(path, result);
 			return result;
 		}
@@ -298,25 +299,31 @@ class Error {
 		addErrorPromise(key, new ErrorPromiseBase(errorType, params, index));
 	}
 
-	public static function completePromiseOne(key: String, position: Position) {
+	public static function completePromiseOne(key: String, position: Position): Bool {
 		@:nullSafety(Off) {
+			var result = false;
 			if(promises.exists(key)) {
 				for(promise in promises.get(key)) {
 					promise.completeOne(position);
 				}
+				result = promises.get(key).length > 0;
 			}
 			clearErrorPromise(key);
+			return result;
 		}
 	}
 
-	public static function completePromiseMulti(key: String, positions: Array<Position>) {
+	public static function completePromiseMulti(key: String, positions: Array<Position>): Bool {
 		@:nullSafety(Off) {
+			var result = false;
 			if(promises.exists(key)) {
 				for(promise in promises.get(key)) {
 					promise.completeMulti(positions);
 				}
+				result = promises.get(key).length > 0;
 			}
 			clearErrorPromise(key);
+			return result;
 		}
 	}
 }

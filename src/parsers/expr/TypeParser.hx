@@ -98,9 +98,13 @@ class TypeParser {
 				case 3: {
 					final name = parser.parseNextVarName();
 					if(name != null) {
-						type = parser.scope.findTypeFromName(name);
-						if(allowUnknownNamed && type == null) {
-							type = Type.UnknownNamed(name);
+						if(name == "any") {
+							type = Type.Any();
+						} else {
+							type = parser.scope.findTypeFromName(name);
+							if(allowUnknownNamed && type == null) {
+								type = Type.UnknownNamed(name, null);
+							}
 						}
 					}
 				}
@@ -113,7 +117,6 @@ class TypeParser {
 		}
 		
 		if(type != null) {
-
 			final preTypeParams = parser.saveParserState();
 			parser.parseWhitespaceOrComments();
 			var typeParams = parseTypeParameters();
@@ -177,7 +180,19 @@ class TypeParser {
 	}
 
 	function parseTypeParameters(): Null<Array<Type>> {
-		return parseTypeList(parser, "<", ">", ",");
+		if(allowUnknownNamed) {
+			if(parser.parseNextContent("!")) {
+				final list = parseTypeList(parser, "(", ")", ",");
+				if(list != null) {
+					return list;
+				}
+				final type = parser.parseType();
+				if(type != null) {
+					return [ type ];
+				}
+			}
+		}
+		return null;
 	}
 
 	public static function parseFunctionTypeData(parser: Parser): FunctionType {

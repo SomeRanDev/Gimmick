@@ -8,7 +8,10 @@ import transpiler.Transpiler;
 import transpiler.modules.TranspileModule_Variable;
 
 class TranspileModule_Namespace {
-	public static function transpile(namespace: Ref<NamespaceMember>, transpiler: Transpiler) {
+	public static function transpile(namespace: Ref<NamespaceMember>, transpiler: Transpiler): Bool {
+		if(!transpiler.shouldTranspileAny(namespace.get().members.members)) {
+			return false;
+		}
 		final sourceFile = transpiler.sourceFile;
 		final name = namespace.get().name;
 
@@ -33,5 +36,6 @@ class TranspileModule_Namespace {
 			}
 			transpiler.addSourceAndHeaderContent("}");
 		}
+		return true;
 	}
 }

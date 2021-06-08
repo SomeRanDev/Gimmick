@@ -198,18 +198,38 @@ class Typer {
 			}
 			case Function(func): {
 				final funcMember = func.get();
+
+				parser.scope.push();
+
+				final funcType = funcMember.type.get();
+				if(funcType.templateArguments != null) {
+					parser.scope.addTemplateArguments(funcType.templateArguments);
+				}
+
 				funcMember.type.get().resolveUnknownTypes(parser);
 				final varMembers = funcMember.type.get().arguments.map(a -> new ScopeMember(Variable(a.toVarMember().getRef())));
 				@:privateAccess funcMember.members = typeScope(funcMember.members, null, thisType, varMembers);
+
+				parser.scope.pop();
+
 				discoverReturnType(funcMember);
 				registerScopeMember(member);
 				return member;
 			}
 			case PrefixOperator(_, func) | SuffixOperator(_, func) | InfixOperator(_, func) | CallOperator(_, func): {
 				final funcMember = func.get();
+				parser.scope.push();
+
+				final funcType = funcMember.type.get();
+				if(funcType.templateArguments != null) {
+					parser.scope.addTemplateArguments(funcType.templateArguments);
+				}
+
 				funcMember.type.get().resolveUnknownTypes(parser);
 				final varMembers = funcMember.type.get().arguments.map(a -> new ScopeMember(Variable(a.toVarMember().getRef())));
 				@:privateAccess funcMember.members = typeScope(funcMember.members, null, thisType, varMembers);
+
+				parser.scope.pop();
 				discoverReturnType(funcMember);
 				registerScopeMember(member);
 				return member;
@@ -217,7 +237,19 @@ class Typer {
 			case Class(cls): {
 				final clsMemberType = cls.get().type.get();
 				clsMemberType.members.classSort();
-				@:privateAccess clsMemberType.members.setAllMembers(typeScope(null, clsMemberType.members, Type.Pointer(Type.Class(cls.get().type, null))));
+				parser.scope.push();
+
+				if(clsMemberType.templateArguments != null) {
+					parser.scope.addTemplateArguments(clsMemberType.templateArguments);
+				}
+
+				clsMemberType.resolveUnknownTypes(parser);
+
+				@:privateAccess {
+					final typedScope = typeScope(null, clsMemberType.members, Type.Pointer(Type.Class(cls.get().type, null)));
+					clsMemberType.members.setAllMembers(typedScope);
+				}
+				parser.scope.pop();
 				registerScopeMember(member);
 				return member;
 			}
@@ -313,18 +345,20 @@ class Typer {
 	}
 
 	public function discoverReturnType(funcMember: FunctionMember) {
-		var returnType: Null<Type> = funcMember.type.get().returnType;
-		if(returnType.isVoid()) {
-			returnType = null;
-		}
-		final context = new ReturnSweepContext(returnType);
-		if(!ReturnSweepContext.findReturnStatementFromMembers(funcMember.members, context)) {
-			if(returnType != null) {
-				Error.addErrorFromPos(ErrorType.NoReturnOnFunction, funcMember.declarePosition);
+		if(!funcMember.isExtern()) {
+			var returnType: Null<Type> = funcMember.type.get().returnType;
+			if(returnType.isVoid()) {
+				returnType = null;
 			}
-		}
-		if(returnType == null && context.expectedTypeKnown && context.expectedType != null) {
-			funcMember.type.get().discoverReturnType(context.expectedType);
+			final context = new ReturnSweepContext(returnType);
+			if(!ReturnSweepContext.findReturnStatementFromMembers(funcMember.members, context)) {
+				if(returnType != null) {
+					Error.addErrorFromPos(ErrorType.NoReturnOnFunction, funcMember.declarePosition);
+				}
+			}
+			if(returnType == null && context.expectedTypeKnown && context.expectedType != null) {
+				funcMember.type.get().discoverReturnType(context.expectedType);
+			}
 		}
 	}
 }

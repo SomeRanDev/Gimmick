@@ -1,5 +1,9 @@
 package ast.typing;
 
+import ast.scope.ScopeMember;
+import ast.scope.members.VariableMember;
+import ast.scope.members.FunctionMember;
+
 import ast.typing.Type;
 import ast.typing.FunctionType;
 
@@ -25,10 +29,37 @@ class TemplateArgumentRequirement {
 	public function toString(): String {
 		return switch(type) {
 			case TemplateArgumentRequirementType.HasVariable(name, type): "has var " + name + ": " + type.toString();
-			case TemplateArgumentRequirementType.HasFunction(name, funcType): "has def " + name + funcType.toString("");
+			case TemplateArgumentRequirementType.HasFunction(name, funcType): {
+				if(funcType.isConstructor()) {
+					"has init" + funcType.toString("");
+				} else {
+					"has def " + name + funcType.toString("");
+				}
+			}
 			case TemplateArgumentRequirementType.HasAttribute(name): "has attribute " + name;
 			case TemplateArgumentRequirementType.Extends(type): "extends " + type.toString();
 			case TemplateArgumentRequirementType.Matches(template): "matches " + template.name;
+		}
+	}
+
+	public function isExtends(): Null<Type> {
+		return switch(type) {
+			case TemplateArgumentRequirementType.Extends(t): t;
+			default: null;
+		}
+	}
+
+	public function toMember(): Null<ScopeMember> {
+		return switch(type) {
+			case TemplateArgumentRequirementType.HasVariable(name, type): {
+				final mem = new VariableMember(name, type, false, true, Position.BLANK, Position.BLANK, null, ClassMember);
+				new ScopeMember(Variable(mem.getRef()));
+			}
+			case TemplateArgumentRequirementType.HasFunction(name, func): {
+				final mem = new FunctionMember(name, func.getRef(), ClassMember, [ Extern ], Position.BLANK);
+				new ScopeMember(Function(mem.getRef()));
+			}
+			default: null;
 		}
 	}
 

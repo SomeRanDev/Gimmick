@@ -4,12 +4,30 @@ import haxe.ds.GenericStack;
 
 import interpreter.Variant;
 
+using transpiler.Language;
+
 class RuntimeScope {
 	public var stack(default, null): GenericStack<Map<String,Variant>>;
+
+	static var language: Null<Language>;
 
 	public function new() {
 		stack = new GenericStack();
 		stack.add([]);
+	}
+
+	public static function setLanguage(language: Language) {
+		RuntimeScope.language = language;
+	}
+
+	public static function getGlobal(): RuntimeScope {
+		final scope = new RuntimeScope();
+		if(language != null) {
+			scope.add("cpp", Variant.Bool(language.isCpp()));
+			scope.add("js", Variant.Bool(language.isJs()));
+		}
+		scope.push();
+		return scope;
 	}
 
 	public static function fromMap(map: Map<String,Variant>): RuntimeScope {

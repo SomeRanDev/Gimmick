@@ -3,6 +3,7 @@ package transpiler;
 using StringTools;
 
 import ast.SourceFile;
+import ast.scope.Scope;
 import ast.scope.ScopeMemberCollection;
 
 using transpiler.Language;

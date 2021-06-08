@@ -248,7 +248,15 @@ class TranspileModule_Expression {
 						return value ? "true" : "false";
 					}
 					case Number(number, format, type): {
-						return number;
+						final suffix = switch(type) {
+							case Float: "f";
+							case UInt: "u";
+							case ULong: "ul";
+							case Thicc: "ll";
+							case UThicc: "ull";
+							default: "";
+						}
+						return number + suffix;
 					}
 					case String(content, isMultiline, isRaw): {
 						if(isRaw) {

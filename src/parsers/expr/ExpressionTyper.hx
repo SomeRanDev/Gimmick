@@ -1,6 +1,8 @@
 package parsers.expr;
 
+import ast.scope.Scope;
 import ast.scope.ScopeMember;
+import ast.scope.ScopeParameterSearchResult;
 
 import ast.typing.Type;
 
@@ -65,14 +67,14 @@ class ExpressionTypingContext {
 	public var isStaticExtension(default, null): Bool;
 	public var prependedArgs(default, null): Null<Array<TypedExpression>>;
 	public var arguments(default, null): Null<Array<TypedExpression>>;
-	public var handlingTemplateInput(default, null): Bool;
+	public var handlingTemplateInput(default, null): Null<Array<Type>>;
 
 	public function new(incrementCall: Bool) {
 		this.incrementCall = incrementCall;
 		isStaticExtension = false;
 		prependedArgs = null;
 		arguments = null;
-		handlingTemplateInput = false;
+		handlingTemplateInput = null;
 	}
 
 	public function setIsStaticExtension() {
@@ -87,8 +89,8 @@ class ExpressionTypingContext {
 		arguments = params;
 	}
 
-	public function setHandlingTemplateInput(value: Bool = true) {
-		handlingTemplateInput = value;
+	public function setHandlingTemplateInput(typeArgs: Null<Array<Type>>) {
+		handlingTemplateInput = typeArgs;
 	}
 }
 
@@ -176,23 +178,39 @@ class ExpressionTyper {
 				return null;
 			}
 			case Infix(op, lexpr, rexpr, pos): {
+				final accessContext = new ExpressionTypingContext(false);
+				if(op.isAccessor() && context != null && context.arguments != null) {
+					accessContext.setCallParameters(context.arguments);
+				}
+
 				final lContext = if(op.isGenericInput() && context != null) {
-					context.setHandlingTemplateInput(true);
+					final rexprTyped = getInternalTypeStacked(rexpr, null, accessContext);
+					final rtype = rexprTyped != null ? rexprTyped.getType() : null;
+					context.setHandlingTemplateInput(rtype != null ? rtype.toTypeArgs() : null);
 					context;
 				} else {
 					final otherContext = new ExpressionTypingContext(false);
-					otherContext.setHandlingTemplateInput(false);
+					otherContext.setHandlingTemplateInput(null);
 					otherContext;
 				}
 				var lexprTyped = getInternalTypeStacked(lexpr, op.isGenericInput() ? accessor : null, lContext);
 				if(op.isGenericInput() && context != null) {
-					context.setHandlingTemplateInput(false);
+					context.setHandlingTemplateInput(null);
 				}
 				if(lexprTyped != null) {
-					final accessContext = new ExpressionTypingContext(false);
-					if(op.isAccessor() && context != null && context.arguments != null) {
-						accessContext.setCallParameters(context.arguments);
+
+					if(op.op == ".") {
+						final typeSelf = lexprTyped.getType().isTypeSelf();
+						if(typeSelf != null) {
+							if(rexpr.isAlloc()) {
+								//final allocTypeSelf = Type.TypeSelf(typeSelf, true);
+								final newExpr = parsers.expr.Expression.Value(Literal.TypeName(typeSelf), expression.getFullPosition());
+								final newExprTyped = getInternalTypeStacked(newExpr, null, context);
+								return newExprTyped.convertToAlloc();
+							}
+						}
 					}
+
 					final rexprTyped = getInternalTypeStacked(rexpr, op.isAccessor() ? lexprTyped : null, accessContext);
 					if(rexprTyped != null) {
 						if(op.op == "=") {
@@ -220,7 +238,7 @@ class ExpressionTyper {
 								return templateResult;
 							}
 						}
-						final result = lType == null ? rType : op.findReturnType(lType, rType, pos);
+						final result = lType == null ? rType : op.findReturnType(lType, rType, pos, parser.scope);
 						if(result != null) {
 							parser.onTypeUsed(result);
 							if(!isInterpret && accessContext != null && accessContext.isStaticExtension) {
@@ -250,8 +268,8 @@ class ExpressionTyper {
 				final context = new ExpressionTypingContext(isCall);
 				if(isCall) context.setCallParameters(typedParamExprs);
 				final typedExpr = getInternalTypeStacked(expr, null, context);
-				final exprPos = [ExpressionHelper.getPosition(expr), pos];
-				final otherPos = params.map(p -> ExpressionHelper.getPosition(p));
+				final exprPos = [ExpressionHelper.getFullPosition(expr), pos];
+				final otherPos = params.map(p -> ExpressionHelper.getFullPosition(p));
 				if(!isPrelim) {
 					Error.completePromiseMulti("funcWrongParam", exprPos.concat(otherPos));
 				} else {
@@ -285,26 +303,34 @@ class ExpressionTyper {
 					final valueContext = new ExpressionTyperValueContext(literal, pos, context);
 					valueContext.setResult(result);
 					switch(result.type) {
-						case UnknownNamed(name): {
-							valueContext.setVarName(name);
-							final typedExpr = if(accessor == null) {
-								typeUnknownWithoutAccessor(name, context, valueContext);
-							} else {
-								typeUnknownWithAccessor(name, accessor, context, valueContext);
+						case UnknownNamed(name, typeParams): {
+							if(typeParams == null && context != null) {
+								typeParams = context.handlingTemplateInput;
 							}
+							valueContext.setVarName(name);
+							parser.scope.push();
+							final typedExpr = if(accessor == null) {
+								typeUnknownWithoutAccessor(name, typeParams, context, valueContext);
+							} else {
+								typeUnknownWithAccessor(name, typeParams, accessor, context, valueContext);
+							}
+							parser.scope.pop();
 							if(typedExpr != null) {
 								return typedExpr;
 							}
 						}
-						case TypeSelf(type): {
+						case TypeSelf(type, isAlloc): {
 							if(!isPrelim && context != null && context.arguments != null) {
 								switch(type.type) {
 									case Class(cls, _): {
+										if(!isPrelim && !cls.get().hasConstructors()) {
+											Error.addErrorFromPos(ErrorType.ClassHasNoConstructors, pos, [type.toString()]);
+										}
 										final options = cls.get().findConstructorWithParameters(context.arguments.map(p -> p.getType()));
 										final member = retrieveMemberFromOptions(options, pos);
 										if(member != null) {
 											member.onMemberUsed(parser);
-											valueContext.setResult(member.getType());
+											valueContext.setResult(Type.TypeSelf(type));//member.getType());
 											switch(member.type) {
 												case ScopeMemberType.Function(funcMember): {
 													valueContext.setReplacement(Literal.TypeName(type));
@@ -325,7 +351,7 @@ class ExpressionTyper {
 
 					result = valueContext.result;
 					if(result != null) {
-						if(!isPrelim && result.templateRequired() && (context == null || !context.handlingTemplateInput)) {
+						if(!isPrelim && result.templateRequired() && (context == null || context.handlingTemplateInput == null)) {
 							Error.addErrorFromPos(if(result.isClassType() != null) {
 								ErrorType.ClassRequiresTypeArguments;
 							} else {
@@ -356,9 +382,9 @@ class ExpressionTyper {
 		return null;
 	}
 
-	public function typeUnknownWithoutAccessor(name: String, context: Null<ExpressionTypingContext>, valueContext: ExpressionTyperValueContext): Null<TypedExpression> {
+	public function typeUnknownWithoutAccessor(name: String, typeArgs: Null<Array<Type>>, context: Null<ExpressionTypingContext>, valueContext: ExpressionTyperValueContext): Null<TypedExpression> {
 		final member = if(context != null && context.arguments != null) {
-			final options = parser.scope.findMemberWithParameters(name, context.arguments);
+			final options = parser.scope.findMemberWithParameters(name, typeArgs, context.arguments);
 			retrieveMemberFromOptions(options, valueContext.pos);
 		} else {
 			parser.scope.findMember(name);
@@ -371,7 +397,7 @@ class ExpressionTyper {
 					valueContext.setReplacement(Variable(varMember.get()));
 				}
 				case ScopeMemberType.Function(funcMember): {
-					if(valueContext.result == null || !valueContext.result.isTypeSelf()) {
+					if(valueContext.result == null || valueContext.result.isTypeSelf() == null) {
 						valueContext.setReplacement(Function(funcMember.get()));
 					}
 					if(valueContext.incrementCall) {
@@ -392,12 +418,14 @@ class ExpressionTyper {
 		return null;
 	}
 
-	public function typeUnknownWithAccessor(name: String, accessor: TypedExpression, context: Null<ExpressionTypingContext>, valueContext: ExpressionTyperValueContext): Null<TypedExpression> {
+	public function typeUnknownWithAccessor(name: String, typeArgs: Null<Array<Type>>, accessor: TypedExpression, context: Null<ExpressionTypingContext>, valueContext: ExpressionTyperValueContext): Null<TypedExpression> {
+		final inputType = accessor.getType().resolveTemplateType(parser.scope);
+		inputType.revealTemplateArgsToScope(parser.scope);
 		final member = if(context != null && context.arguments != null) {
-			final options = parser.scope.findModifyFunctionWithParameters(accessor.getType(), name, context.arguments);
+			final options = parser.scope.findModifyFunctionWithParameters(inputType, name, context.arguments);
 			retrieveMemberFromOptions(options, valueContext.pos);
 		} else {
-			parser.scope.findModifyFunction(accessor.getType(), name);
+			parser.scope.findModifyFunction(inputType, name);
 		}
 		if(member != null) {
 			member.onMemberUsed(parser);
@@ -445,7 +473,7 @@ class ExpressionTyper {
 			}
 		} else {
 			final accessed = if(context != null && context.arguments != null) {
-				final options = accessor.getType().findAllAccessorMembersWithParameters(name, context.arguments);
+				final options = inputType.findAllAccessorMembersWithParameters(name, typeArgs, context.arguments);
 				final mem = retrieveMemberFromOptions(options, valueContext.pos);
 				if(mem != null) {
 					mem.getType();
@@ -453,14 +481,15 @@ class ExpressionTyper {
 					null;
 				}
 			} else {
-				accessor.getType().findAccessorMemberType(name);
+				inputType.findAccessorMemberType(name);
 			}
 			valueContext.setResult(accessed);
 		}
 		return null;
 	}
 
-	public function retrieveMemberFromOptions(options: Null<Array<ScopeMember>>, pos: Position): Null<ScopeMember> {
+	public function retrieveMemberFromOptions(result: ScopeParameterSearchResult, pos: Position): Null<ScopeMember> {
+		final options = result.foundMembers;
 		return if(options != null) {
 			switch(options.length) {
 				case 0: null;
@@ -494,14 +523,14 @@ class ExpressionTyper {
 			var leftType: Null<Type> = null;
 			var rightType: Null<Type> = null;
 			switch([ltype.type, switch(rtype.type) {
-				case Tuple(types): TypeSelf(rtype);
+				case Tuple(types): TypeSelf(rtype, false);
 				default: rtype.type;
 			}]) {
-				case [TypeSelf(lt), TypeSelf(rt)]: {
+				case [TypeSelf(lt, _), TypeSelf(rt, _)]: {
 					leftType = lt;
 					rightType = rt;
 				}
-				case [Function(_, _), TypeSelf(rt)] | [External(_, _), TypeSelf(rt)]: {
+				case [Function(_, _), TypeSelf(rt, _)] | [External(_, _), TypeSelf(rt, _)]: {
 					leftType = ltype;
 					rightType = rt;
 				}
@@ -514,7 +543,10 @@ class ExpressionTyper {
 				}
 				final newType = leftType.applyTemplateArgs(typeList);
 				resultType = if(newType != null) {
-					Type.TypeSelf(newType);
+					switch(newType.type) {
+						case Class(_, _): Type.TypeSelf(newType);
+						default: newType;
+					}
 				} else {
 					final positions: Array<Position> = [position];
 					for(t in typeList) {
@@ -531,10 +563,13 @@ class ExpressionTyper {
 			}
 			if(resultType != null) {
 				return Value(switch(resultType.type) {
-					case TypeSelf(t): Literal.TypeName(resultType);
-					case Function(funcType, _): {
-						final mem = funcType.get().member;
+					case TypeSelf(t, _): Literal.TypeName(t);
+					case Function(funcType, args): {
+						var mem = funcType.get().member;
 						if(mem != null) {
+							if(args != null) {
+								mem = mem.applyTypeArguments(args);
+							}
 							Literal.Function(mem);
 						} else {
 							null;
@@ -551,7 +586,7 @@ class ExpressionTyper {
 				position.merge(ltype.position, rtype.position)
 				#end
 
-				, resultType);
+				, resultType.applyTypeArguments());
 			}
 		}
 		return null;

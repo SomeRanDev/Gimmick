@@ -3,6 +3,7 @@ package ast.scope;
 import basic.Ref;
 
 import ast.scope.ScopeMember;
+import ast.scope.ScopeParameterSearchResult;
 import ast.scope.members.ClassMember;
 import ast.typing.Type;
 import ast.typing.ClassType;
@@ -35,6 +36,13 @@ class ScopeMemberCollection {
 		members.push(member);
 		final name = findName(member);
 		existingNames.push(name == null ? "" : name);
+	}
+
+	public function map(callback: (ScopeMember) -> ScopeMember): ScopeMemberCollection {
+		final result = new ScopeMemberCollection();
+		result.members = members.map(callback);
+		result.existingNames = existingNames;
+		return result;
 	}
 
 	public function get_length(): Int {
@@ -105,32 +113,37 @@ class ScopeMemberCollection {
 		return findIn(name, members);
 	}
 
-	public function findWithParameters(name: String, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+	public function findWithParameters(name: String, typeArgs: Null<Array<Type>>, params: Array<TypedExpression>): ScopeParameterSearchResult {
 		final options = findAll(name);
 		if(options != null) {
-			return findWithParametersFromExprOptions(options, params);
+			return findWithParametersFromExprOptions(options, typeArgs, params);
 		}
-		return null;
+		return ScopeParameterSearchResult.fromEmpty();
 	}
 
-	public function findConstructorWithParameterExprs(params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+	public function findConstructorWithParameterExprs(params: Array<TypedExpression>): ScopeParameterSearchResult {
 		return findConstructorWithParameters(params.map(p -> p.getType()));
 	}
 
-	public function findConstructorWithParameters(params: Array<Type>): Null<Array<ScopeMember>> {
+	public function hasConstructors(): Bool {
+		final options = findAllConstructors();
+		return options != null && options.length > 0;
+	}
+
+	public function findConstructorWithParameters(params: Array<Type>): ScopeParameterSearchResult {
 		final options = findAllConstructors();
 		if(options != null) {
-			return findWithParametersFromOptions(options, params);
+			return findWithParametersFromOptions(options, null, params);
 		}
-		return null;
+		return ScopeParameterSearchResult.fromEmpty();
 	}
 
-	public function findWithParametersFromExprOptions(options: Array<ScopeMember>, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
-		return findWithParametersFromOptions(options, params.map(p -> p.getType()));
+	public function findWithParametersFromExprOptions(options: Array<ScopeMember>, typeArgs: Null<Array<Type>>, params: Array<TypedExpression>): ScopeParameterSearchResult {
+		return findWithParametersFromOptions(options, typeArgs, params.map(p -> p.getType()));
 	}
 
-	public function findWithParametersFromOptions(options: Array<ScopeMember>, params: Array<Type>): Null<Array<ScopeMember>> {
-		if(options.length == 0) return null;
+	public function findWithParametersFromOptions(options: Array<ScopeMember>, typeArgs: Null<Array<Type>>, params: Array<Type>): ScopeParameterSearchResult {
+		if(options.length == 0) return ScopeParameterSearchResult.fromEmpty();
 
 		var onlyClass = true;
 		var classMember: Null<ClassMember> = null;
@@ -150,7 +163,9 @@ class ScopeMemberCollection {
 			return classMember.findConstructorWithParameters(params);
 		}
 
-		if(options.length == 0) return null;
+		if(options.length == 0) return ScopeParameterSearchResult.fromEmpty();
+
+		var callback: Null<() -> Void> = null;
 
 		var resultingIndex = 0;
 		final possibilities = [];
@@ -159,7 +174,12 @@ class ScopeMemberCollection {
 		for(member in options) {
 			switch(member.type) {
 				case Function(func): {
-					final result = func.get().type.get().canPassTypes(params);
+					var funcType = func.get().type.get();
+					if(typeArgs != null) {
+						funcType = funcType.applyTypeArguments(typeArgs);
+					}
+					final result = funcType.canPassTypes(params);
+					//trace(result, funcType, typeArgs, params, typeArgs != null ? funcType.applyTypeArguments(typeArgs) : null);
 					if(result != null) {
 						if(errorReason == null || (errorReason.error == ErrorType.TooManyFunctionParametersProvided && result.error != ErrorType.TooManyFunctionParametersProvided)) {
 							errorMember = member;
@@ -170,20 +190,20 @@ class ScopeMemberCollection {
 					}
 				}
 				default: {
-					return null;
+					return ScopeParameterSearchResult.fromEmpty();
 				}
 			}
 		}
 		if(possibilities.length == 0) {
 			if(errorReason != null) {
-				Error.addErrorPromise("funcWrongParam", errorReason);
+				//Error.addErrorPromise("funcWrongParam", errorReason);
 			}
 			if(errorMember != null) {
-				return [errorMember];
+				return ScopeParameterSearchResult.fromError(errorReason, errorMember);
 			}
-			return null;
+			return ScopeParameterSearchResult.fromEmpty();
 		}
-		return possibilities;
+		return ScopeParameterSearchResult.fromList(possibilities);
 	}
 
 	public function findAll(name: String): Null<Array<ScopeMember>> {
@@ -271,17 +291,22 @@ class ScopeMemberCollection {
 	public function hasFunctionType(name: String, funcType: FunctionType): Bool {
 		final options = findAll(name);
 		if(options != null) {
-			return findWithParametersFromOptions(options, funcType.arguments.map(a -> a.type)) != null;
+			return findWithParametersFromOptions(options, null, funcType.arguments.map(a -> a.type)).found;
 		}
 		return false;
 	}
 
-	public function findClassType(name: String): Null<Ref<ClassType>> {
+	public function findClassType(name: String): Null<Type> {
 		for(member in members) {
 			switch(member.type) {
 				case Class(cls): {
 					if(cls.get().name == name) {
-						return cls.get().type;
+						return Type.Class(cls.get().type, null);
+					}
+				}
+				case TemplateType(index, arg): {
+					if(arg.get().name == name) {
+						return Type.Template(name);
 					}
 				}
 				default: {}
@@ -364,11 +389,11 @@ class ScopeMemberCollection {
 		return result;
 	}
 
-	public function findAllModifyWithParameters(type: Type, name: String, params: Array<TypedExpression>): Null<Array<ScopeMember>> {
+	public function findAllModifyWithParameters(type: Type, name: String, params: Array<TypedExpression>): ScopeParameterSearchResult {
 		final options = findAllModify(type, name);
 		if(options != null) {
-			return findWithParametersFromExprOptions(options, params);
+			return findWithParametersFromExprOptions(options, null, params);
 		}
-		return null;
+		return ScopeParameterSearchResult.fromEmpty();
 	}
 }

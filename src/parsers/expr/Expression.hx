@@ -41,6 +41,32 @@ class ExpressionHelper {
 			case Infix(_, _, _, pos): pos;
 			case Value(_, pos): pos;
 			case Call(_, _, _, pos): pos;
-		};
+		}
+	}
+
+	public static function getFullPosition(expr: Expression): Position {
+		return switch(expr) {
+			case Prefix(_, e, _): getPosition(expr).merge(getFullPosition(e));
+			case Suffix(_, e, _): getPosition(expr).merge(getFullPosition(e));
+			case Infix(_, le, re, _): getPosition(expr).merge(getFullPosition(le), getFullPosition(re));
+			case Call(_, e, params, _): getPosition(expr).merge(getFullPosition(e));
+			case Value(_, _): getPosition(expr);
+		}
+	}
+
+	public static function getName(expr: Expression): Null<String> {
+		return switch(expr) {
+			case Value(literal, _): {
+				switch(literal) {
+					case Name(name, _): name;
+					default: null;
+				}
+			}
+			default: null;
+		}
+	}
+
+	public static function isAlloc(expr: Expression): Bool {
+		return getName(expr) == "alloc";
 	}
 }

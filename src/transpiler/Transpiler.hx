@@ -66,6 +66,48 @@ class Transpiler {
 		}
 	}
 
+	public function shouldTranspileAny(members: Array<ScopeMember>): Bool {
+		for(mem in members) {
+			if(shouldTranspile(mem)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public function shouldTranspile(member: ScopeMember): Bool {
+		return switch(member.type) {
+			case Include(path, brackets, header): false;
+			case Namespace(namespace): shouldTranspileAny(namespace.get().members.members);
+			case Variable(variable): variable.get().shouldTranspile();
+			case Function(func): func.get().shouldTranspile();
+			case GetSet(getset): {
+				final gs = getset.get();
+				if((gs.get == null || gs.get.isInject()) && (gs.set == null || gs.set.isInject())) {
+					false;
+				} else {
+					true;
+				}
+			}
+			case PrefixOperator(_, func) | SuffixOperator(_, func) | InfixOperator(_, func) | CallOperator(_, func): {
+				func.get().shouldTranspile();
+			}
+			case Class(cls): cls.get().shouldTranspile();
+			case Modify(modify): {
+				final result = [];
+				if(modify.members != null) {
+					for(mem in modify.members) {
+						result.push(mem);
+					}
+				}
+				shouldTranspileAny(result);
+			}
+			case Expression(expr): true;
+			case CompilerAttribute(attr, params, pos): false;
+			default: false;
+		}
+	}
+
 	public function transpileMember(member: ScopeMember): Bool {
 		final newIndex = member.type.getIndex();
 		if(lastTranspileMemberIndex != newIndex || alwaysCreateNewLine(newIndex)) {
@@ -76,7 +118,6 @@ class Transpiler {
 		switch(member.type) {
 			case Include(path, brackets, header): {
 				TranspileModule_Include.transpile(path, brackets, header, this);
-				return false;
 			}
 			case Namespace(namespace): {
 				TranspileModule_Namespace.transpile(namespace, this);
@@ -86,7 +127,6 @@ class Transpiler {
 			}
 			case Function(func): {
 				TranspileModule_Function.transpile(func.get(), this);
-				return func.get().shouldTranspile();
 			}
 			case GetSet(getset): {
 				final gs = getset.get();
@@ -97,17 +137,12 @@ class Transpiler {
 				if(gs.set != null) {
 					TranspileModule_Function.transpile(gs.set, this);
 				}
-				if((gs.get == null || gs.get.isInject()) && (gs.set == null || gs.set.isInject())) {
-					return false;
-				}
 			}
 			case PrefixOperator(_, func) | SuffixOperator(_, func) | InfixOperator(_, func) | CallOperator(_, func): {
 				TranspileModule_Function.transpile(func.get(), this);
-				return func.get().shouldTranspile();
 			}
 			case Class(cls): {
 				TranspileModule_Class.transpile(cls.get(), this, member);
-				return cls.get().shouldTranspile();
 			}
 			case Modify(modify): {
 				return TranspileModule_Modify.transpile(modify, this);
@@ -120,7 +155,7 @@ class Transpiler {
 			}
 			default: return false;
 		}
-		return true;
+		return shouldTranspile(member);
 	}
 
 	function alwaysCreateNewLine(index: Int): Bool {

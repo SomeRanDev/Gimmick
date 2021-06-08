@@ -1,5 +1,6 @@
 package parsers.typing;
 
+import ast.scope.Scope;
 import ast.scope.ScopeMember;
 import ast.scope.ExpressionMember;
 import ast.scope.ScopeMemberCollection;
@@ -48,7 +49,7 @@ class ReturnSweepContext {
 	public static function findReturnStatement(expr: ExpressionMember, context: ReturnSweepContext): Bool {
 		switch(expr.type) {
 			case ReturnStatement(e): {
-				var pos = e == null ? expr.wordPosition : e.getPosition();
+				var pos = e == null ? expr.wordPosition : e.getFullPosition();
 				context.onReturnFound(e == null ? null : e.getType(), pos == null ? expr.position : pos);
 				return true;
 			}

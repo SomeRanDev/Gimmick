@@ -68,6 +68,11 @@ class SourceFileManager {
 					parseFile(file);
 				}
 			}
+			if(files != null) {
+				for(file in files) {
+					file.applyTyper();
+				}
+			}
 		}
 		currPath = null;
 	}

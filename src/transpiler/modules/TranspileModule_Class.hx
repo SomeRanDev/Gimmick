@@ -25,9 +25,24 @@ class TranspileModule_Class {
 
 		context.pushClassName(cls.name);
 
+		final templateArgs = cls.type.get().templateArguments;
+		final templateText = if(isCpp && templateArgs != null && templateArgs.length > 0) {
+			"template<" + templateArgs.map(function(arg) { return "typename " + arg.name; }).join(", ") + ">\n";
+		} else {
+			"";
+		}
+
 		final data = cls;
 		final type = data.type.get();
-		final clsHeader = "class " + cls.name + " {";
+		final extendedTypes = cls.type.get().extendedTypes;
+		final extendText = if(extendedTypes != null) {
+			var result = extendedTypes.map(function(t) { return "public " + TranspileModule_Type.transpile(t); }).join(", ");
+			if(result.length > 0) result = ": " + result;
+			result;
+		} else {
+			"";
+		}
+		final clsHeader = templateText + "class " + cls.name + extendText + " {";
 		if(isCpp) {
 			transpiler.addHeaderContent(clsHeader);
 		} else {

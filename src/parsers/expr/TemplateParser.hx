@@ -138,15 +138,18 @@ class TemplateParser {
 	}
 
 	public static function parseSingleDescriber(parser: Parser, posStart: Int): Null<TemplateArgumentRequirement> {
-		final word = parser.parseMultipleWords(["var", "def", "attribute"]);
+		final word = parser.parseMultipleWords(["var", "def", "attribute", "init"]);
 		if(word != null) {
 			parser.parseWhitespaceOrComments();
 
-			final varNameStart = parser.getIndex();
-			final name = parser.parseNextVarName();
-			if(name == null) {
-				Error.addError(ErrorType.ExpectedVariableName, parser, varNameStart);
-				return null;
+			var name: Null<String> = "";
+			if(word != "init") {
+				final varNameStart = parser.getIndex();
+				name = parser.parseNextVarName();
+				if(name == null) {
+					Error.addError(ErrorType.ExpectedVariableName, parser, varNameStart);
+					return null;
+				}
 			}
 
 			parser.parseWhitespaceOrComments();
@@ -166,6 +169,13 @@ class TemplateParser {
 				}
 				case "def": {
 					final typeFunc = TypeParser.parseFunctionTypeData(parser);
+					if(typeFunc != null) {
+						return TemplateArgumentRequirement.HasFunction(name, typeFunc, parser.makePosition(posStart));
+					}
+				}
+				case "init": {
+					final typeFunc = TypeParser.parseFunctionTypeData(parser);
+					typeFunc.setConstructor();
 					if(typeFunc != null) {
 						return TemplateArgumentRequirement.HasFunction(name, typeFunc, parser.makePosition(posStart));
 					}

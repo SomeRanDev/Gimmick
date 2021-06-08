@@ -13,6 +13,7 @@ import ast.scope.members.ClassMember;
 
 import ast.typing.Type;
 import ast.typing.ClassType;
+import ast.typing.TemplateArgument;
 import ast.typing.AttributeArgument.AttributeArgumentValue;
 
 import interpreter.ExpressionInterpreter;
@@ -36,6 +37,7 @@ enum ScopeMemberType {
 	GetSet(getset: Ref<GetSetMember>);
 	Modify(modify: ModifyMember);
 	Class(cls: Ref<ClassMember>);
+	TemplateType(index: Int, type: Ref<TemplateArgument>);
 	PrefixOperator(op: PrefixOperator, func: Ref<FunctionMember>);
 	SuffixOperator(op: SuffixOperator, func: Ref<FunctionMember>);
 	InfixOperator(op: InfixOperator, func: Ref<FunctionMember>);
@@ -108,19 +110,22 @@ class ScopeMember {
 		attributes.push(new ScopeMemberAttribute(instanceOf, params));
 	}
 
-	public function shouldTranspile(context: TranspilerContext, prevTranspiled: Bool): Bool {
+	public function shouldExist(prevExisted: Bool, runtimeScope: Null<RuntimeScope> = null): Bool {
+		if(runtimeScope == null) {
+			runtimeScope = RuntimeScope.getGlobal();
+		}
 		for(a in attributes) {
-			if(a.instanceOf.name == "elseif" && prevTranspiled) {
+			if(a.instanceOf.name == "elseif" && prevExisted) {
 				return false;
 			}
 			if(a.instanceOf.name == "else") {
-				return !prevTranspiled;
+				return !prevExisted;
 			}
 			if(a.instanceOf.name == "if" || a.instanceOf.name == "elseif") {
 				if(a.parameters != null && a.parameters.length > 0) {
 					switch(a.parameters[0]) {
 						case Value(expr, type): {
-							final result = ExpressionInterpreter.interpret(expr, RuntimeScope.fromMap(context.getValues()));
+							final result = ExpressionInterpreter.interpret(expr, runtimeScope);
 							if(result != null) {
 								return result.toBool();
 							}
@@ -131,6 +136,10 @@ class ScopeMember {
 			}
 		}
 		return true;
+	}
+
+	public function shouldTranspile(context: TranspilerContext, prevTranspiled: Bool): Bool {
+		return shouldExist(prevTranspiled, RuntimeScope.fromMap(context.getValues()));
 	}
 
 	public function hasAttribute(name: String) {
@@ -189,6 +198,9 @@ class ScopeMember {
 			}
 			case Class(cls): {
 				return Type.TypeSelf(Type.Class(cls.get().type, null));
+			}
+			case TemplateType(_, arg): {
+				return Type.Template(arg.get().name);
 			}
 			default: {}
 		}
@@ -292,5 +304,46 @@ class ScopeMember {
 			}
 			default: {}
 		}
+	}
+
+	public function applyTypeArguments(args: Array<Type>, templateArguments: Array<TemplateArgument>): ScopeMember {
+		final scopeMemberType = switch(type) {
+			case Variable(variable): {
+				Variable(variable.get().applyTypeArguments(args, templateArguments).getRef());
+			}
+			case Function(func): {
+				Function(func.get().applyTypeArguments(args, templateArguments).getRef());
+			}
+			case GetSet(getset): {
+				GetSet(getset.get().applyTypeArguments(args, templateArguments).getRef());
+			}
+			case Class(cls): {
+				final clsMemberType = cls.get().applyTypeArguments(args, templateArguments);
+				if(clsMemberType != null) {
+					Class(clsMemberType.getRef());
+				} else {
+					null;
+				}
+			}
+			case PrefixOperator(op, func): {
+				PrefixOperator(op, func.get().applyTypeArguments(args, templateArguments).getRef());
+			}
+			case SuffixOperator(op, func): {
+				SuffixOperator(op, func.get().applyTypeArguments(args, templateArguments).getRef());
+			}
+			case InfixOperator(op, func): {
+				InfixOperator(op, func.get().applyTypeArguments(args, templateArguments).getRef());
+			}
+			case CallOperator(op, func): {
+				CallOperator(op, func.get().applyTypeArguments(args, templateArguments).getRef());
+			}
+			default: null;
+		}
+		if(scopeMemberType != null) {
+			final result = new ScopeMember(scopeMemberType);
+			result.setAttributes(attributes);
+			return result;
+		}
+		return this;
 	}
 }

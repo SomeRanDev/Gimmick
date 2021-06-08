@@ -79,6 +79,7 @@ enum abstract ErrorType(Int) from Int to Int {
 	var MissingFunctionParameter = 19000;
 	var CannotPassThisForThat = 19100;
 	var TooManyFunctionParametersProvided = 19200;
+	var ClassHasNoConstructors = 19300;
 
 	var InterpreterUnknownLiteral = 20000;
 	var InterpreterLiteralListValuesDoNotMatch = 20010;
@@ -100,6 +101,8 @@ enum abstract ErrorType(Int) from Int to Int {
 	var NotEnoughTemplateParameters = 31400;
 	var FunctionRequiresTypeArguments = 31500;
 	var ClassRequiresTypeArguments = 31600;
+
+	var CannotDetermineParameterType = 32000;
 
 	var ReturnedTypeDoesNotMatchReturnType = 32100;
 	var ReturnExpressionExpected = 32200;
@@ -187,6 +190,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case MissingFunctionParameter: "Missing function parameter.";
 			case CannotPassThisForThat: "Cannot pass '%1' for '%2'.";
 			case TooManyFunctionParametersProvided: "Too many function parameters provided.";
+			case ClassHasNoConstructors: "'%1' does not have a constructor.";
 
 			case InterpreterUnknownLiteral: "Unknown value encountered.";
 			case InterpreterLiteralListValuesDoNotMatch: "List types do not match. Expected '%1'. not '%2'.";
@@ -210,6 +214,8 @@ enum abstract ErrorType(Int) from Int to Int {
 			case NotEnoughTemplateParameters: "Not enough template parameters provided. Should be at least %1, but there are only %2.";
 			case FunctionRequiresTypeArguments: "Function requires type arguments for template.";
 			case ClassRequiresTypeArguments: "Class requires type arguments for template.";
+
+			case CannotDetermineParameterType: "Cannot determine the type of the function parameter '%1'.";
 
 			case ReturnedTypeDoesNotMatchReturnType: "The returned expression type, '%1', does not match the desired return type, '%2'.";
 			case ReturnExpressionExpected: "Expression returning value of type '%1' expected.";
@@ -299,6 +305,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case MissingFunctionParameter: "missing function parameter";
 			case CannotPassThisForThat: "incorrect type passed";
 			case TooManyFunctionParametersProvided: "too many parameters provided";
+			case ClassHasNoConstructors: "no constructors available";
 
 			case InterpreterUnknownLiteral: "unknown value";
 			case InterpreterLiteralListValuesDoNotMatch: "list value types do not match";
@@ -322,6 +329,8 @@ enum abstract ErrorType(Int) from Int to Int {
 			case NotEnoughTemplateParameters: "not enough template parameters";
 			case FunctionRequiresTypeArguments: "type arguments required";
 			case ClassRequiresTypeArguments: "type arguments required";
+
+			case CannotDetermineParameterType: "type cannot be determined";
 
 			case ReturnedTypeDoesNotMatchReturnType: "type does not match return type";
 			case ReturnExpressionExpected: "return expression expected";

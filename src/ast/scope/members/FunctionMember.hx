@@ -10,6 +10,7 @@ import ast.scope.members.MemberLocation;
 import ast.scope.members.FunctionOption;
 
 import ast.typing.Type;
+import ast.typing.TemplateArgumentCollection;
 
 import parsers.expr.Operator;
 import parsers.expr.Position;
@@ -122,5 +123,11 @@ class FunctionMember {
 			}
 		}
 		return Type.Function(type, null);
+	}
+
+	public function applyTypeArguments(args: Array<Type>, templateArguments: Null<TemplateArgumentCollection> = null): FunctionMember {
+		final newType = type.get().applyTypeArguments(args, templateArguments);
+		if(newType == type.get()) return this;
+		return new FunctionMember(name, newType.getRef(), memberLocation, options, declarePosition);
 	}
 }

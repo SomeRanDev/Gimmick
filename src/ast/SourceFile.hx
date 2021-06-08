@@ -31,6 +31,7 @@ class SourceFile {
 	public var folderInfo(default, null): SourceFolderInfo;
 	public var scope(default, null): Null<Scope>;
 	public var members(default, null): Null<ScopeMemberCollection>;
+	public var typer(default, null): Null<Typer>;
 	public var language(default, null): Language;
 
 	public var requiredIncludes(default, null): RequiredCppIncludeCollection;
@@ -76,10 +77,8 @@ class SourceFile {
 			members = parser.scope.getTopScope();
 			scope = parser.scope;
 
-			if(!isPrelim && members != null) {
-				// type the expressions
-				final typer = new Typer(parser);
-				typer.typeScopeCollection(members, true);
+			if(!isPrelim) {
+				typer = new Typer(parser);
 			}
 
 			//members = parser.scope.getTopScope();
@@ -90,6 +89,13 @@ class SourceFile {
 			} else {
 				isParsed = isPrelim ? 1 : 2;
 			}
+		}
+	}
+
+	public function applyTyper() {
+		if(members != null && typer != null) {
+			// type the expressions
+			typer.typeScopeCollection(members, true);
 		}
 	}
 

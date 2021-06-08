@@ -2,8 +2,6 @@ package ast.scope.members;
 
 import basic.Ref;
 
-import ast.scope.members.MemberLocation;
-
 import parsers.Parser;
 import parsers.expr.Position;
 import parsers.expr.QuantumExpression;
@@ -12,8 +10,12 @@ using parsers.expr.Expression;
 import parsers.expr.InfixOperator.InfixOperators;
 import parsers.error.ErrorType;
 
-import ast.typing.Type;
 import ast.scope.ExpressionMember;
+import ast.scope.members.MemberLocation;
+
+import ast.typing.Type;
+import ast.typing.TemplateArgumentCollection;
+import ast.typing.TemplateArgumentRequirement;
 
 class VariableMember {
 	public var name(default, null): String;
@@ -120,5 +122,15 @@ class VariableMember {
 
 	public function shouldTranspile() {
 		return !isExtern;
+	}
+
+	public function applyTypeArguments(args: Array<Type>, templateArguments: TemplateArgumentCollection): VariableMember {
+		final newType = templateArguments.convertTemplateType(type, args);
+		if(newType == type) return this;
+		return new VariableMember(name, newType, isStatic, isExtern, position, assignPosition, expression, memberLocation);
+	}
+
+	public function toString(): String {
+		return "VariableMember(name=" + name + ", type=" + type + ")";
 	}
 }
