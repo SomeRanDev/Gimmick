@@ -1,0 +1,10 @@
+# =================================================
+# * Console
+#
+# Quick bindings for the JS console singleton.
+# =================================================
+
+@globalAll
+
+@if(js) extern class console:
+	static def log(str: string);

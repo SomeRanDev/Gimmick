@@ -150,7 +150,7 @@ class TranspileModule_Expression {
 														var popThisType = false;
 														if(func.type.get().thisType == StaticExtension) {
 															final args = func.type.get().arguments;
-															if(args.length > 0 && params.length > 0) {
+															if(params.length > 0) {
 																context.pushThisExpr(params[0]);
 																popThisType = true;
 															}
@@ -166,10 +166,10 @@ class TranspileModule_Expression {
 														switch(expr) {
 															case Typed(e): {
 																result = !isolated ? transpileIsolatedExpr(e, context) : transpileExpr(e, context);
-																context.popVarReplacements();
 															}
 															default: {}
 														}
+														context.popVarReplacements();
 														if(popThisType) context.popThisExpr();
 														if(result != null) {
 															return result;
@@ -291,6 +291,10 @@ class TranspileModule_Expression {
 						return "std::make_tuple(" + resultStr + ")";
 					}
 					case TypeName(type): {
+						final typeSelfType = type.isTypeSelf();
+						if(typeSelfType != null && type.isAlloc()) {
+							return "new " + TranspileModule_Type.transpile(type);
+						}
 						return TranspileModule_Type.transpile(type);
 					}
 					case EnclosedExpression(expr): {

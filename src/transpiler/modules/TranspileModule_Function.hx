@@ -5,6 +5,7 @@ import basic.Ref;
 import ast.scope.ScopeMember;
 import ast.scope.members.FunctionMember;
 import ast.scope.members.FunctionOption.FunctionOptionHelper;
+import ast.typing.Type;
 
 import parsers.error.Error;
 import parsers.error.ErrorType;
@@ -88,7 +89,11 @@ class TranspileModule_Function {
 			return "";
 		}
 		return if(context.isCpp()) {
-			TranspileModule_Type.transpile(func.type.get().returnType) + " ";
+			var returnType = func.type.get().returnType;
+			if(returnType.isUnknown()) {
+				returnType = Type.Void();
+			}
+			TranspileModule_Type.transpile(returnType) + " ";
 		} else if(context.currentClassName() == null) {
 			"function ";
 		} else {

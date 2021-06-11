@@ -205,8 +205,14 @@ class ExpressionTyper {
 							if(rexpr.isAlloc()) {
 								//final allocTypeSelf = Type.TypeSelf(typeSelf, true);
 								final newExpr = parsers.expr.Expression.Value(Literal.TypeName(typeSelf), expression.getFullPosition());
+								var isCall = true;
+								if(context == null) {
+									context = new ExpressionTypingContext(true);
+									context.setCallParameters([]);
+									isCall = false;
+								}
 								final newExprTyped = getInternalTypeStacked(newExpr, null, context);
-								return newExprTyped.convertToAlloc();
+								return newExprTyped.convertToAlloc(isCall);
 							}
 						}
 					}

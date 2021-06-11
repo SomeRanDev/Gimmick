@@ -9,7 +9,7 @@
 start namespace std
 
 @if(cpp) extern class ostream:
-	op <<(input: string);
+	op <<(input: string) -> ostream;
 
 @if(cpp) extern var cout: ostream;
 @if(cpp) extern var cerr: ostream;

@@ -46,8 +46,10 @@ class ParserModule_Variable extends ParserModule {
 			parser.parseWhitespaceOrComments();
 
 			var type = null;
+			var varTypeStart = parser.getIndex();
 			if(parser.parseNextContent(":")) {
 				parser.parseWhitespaceOrComments();
+				varTypeStart = parser.getIndex();
 				type = parser.parseType();
 			}
 

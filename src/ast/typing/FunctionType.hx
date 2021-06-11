@@ -92,7 +92,7 @@ class FunctionType {
 	}
 
 	public function prependArgument(name: String, type: Type) {
-		prependArguments.insert(0, new FunctionArgument(name, type, null));
+		prependArguments.insert(0, new FunctionArgument(name, type, Position.BLANK, null));
 	}
 
 	public function allArguments(): Array<FunctionArgument> {
@@ -188,7 +188,7 @@ class FunctionType {
 	}
 
 	public function discoverReturnType(type: Type) {
-		if(returnType == null || returnType.isVoid()) {
+		if(returnType == null || returnType.isUnknown()) {
 			returnType = type;
 		}
 	}

@@ -61,6 +61,21 @@ class ScopeMemberCollection {
 		this.members = members;
 	}
 
+	public function makeExtern() {
+		for(mem in members) {
+			switch(mem.type) {
+				case Variable(variable): variable.get().makeExtern();
+				case Function(func): func.get().makeExtern();
+				case GetSet(getset): getset.get().makeExtern();
+				case PrefixOperator(_, func) |
+					SuffixOperator(_, func) |
+					InfixOperator(_, func) |
+					CallOperator(_, func): func.get().makeExtern();
+				default: {}
+			}
+		}
+	}
+
 	public function replace(index: Int, scopeMember: ScopeMember): Bool {
 		if(index >= 0 && index < members.length) {
 			members[index] = scopeMember;
@@ -113,9 +128,17 @@ class ScopeMemberCollection {
 		return findIn(name, members);
 	}
 
-	public function findWithParameters(name: String, typeArgs: Null<Array<Type>>, params: Array<TypedExpression>): ScopeParameterSearchResult {
-		final options = findAll(name);
+	public function findWithParameters(name: String, typeArgs: Null<Array<Type>>, params: Array<TypedExpression>, staticOnly: Bool = false): ScopeParameterSearchResult {
+		var options = findAll(name);
 		if(options != null) {
+			if(staticOnly) {
+				options = options.filter(function(f) {
+					return switch(f.type) {
+						case Function(func): func.get().isStatic();
+						default: false;
+					}
+				});
+			}
 			return findWithParametersFromExprOptions(options, typeArgs, params);
 		}
 		return ScopeParameterSearchResult.fromEmpty();

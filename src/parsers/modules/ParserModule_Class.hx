@@ -31,8 +31,6 @@ class ParserModule_Class extends ParserModule {
 				failed = true;
 				name = "";
 			}
-			// TODO: FIx the fact there is error cause it gets parsed multiple times??
-			if(name == "QObject") trace(haxe.CallStack.toString(haxe.CallStack.callStack()));
 
 			if(parser.scope.findTypeFromName(name) != null) {
 				Error.addError(ErrorType.ClassNameAlreadyUsedInCurrentScope, parser, varNameStart);
@@ -79,6 +77,9 @@ class ParserModule_Class extends ParserModule {
 				final members = parser.parseNextLevelContent(Class);
 				if(members != null) {
 					clsType.setAllMembers(members);
+					if(options.contains(Extern)) {
+						members.makeExtern();
+					}
 				}
 				parser.scope.pop();
 			} else if(parser.parseNextContent(";")) {

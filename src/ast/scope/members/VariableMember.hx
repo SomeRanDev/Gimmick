@@ -130,6 +130,10 @@ class VariableMember {
 		return new VariableMember(name, newType, isStatic, isExtern, position, assignPosition, expression, memberLocation);
 	}
 
+	public function makeExtern() {
+		isExtern = true;
+	}
+
 	public function toString(): String {
 		return "VariableMember(name=" + name + ", type=" + type + ")";
 	}

@@ -1,15 +1,17 @@
 # =================================================
-# * Int
+# * Number
 #
-# Methods available to the int primitive.
+# Methods available to the numeric primitives.
 # =================================================
 
 @global
 modify number:
 	@cppRequireInclude(cmath, true)
 	inject get floor() -> int:
-		@untyped return floor(this);
+		@if(cpp) @untyped return floor(this);
+		@elseif(js) @untyped return Math.floor(this);
 
 	@cppRequireInclude(string, true)
 	inject def toString() -> string:
-		@untyped return std::to_string(this);
+		@if(cpp) @untyped return std::to_string(this);
+		@elseif(js) @untyped return this.toString();

@@ -53,7 +53,7 @@ class TypedExpressionHelper {
 			case Prefix(_, e, _, _): getPosition(expr).merge(getFullPosition(e));
 			case Suffix(_, e, _, _): getPosition(expr).merge(getFullPosition(e));
 			case Infix(_, le, re, _, _): getPosition(expr).merge(getFullPosition(le), getFullPosition(re));
-			case Call(_, e, params, _, _): getPosition(expr).merge(getFullPosition(e));
+			case Call(_, e, _, _, _): getPosition(expr).merge(getFullPosition(e));
 			case Value(_, _, _): getPosition(expr);
 		}
 	}
@@ -75,13 +75,14 @@ class TypedExpressionHelper {
 		return null;
 	}
 
-	public static function convertToAlloc(expr: Null<TypedExpression>): Null<TypedExpression> {
+	public static function convertToAlloc(expr: Null<TypedExpression>, hasCall: Bool): Null<TypedExpression> {
 		if(expr != null) {
 			switch(expr) {
 				case Value(literal, pos, type): {
+					final typeSelfType = type.isTypeSelf();
 					final allocedType = type.convertToAlloc();
-					if(allocedType != null) {
-						return Value(Literal.TypeName(allocedType), pos, allocedType);
+					if(typeSelfType != null && allocedType != null) {
+						return Value(Literal.TypeName(allocedType), pos, hasCall ? allocedType : Type.Pointer(typeSelfType));
 					}
 				}
 				default: {}

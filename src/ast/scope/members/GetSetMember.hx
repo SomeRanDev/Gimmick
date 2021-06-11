@@ -44,6 +44,11 @@ class GetSetMember {
 		return set == null;
 	}
 
+	public function makeExtern() {
+		if(get != null) get.makeExtern();
+		if(set != null) set.makeExtern();
+	}
+
 	public function setName(name: String, scope: Scope) {
 		this.name = name;
 		if(get != null) {

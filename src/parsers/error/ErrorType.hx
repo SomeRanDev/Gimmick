@@ -109,6 +109,11 @@ enum abstract ErrorType(Int) from Int to Int {
 	var NoReturnExpressionExpected = 32300;
 	var NoReturnOnFunction = 32400;
 
+	var TypeCannotBeExtended = 33000;
+	var InvalidVariableType = 33100;
+	var InvalidFunctionParameterType = 33200;
+	var InvalidFunctionReturnType = 33300;
+
 	var JsCannotUseDestructor = 40000;
 	var JsCannotHaveMultipleConstructors = 40100;
 
@@ -221,6 +226,11 @@ enum abstract ErrorType(Int) from Int to Int {
 			case ReturnExpressionExpected: "Expression returning value of type '%1' expected.";
 			case NoReturnExpressionExpected: "Lack of expression expected for this return.";
 			case NoReturnOnFunction: "End of function can be reached without guaranteed return.";
+
+			case TypeCannotBeExtended: "The type '%1' cannot be extended from.";
+			case InvalidVariableType: "'%1' is not a valid variable type.";
+			case InvalidFunctionParameterType: "'%1' is not a valid function parameter type.";
+			case InvalidFunctionReturnType: "'%1' is not a valid function return type.";
 
 			case JsCannotUseDestructor: "JS export cannot use destructors.";
 			case JsCannotHaveMultipleConstructors: "JS export cannot use multiple constructors.";
@@ -336,6 +346,11 @@ enum abstract ErrorType(Int) from Int to Int {
 			case ReturnExpressionExpected: "return expression expected";
 			case NoReturnExpressionExpected: "no expression should be present";
 			case NoReturnOnFunction: "function missing return statement";
+
+			case TypeCannotBeExtended: "'%1' cannot be extended";
+			case InvalidVariableType: "not a valid variable type";
+			case InvalidFunctionParameterType: "not a valid parameter type";
+			case InvalidFunctionReturnType: "not a valid return type";
 
 			case JsCannotUseDestructor: "cannot use destructor in JS";
 			case JsCannotHaveMultipleConstructors: "cannot use multiple constructors in JS";

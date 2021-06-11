@@ -103,6 +103,12 @@ class FunctionMember {
 		return type.get().isOperator();
 	}
 
+	public function makeExtern() {
+		if(!isExtern()) {
+			options.push(Extern);
+		}
+	}
+
 	public function setUniqueId(id: Int) {
 		uniqueId = id;
 	}

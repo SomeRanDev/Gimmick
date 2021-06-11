@@ -1,5 +1,7 @@
 package parsers.expr;
 
+using basic.Null;
+
 import ast.typing.Type;
 import ast.typing.FunctionType;
 import ast.typing.FunctionArgument;
@@ -100,6 +102,8 @@ class TypeParser {
 					if(name != null) {
 						if(name == "any") {
 							type = Type.Any();
+						} else if(name == "this") {
+							type = Type.This();
 						} else {
 							type = parser.scope.findTypeFromName(name);
 							if(allowUnknownNamed && type == null) {
@@ -212,7 +216,7 @@ class TypeParser {
 		if(returnType == null) {
 			returnType = Type.Void();
 		}
-		return new FunctionType(params.map(p -> new FunctionArgument("", p, null)), returnType);
+		return new FunctionType(params.map(p -> new FunctionArgument("", p, p.position.or(Position.BLANK), null)), returnType);
 	}
 
 	public static function parseTypeList(parser: Parser, start: String, end: String, separator: String, allowEmpty: Bool = false): Null<Array<Type>> {

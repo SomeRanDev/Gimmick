@@ -48,6 +48,7 @@ enum TypeType {
 	UnknownFunction;
 	UnknownNamed(name: String, typeParams: Null<Array<Type>>);
 	Template(name: String);
+	This;
 }
 
 class Type {
@@ -324,6 +325,10 @@ class Type {
 		return new Type(TypeType.Template(name), isConst, isOptional);
 	}
 
+	public static function This(isConst: Bool = false, isOptional: Bool = false): Type {
+		return new Type(TypeType.This, isConst, isOptional);
+	}
+
 	public static function fromLiteral(literal: Literal, scope: Scope, thisType: Null<Type>): Null<Type> {
 		return switch(literal) {
 			case Literal.Null: Type.Null();
@@ -453,19 +458,22 @@ class Type {
 		return null;
 	}
 
-	public function findAllAccessorMembersWithParameters(name: String, typeArgs: Null<Array<Type>>, params: Array<TypedExpression>): ScopeParameterSearchResult {
+	public function findAllAccessorMembersWithParameters(name: String, typeArgs: Null<Array<Type>>, params: Array<TypedExpression>, staticOnly: Bool = false): ScopeParameterSearchResult {
 		switch(type) {
 			case TypeType.Namespace(namespace): {
-				final members = namespace.get().members.findWithParameters(name, typeArgs, params);
+				final members = namespace.get().members.findWithParameters(name, typeArgs, params, staticOnly);
 				if(members != null) {
 					return members;
 				}
 			}
 			case TypeType.Class(cls, typeParams): {
-				final members = cls.get().members.findWithParameters(name, typeArgs, params);
+				final members = cls.get().members.findWithParameters(name, typeArgs, params, staticOnly);
 				if(members != null) {
 					return members;
 				}
+			}
+			case TypeType.TypeSelf(cls, isAlloc): {
+				return cls.findAllAccessorMembersWithParameters(name, typeArgs, params, true);
 			}
 			default: {}
 		}
@@ -985,5 +993,39 @@ class Type {
 			default: {}
 		}
 		return null;
+	}
+
+	public function isValidClassExtend(): Bool {
+		return switch(type) {
+			case TypeType.Class(_, _) | TypeType.External(_, _): true;
+			default: false;
+		}
+	}
+
+	public function validVariableType(): Bool {
+		return validFunctionParamType(false, false);
+	}
+
+	public function validFunctionReturnType(allowThis: Bool = false): Bool {
+		return validFunctionParamType(allowThis, true);
+	}
+
+	public function validFunctionParamType(allowThis: Bool = false, allowVoid: Bool = false): Bool {
+		return switch(type) {
+			case TypeType.Void: allowVoid;
+			case TypeType.This: allowThis;
+			case TypeType.List(t) | TypeType.Reference(t): t.validFunctionParamType(allowThis);
+			case TypeType.Pointer(t): t.validFunctionParamType(allowThis, true);
+			case TypeType.Any |
+				TypeType.Boolean |
+				TypeType.Number(_) |
+				TypeType.String |
+				TypeType.Function(_, _) |
+				TypeType.Class(_, _) |
+				TypeType.Tuple(_) |
+				TypeType.External(_, _) |
+				TypeType.Template(_): true;
+			default: false;
+		}
 	}
 }

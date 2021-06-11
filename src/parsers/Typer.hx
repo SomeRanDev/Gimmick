@@ -1,6 +1,7 @@
 package parsers;
 
 import basic.Ref;
+using basic.Null;
 
 import ast.scope.ScopeMember;
 import ast.scope.ExpressionMember;
@@ -142,7 +143,11 @@ class Typer {
 			}
 			case Namespace(namespace): {
 				final namespaceMember = namespace.get();
-				typeScopeCollection(namespaceMember.members, false);
+				parser.scope.push();
+				final typedScope = typeScope(null, namespaceMember.members);
+				@:privateAccess namespaceMember.members.setAllMembers(typedScope);
+				//typeScopeCollection(namespaceMember.members, false);
+				parser.scope.pop();
 				return member;
 			}
 			case Variable(vari): {
@@ -170,6 +175,14 @@ class Typer {
 						}
 					}
 				}
+
+				/*if(!parser.isPreliminary()) {
+					final type = vari.get().type;
+					if(!type.validVariableType()) {
+						trace(vari.get().type);
+						Error.addErrorFromPos(ErrorType.InvalidVariableType, type.position.or(vari.get().position), [ type.toString() ]);
+					}
+				}*/
 
 				final file = parser.scope.file;
 				@:privateAccess if(vari.get().shouldSplitAssignment() && parser.scope.stackSize == 1 && file.usesMainFunction()) {
@@ -213,6 +226,15 @@ class Typer {
 				parser.scope.pop();
 
 				discoverReturnType(funcMember);
+
+				{
+					for(arg in funcType.arguments) {
+						if(!arg.type.validVariableType()) {
+							Error.addErrorFromPos(ErrorType.InvalidVariableType, arg.type.position.or(arg.position), [ arg.type.toString() ]);
+						}
+					}
+				}
+
 				registerScopeMember(member);
 				return member;
 			}
@@ -347,7 +369,7 @@ class Typer {
 	public function discoverReturnType(funcMember: FunctionMember) {
 		if(!funcMember.isExtern()) {
 			var returnType: Null<Type> = funcMember.type.get().returnType;
-			if(returnType.isVoid()) {
+			if(returnType.isUnknown()) {
 				returnType = null;
 			}
 			final context = new ReturnSweepContext(returnType);

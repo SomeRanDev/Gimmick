@@ -97,7 +97,7 @@ class TranspileModule_Type {
 				return "std::tuple<" + argStr.join(", ") + ">";
 			}
 			case TypeSelf(type, isAlloc): {
-				return (isAlloc ? "new " : "") + transpile(type);
+				return transpile(type);
 			}
 			case External(name, typeParams): {
 				final argStr = [];

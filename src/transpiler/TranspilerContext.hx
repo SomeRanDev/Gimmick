@@ -139,14 +139,16 @@ class TranspilerContext {
 	public function addVarReplacement(name: String, expr: TypedExpression) {
 		final first = namedVarReplacements.first();
 		if(first != null) {
-			first[name] = expr;
+			first.set(name, expr);
 		}
 	}
 
 	public function findVarReplacement(name: String): Null<TypedExpression> {
 		final first = namedVarReplacements.first();
-		if(first != null) {
-			return first[name];
+		for(replacements in namedVarReplacements) {
+			if(replacements.exists(name)) {
+				return replacements.get(name);
+			}
 		}
 		return null;
 	}

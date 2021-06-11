@@ -67,8 +67,6 @@ class SourceFileManager {
 				for(file in files) {
 					parseFile(file);
 				}
-			}
-			if(files != null) {
 				for(file in files) {
 					file.applyTyper();
 				}

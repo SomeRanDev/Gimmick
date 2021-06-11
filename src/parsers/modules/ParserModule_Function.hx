@@ -357,7 +357,7 @@ class ParserModule_Function extends ParserModule {
 					}
 					parser.parseWhitespaceOrComments();
 					if(parser.parseNextContent(",")) {
-						resultArgument = new FunctionArgument(argName, Type.Unknown(), null);
+						resultArgument = new FunctionArgument(argName, Type.Unknown(), parser.makePosition(startArgIndex), null);
 					} else {
 						var argType = null;
 						parser.parseWhitespaceOrComments();
@@ -373,12 +373,12 @@ class ParserModule_Function extends ParserModule {
 								if(argType == null && typedExpr != null) {
 									argType = typedExpr.getType();
 								}
-								resultArgument = new FunctionArgument(argName, argType, typedExpr);
+								resultArgument = new FunctionArgument(argName, argType, parser.makePosition(startArgIndex), typedExpr);
 								createdArg = true;
 							}
 						}
 						if(!createdArg) {
-							resultArgument = new FunctionArgument(argName, argType == null ? Type.Unknown() : argType, null);
+							resultArgument = new FunctionArgument(argName, argType == null ? Type.Unknown() : argType, parser.makePosition(startArgIndex), null);
 						}
 						parser.parseWhitespaceOrComments();
 						if(parser.parseNextContent(",")) {
@@ -389,6 +389,7 @@ class ParserModule_Function extends ParserModule {
 						arguments.push(resultArgument);
 						if(resultArgument.type.isUnknown()) {
 							Error.addError(ErrorType.CannotDetermineParameterType, parser, startArgIndex, 0, [resultArgument.name]);
+							failed = true;
 						}
 					}
 				}
@@ -497,7 +498,7 @@ class ParserModule_Function extends ParserModule {
 				Error.addErrorAtChar(ErrorType.GetRequiresAReturn, parser);
 				failed = true;
 			}
-			returnType = Type.Void();
+			returnType = Type.Unknown();//Type.Void();
 		} else {
 			if(isInit || isDest) {
 				Error.addError(isInit ? ErrorType.ConstructorRequiresNoReturn : ErrorType.DestructorRequiresNoReturn, parser, returnStart);
