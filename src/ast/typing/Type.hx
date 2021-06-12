@@ -353,7 +353,11 @@ class Type {
 				if(templateType != null) {
 					Type.TypeSelf(templateType);
 				} else {
-					Type.UnknownNamed(name, null);
+					final member = scope.findMember(name);
+					switch(member == null ? null : member.type) {
+						case ScopeMemberType.Class(clsMember): Type.TypeSelf(Type.Class(clsMember.get().type, null));
+						default: Type.UnknownNamed(name, null);
+					}
 				}
 			}
 			case Literal.TypeName(type): {
