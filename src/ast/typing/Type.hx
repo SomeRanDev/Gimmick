@@ -361,7 +361,18 @@ class Type {
 				}
 			}
 			case Literal.TypeName(type): {
-				Type.TypeSelf(type);
+				final other = Type.TypeSelf(type);
+				final templateName = type.isTemplate();
+				if(templateName != null) {
+					final templateType = scope.getTemplateOverride(templateName);
+					if(templateType != null) {
+						Type.TypeSelf(templateType);
+					} else {
+						other;
+					}
+				} else {
+					other;
+				}
 			}
 			case Literal.EnclosedExpression(expr): {
 				return expr.getType();

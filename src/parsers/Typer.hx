@@ -159,7 +159,7 @@ class Typer {
 						switch(quantumTypedExpr) {
 							case Typed(texpr): {
 								vari.get().setTypedExpression(texpr);
-								final assignError = vari.get().canBeAssigned(texpr.getType());
+								final assignError = vari.get().canBeAssigned(texpr.getType(), parser.scope);
 								if(assignError == null) {
 									vari.get().setTypeIfUnknown(texpr.getType());
 								} else {
@@ -369,9 +369,16 @@ class Typer {
 	public function discoverReturnType(funcMember: FunctionMember) {
 		if(!funcMember.isExtern()) {
 			var returnType: Null<Type> = funcMember.type.get().returnType;
+
+			final templateType = returnType.resolveTemplateType(parser.scope);
+			if(templateType != null) {
+				returnType = templateType;
+			}
+
 			if(returnType.isUnknown()) {
 				returnType = null;
 			}
+
 			final context = new ReturnSweepContext(returnType);
 			if(!ReturnSweepContext.findReturnStatementFromMembers(funcMember.members, context)) {
 				if(returnType != null) {

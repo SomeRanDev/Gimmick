@@ -101,10 +101,16 @@ class VariableMember {
 		return false;
 	}
 
-	public function canBeAssigned(type: Type): Null<ErrorType> {
+	public function canBeAssigned(type: Type, scope: Scope): Null<ErrorType> {
 		if(this.type.isUnknown()) {
 			return null;
 		}
+
+		final templateType = type.resolveTemplateType(scope);
+		if(templateType != null) {
+			return templateType.canBeAssigned(type);
+		}
+
 		return this.type.canBeAssigned(type);
 	}
 
