@@ -86,9 +86,9 @@ class FunctionType {
 		return ref;
 	}
 
-	public function toString(funcString: String = "func") {
+	public function toString(funcString: String = "func", showReturn: Bool = true) {
 		final argStr = arguments.map((p) -> p.type.toString()).join(", ");
-		return funcString + "(" + argStr + ") -> " + returnType.toString();
+		return funcString + "(" + argStr + ")" + (showReturn ? (" -> " + returnType.toString()) : "");
 	}
 
 	public function prependArgument(name: String, type: Type) {

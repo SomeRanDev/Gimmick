@@ -18,7 +18,7 @@ class TemplateParser {
 
 	public function parseTemplate(): Null<Array<TemplateArgument>> {
 		parser.parseWhitespaceOrComments();
-		if(!parser.parseNextContent("<")) return null;
+		if(!parser.parseNextContent("!(")) return null;
 
 		final result = [];
 
@@ -30,7 +30,7 @@ class TemplateParser {
 			indexTracker = parser.getIndex();
 			argTracker = result.length;
 
-			if(parser.parseNextContent(">")) {
+			if(parser.parseNextContent(")")) {
 				break;
 			} else {
 

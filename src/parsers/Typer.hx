@@ -265,13 +265,52 @@ class Typer {
 					parser.scope.addTemplateArguments(clsMemberType.templateArguments);
 				}
 
+				parser.scope.push();
+
+				final extendedTypes = clsMemberType.extendedTypes;
+				if(extendedTypes != null) {
+					for(extended in extendedTypes) {
+						if(extended.classTemplateRequired() && !extended.hasTypeArguments() && extended.position != null) {
+							Error.addErrorFromPos(ErrorType.ClassRequiresTypeArguments, extended.position);
+						} else {
+							final typeArgs = extended.typeArguments();
+							if(typeArgs != null) {
+								final convertedTypeArgs: Array<Type> = [];
+								for(arg in typeArgs) {
+									final templateName = arg.isTemplate();
+									if(templateName != null) {
+										final result = parser.scope.getTemplateOverride(templateName);
+										if(result != null) {
+											convertedTypeArgs.push(result);
+											continue;
+										}
+									}
+									convertedTypeArgs.push(arg);
+								}
+								extended.matchesTemplateArgs(convertedTypeArgs);
+
+								final positions: Array<Position> = [extended.position != null ? extended.position : Position.BLANK];
+								for(t in typeArgs) {
+									positions.push(t.position == null ? Position.BLANK : t.position);
+								}
+								Error.completePromiseMulti("matchTemplateArgs", positions);
+							}
+
+							extended.exposeMembersToScope(parser.scope);
+						}
+					}
+				}
+
 				clsMemberType.resolveUnknownTypes(parser);
 
 				@:privateAccess {
 					final typedScope = typeScope(null, clsMemberType.members, Type.Pointer(Type.Class(cls.get().type, null)));
 					clsMemberType.members.setAllMembers(typedScope);
 				}
+
 				parser.scope.pop();
+				parser.scope.pop();
+
 				registerScopeMember(member);
 				return member;
 			}

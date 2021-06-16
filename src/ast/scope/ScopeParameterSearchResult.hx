@@ -22,6 +22,14 @@ class ScopeParameterSearchResult {
 		errorMember = null;
 	}
 
+	public function isError(): Bool {
+		return error != null;
+	}
+
+	public function isEmptyOrError(): Bool {
+		return !found || isError();
+	}
+
 	public static function fromEmpty(): ScopeParameterSearchResult {
 		if(emptyResult == null) {
 			emptyResult = new ScopeParameterSearchResult();

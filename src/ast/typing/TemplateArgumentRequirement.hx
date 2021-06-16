@@ -31,7 +31,7 @@ class TemplateArgumentRequirement {
 			case TemplateArgumentRequirementType.HasVariable(name, type): "has var " + name + ": " + type.toString();
 			case TemplateArgumentRequirementType.HasFunction(name, funcType): {
 				if(funcType.isConstructor()) {
-					"has init" + funcType.toString("");
+					"has init" + funcType.toString("", false);
 				} else {
 					"has def " + name + funcType.toString("");
 				}

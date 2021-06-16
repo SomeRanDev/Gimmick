@@ -15,6 +15,19 @@ import transpiler.modules.TranspileModule_Type;
 
 class TranspileModule_Class {
 	public static function transpile(cls: ClassMember, transpiler: Transpiler, member: ScopeMember, tabLevel: Int = 0) {
+		final clsTranspiler = new TranspileModule_Class();
+		return clsTranspiler.transpileInstance(cls, transpiler, member, tabLevel);
+	}
+
+	var postClassContent: Array<String>;
+	var templateText: String;
+
+	public function new() {
+		postClassContent = [];
+		templateText = "";
+	}
+
+	public function transpileInstance(cls: ClassMember, transpiler: Transpiler, member: ScopeMember, tabLevel: Int = 0) {
 		if(!cls.shouldTranspile()) {
 			return;
 		}
@@ -26,7 +39,7 @@ class TranspileModule_Class {
 		context.pushClassName(cls.name);
 
 		final templateArgs = cls.type.get().templateArguments;
-		final templateText = if(isCpp && templateArgs != null && templateArgs.length > 0) {
+		templateText = if(isCpp && templateArgs != null && templateArgs.length > 0) {
 			"template<" + templateArgs.map(function(arg) { return "typename " + arg.name; }).join(", ") + ">\n";
 		} else {
 			"";
@@ -133,17 +146,17 @@ class TranspileModule_Class {
 			if(data != null) {
 				transpiler.addHeaderContent(sec + ":");
 				for(e in data[0]) {
-					transpileFunctionMember(cls, e, transpiler, tabLevel + 1);
+					transpileClassMember(cls, e, transpiler, tabLevel + 1);
 				}
 				if(data[0].length > 0) {
 					transpiler.addHeaderContent("");
 					transpiler.addSourceContent("");
 				}
 				var hadConstructor = false;
+				var addedSpace = true;
 				for(e in data[1]) {
-					if(e != data[1][0]) {
-						transpiler.addSourceContent("");
-					}
+					if(addedSpace) addedSpace = false;
+					else transpiler.addSourceContent("");
 
 					if(context.isJs()) {
 						final func = e.toFunction();
@@ -156,13 +169,13 @@ class TranspileModule_Class {
 						}
 					}
 					
-					transpileFunctionMember(cls, e, transpiler, tabLevel + 1);
+					transpileClassMember(cls, e, transpiler, tabLevel + 1);
 				}
+				addedSpace = true;
 				for(e in data[2]) {
-					if(e != data[2][0]) {
-						transpiler.addSourceContent("");
-					}
-					transpileFunctionMember(cls, e, transpiler, tabLevel + 1);
+					if(addedSpace) addedSpace = false;
+					else transpiler.addSourceContent("");
+					transpileClassMember(cls, e, transpiler, tabLevel + 1);
 				}
 			}
 		}
@@ -175,12 +188,17 @@ class TranspileModule_Class {
 			transpiler.addSourceContent(clsCloser);
 		}
 
+		if(postClassContent.length > 0) {
+			transpiler.addHeaderContent("\n\n" + postClassContent.join("\n\n"));
+		}
+
 		context.popClassName();
 	}
 
-	public static function transpileFunctionMember(cls: ClassMember, member: ScopeMember, transpiler: Transpiler, tabLevel: Int) {
+	public function transpileClassMember(cls: ClassMember, member: ScopeMember, transpiler: Transpiler, tabLevel: Int) {
 		final isCpp = transpiler.context.isCpp();
 		final isJs = transpiler.context.isJs();
+		final headerOnly = isCpp && cls.cppHeaderOnly();
 		var tabs = "";
 		for(i in 0...tabLevel) tabs += "\t";
 		switch(member.type) {
@@ -189,35 +207,35 @@ class TranspileModule_Class {
 				final isStatic = member.isStatic;
 				final assignment = TranspileModule_Variable.getAssignment(variable, transpiler.context);
 				final prefix = TranspileModule_Variable.makeVariablePrefix(member, transpiler.context);
-				transpiler.addHeaderContent(tabs + prefix + member.name + (isStatic ? "" : assignment) + ";");
-				if(isCpp && isStatic) {
-					final namespaces = member.getNamespaces();
-					/*
-					final namespacePrefix = if(namespaces != null) {
-						transpiler.context.reverseJoinArray(namespaces, "::") + "::";
-					} else {
-						"";
+				if(isCpp) {
+					transpiler.addHeaderContent(tabs + prefix + member.name + (isStatic ? "" : assignment) + ";");
+					if(isStatic) {
+						final staticContent = templateText + prefix + cls.name + "::" + member.name + assignment + ";";
+						if(headerOnly) {
+							postClassContent.push(staticContent);
+						} else {
+							transpiler.addSourceContent(staticContent);
+						}
 					}
-					*/
-					transpiler.addSourceContent(prefix + cls.name + "::" + member.name + assignment + ";");
 				} else if(isJs) {
 					transpiler.addSourceContent(tabs + (isStatic ? "static " : "") + member.name + assignment + ";");
 				}
 			}
-			case Function(func): {
-				if(transpiler.context.isCpp()) {
-					transpiler.addHeaderContent(tabs + TranspileModule_Function.transpileFunctionHeader(func.get(), transpiler.context));
-				}
-				transpiler.addSourceContent((isCpp ? "" : tabs) + TranspileModule_Function.transpileFunctionSourceTopLevel(func.get(), transpiler.context, isCpp ? 0 : tabLevel, [cls.name]));
-			}
-			case PrefixOperator(_, func) |
+			case Function(func) |
+				PrefixOperator(_, func) |
 				SuffixOperator(_, func) |
 				InfixOperator(_, func) |
 				CallOperator(_, func): {
-				if(transpiler.context.isCpp()) {
-					transpiler.addHeaderContent(tabs + TranspileModule_Function.transpileFunctionHeader(func.get(), transpiler.context));
+				if(headerOnly) {
+					final sourceContent = TranspileModule_Function.transpileFunctionSourceTopLevel(func.get(), transpiler.context, tabLevel);
+					transpiler.addHeaderContent(tabs + sourceContent);
+				} else {
+					if(isCpp) {
+						transpiler.addHeaderContent(tabs + TranspileModule_Function.transpileFunctionHeader(func.get(), transpiler.context));
+					}
+					final sourceContent = TranspileModule_Function.transpileFunctionSourceTopLevel(func.get(), transpiler.context, isCpp ? 0 : tabLevel, [cls.name]);
+					transpiler.addSourceContent((isCpp ? "" : tabs) + sourceContent);
 				}
-				transpiler.addSourceContent((isCpp ? "" : tabs) + TranspileModule_Function.transpileFunctionSourceTopLevel(func.get(), transpiler.context, isCpp ? 0 : tabLevel, [cls.name]));
 			}
 			default: {}
 		}

@@ -154,6 +154,13 @@ class Type {
 		}
 	}
 
+	public function isUnknownOrNamed(): Bool {
+		return switch(type) {
+			case TypeType.Unknown | TypeType.UnknownNamed(_, _): true;
+			default: false;
+		}
+	}
+
 	public function canBePassed(other: Type): Null<ErrorType> {
 		if(isAny() || other.isAny()) {
 			return null;
@@ -483,9 +490,34 @@ class Type {
 			}
 			case TypeType.Class(cls, typeParams): {
 				final members = cls.get().members.findWithParameters(name, typeArgs, params, staticOnly);
-				if(members != null) {
+				if(members != null && !members.isEmptyOrError()) {
 					return members;
 				}
+				var extendMembers = [];
+				final extendedTypes = cls.get().extendedTypes;
+				if(extendedTypes != null) {
+					for(type in extendedTypes) {
+						final args = cls.get().templateArguments;
+						final trueType = type.applyTypeArguments(type.typeArguments(), args);
+						switch(trueType.type) {
+							case TypeType.Class(parentCls, _): {
+								final members = parentCls.get().members.findWithParameters(name, typeArgs, params, staticOnly);
+								if(members != null) {
+									if(members.found && members.foundMembers != null) {
+										extendMembers = extendMembers.concat(members.foundMembers);
+									} else if(members.isError()) {
+										return members;
+									}
+								}
+							}
+							default: {}
+						}
+					}
+				}
+				if(extendMembers.length > 0) {
+					return ScopeParameterSearchResult.fromList(extendMembers);
+				}
+				return members;
 			}
 			case TypeType.TypeSelf(cls, isAlloc): {
 				return cls.findAllAccessorMembersWithParameters(name, typeArgs, params, true);
@@ -568,7 +600,7 @@ class Type {
 				result += ")";
 			}
 			case TypeType.Template(name): {
-				result += name + " (template)";
+				result += name;
 			}
 			case TypeType.TypeSelf(type, _): {
 				result += "class " + type.toString();
@@ -723,6 +755,11 @@ class Type {
 		}
 	}
 
+	public function hasTypeArguments(): Bool {
+		final typeArgs = typeArguments();
+		return typeArgs != null && typeArgs.length > 0;
+	}
+
 	public function typeArguments(): Null<Array<Type>> {
 		return switch(type) {
 			case TypeType.Function(_, args) | TypeType.Class(_, args) | TypeType.External(_, args): args;
@@ -875,6 +912,10 @@ class Type {
 		return false;
 	}
 
+	public function classTemplateRequired(): Bool {
+		return Type.TypeSelf(this).templateRequired();
+	}
+
 	public function templateRequired(): Bool {
 		function getResult(args: Null<Array<TemplateArgument>>): Bool {
 			if(args != null) {
@@ -1014,6 +1055,27 @@ class Type {
 		return switch(type) {
 			case TypeType.Class(_, _) | TypeType.External(_, _): true;
 			default: false;
+		}
+	}
+
+	public function exposeMembersToScope(scope: Scope) {
+		if(isValidClassExtend()) {
+			switch(type) {
+				case TypeType.Class(cls, params): {
+					final extendedTypes = cls.get().extendedTypes;
+					if(extendedTypes != null) {
+						for(extended in extendedTypes) {
+							extended.exposeMembersToScope(scope);
+						}
+					}
+					final typeArgs = typeArguments();
+					final typed = typeArgs != null ? cls.get().applyTypeArguments(typeArgs) : cls.get();
+					for(mem in typed.members) {
+						scope.addMember(mem);
+					}
+				}
+				default: {}
+			}
 		}
 	}
 

@@ -15,18 +15,33 @@ using parsers.expr.Expression;
 using parsers.expr.TypedExpression;
 
 class ParserModule_Variable extends ParserModule {
-	public static var it = new ParserModule_Variable();
+	public static var it = new ParserModule_Variable(false);
+	public static var externClassIt = new ParserModule_Variable(true);
+	public static var modifyPrimitiveIt = new ParserModule_Variable(false, ErrorType.ModifyPrimitivesCannotContainVariables);
+
+	var isForcedExtern = false;
+	var failureType: Null<ErrorType> = null;
+
+	public function new(isExtern: Bool, failureType: Null<ErrorType> = null) {
+		super();
+		isForcedExtern = isExtern;
+		this.failureType = failureType;
+	}
 
 	public override function parse(parser: Parser): Null<Module> {
 		final isPrelim = parser.isPreliminary();
 		final startState = parser.saveParserState();
 		final startIndex = parser.getIndex();
 
-		final isExtern = parser.parseWord("extern");
+		final isExtern = parser.parseWord("extern") || isForcedExtern;
 		parser.parseWhitespaceOrComments();
 		final word = parser.parseMultipleWords(["var", "const", "static"]);
 		if(word != null) {
 			var failed = false;
+
+			if(failureType != null) {
+				failed = true;
+			}
 
 			parser.parseWhitespaceOrComments();
 
@@ -109,6 +124,10 @@ class ParserModule_Variable extends ParserModule {
 			if(!parser.parseNextExpressionEnd()) {
 				Error.addErrorAtChar(ErrorType.UnexpectedCharacter, parser);
 				return Nothing;
+			}
+
+			if(failureType != null) {
+				Error.addError(failureType, parser, startIndex);
 			}
 
 			if(failed) {

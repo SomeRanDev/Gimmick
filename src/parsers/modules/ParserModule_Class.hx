@@ -18,6 +18,7 @@ class ParserModule_Class extends ParserModule {
 		final startState = parser.saveParserState();
 
 		final options = ClassOptionHelper.parseClassOptions(parser);
+		final isExtern = options.contains(Extern);
 
 		if(parser.parseWord("class")) {
 			var failed = false;
@@ -56,9 +57,15 @@ class ParserModule_Class extends ParserModule {
 				parser.parseWhitespaceOrComments();
 				final extendTypes: Array<Type> = [];
 				while(true) {
+					final extendTypeStart = parser.getIndex();
 					final t = parser.parseType();
 					if(t != null) {
-						extendTypes.push(t);
+						if(t.isValidClassExtend() || t.isUnknownOrNamed()) {
+							extendTypes.push(t);
+						} else {
+							Error.addError(ErrorType.TypeCannotBeExtended, parser, extendTypeStart, [t.toString()]);
+							failed = true;
+						}
 						parser.parseWhitespaceOrComments();
 						if(parser.checkAheadWord(",")) {
 							parser.parseWhitespaceOrComments();
@@ -74,7 +81,7 @@ class ParserModule_Class extends ParserModule {
 
 			if(parser.parseNextContent(":")) {
 				parser.scope.push();
-				final members = parser.parseNextLevelContent(Class);
+				final members = parser.parseNextLevelContent(isExtern ? Extern : Class);
 				if(members != null) {
 					clsType.setAllMembers(members);
 					if(options.contains(Extern)) {

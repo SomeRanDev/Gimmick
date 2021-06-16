@@ -75,6 +75,7 @@ enum abstract ErrorType(Int) from Int to Int {
 	var MissingCompilerAttributeParameter = 18040;
 	var TypeRequiredOnExtern = 18050;
 	var InvalidExpressionOnExtern = 18060;
+	var InvalidFunctionContentOnExtern = 18070;
 
 	var MissingFunctionParameter = 19000;
 	var CannotPassThisForThat = 19100;
@@ -113,6 +114,8 @@ enum abstract ErrorType(Int) from Int to Int {
 	var InvalidVariableType = 33100;
 	var InvalidFunctionParameterType = 33200;
 	var InvalidFunctionReturnType = 33300;
+
+	var ModifyPrimitivesCannotContainVariables = 34000;
 
 	var JsCannotUseDestructor = 40000;
 	var JsCannotHaveMultipleConstructors = 40100;
@@ -191,6 +194,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case MissingCompilerAttributeParameter: "Missing compiler attribute parameter #%1: '%2'.";
 			case TypeRequiredOnExtern: "Type required for extern variable.";
 			case InvalidExpressionOnExtern: "Expression invalid on extern variable.";
+			case InvalidFunctionContentOnExtern: "Function content invalid on extern function.";
 
 			case MissingFunctionParameter: "Missing function parameter.";
 			case CannotPassThisForThat: "Cannot pass '%1' for '%2'.";
@@ -231,6 +235,8 @@ enum abstract ErrorType(Int) from Int to Int {
 			case InvalidVariableType: "'%1' is not a valid variable type.";
 			case InvalidFunctionParameterType: "'%1' is not a valid function parameter type.";
 			case InvalidFunctionReturnType: "'%1' is not a valid function return type.";
+			
+			case ModifyPrimitivesCannotContainVariables: "Modify cannot modify fields of primitives.";
 
 			case JsCannotUseDestructor: "JS export cannot use destructors.";
 			case JsCannotHaveMultipleConstructors: "JS export cannot use multiple constructors.";
@@ -311,6 +317,7 @@ enum abstract ErrorType(Int) from Int to Int {
 			case MissingCompilerAttributeParameter: "missing compiler attribute parameter";
 			case TypeRequiredOnExtern: "type required";
 			case InvalidExpressionOnExtern: "expression invalid";
+			case InvalidFunctionContentOnExtern: "extern function shouldn't have code";
 
 			case MissingFunctionParameter: "missing function parameter";
 			case CannotPassThisForThat: "incorrect type passed";

@@ -404,6 +404,14 @@ class Parser {
 		];
 	}
 
+	public function getMode_ExternClass(): Array<ParserModule> {
+		return [
+			ParserModule_Attribute.it,
+			ParserModule_Function.externClassIt,
+			ParserModule_Variable.externClassIt
+		];
+	}
+
 	public function getMode_CompilerAttribute(): Array<ParserModule> {
 		return [
 			ParserModule_Attribute.it,
@@ -414,7 +422,16 @@ class Parser {
 	public function getMode_Modify(): Array<ParserModule> {
 		return [
 			ParserModule_Attribute.it,
-			ParserModule_Function.modifyIt
+			ParserModule_Function.modifyIt,
+			ParserModule_Variable.it
+		];
+	}
+
+	public function getMode_ModifyPrimitive(): Array<ParserModule> {
+		return [
+			ParserModule_Attribute.it,
+			ParserModule_Function.modifyIt,
+			ParserModule_Variable.modifyPrimitiveIt
 		];
 	}
 
@@ -603,8 +620,10 @@ class Parser {
 			case SourceFile: getMode_SourceFile();
 			case Function: getMode_Function();
 			case Class: getMode_Class();
+			case Extern: getMode_ExternClass();
 			case CompilerAttribute: getMode_CompilerAttribute();
 			case Modify: getMode_Modify();
+			case ModifyPrimitive: getMode_ModifyPrimitive();
 		}
 		final currLine = getLineNumber();
 		parseWhitespaceOrComments();

@@ -157,4 +157,8 @@ class ClassType {
 		}
 		return result;
 	}
+
+	public function cppHeaderOnly(): Bool {
+		return members.length == 0 || (templateArguments != null && templateArguments.length > 0);
+	}
 }

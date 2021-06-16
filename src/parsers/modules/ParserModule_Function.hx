@@ -28,14 +28,16 @@ import parsers.expr.PrefixOperator;
 import parsers.expr.SuffixOperator;
 
 class ParserModule_Function extends ParserModule {
-	public static var it = new ParserModule_Function(0);
-	public static var classIt = new ParserModule_Function(1);
-	public static var modifyIt = new ParserModule_Function(2);
+	public static var it = new ParserModule_Function(0, false);
+	public static var classIt = new ParserModule_Function(1, false);
+	public static var modifyIt = new ParserModule_Function(2, false);
+	public static var externClassIt = new ParserModule_Function(1, true);
 
 	var parser: Parser;
 
 	var classFunctions = false;
 	var modifyFunctions = false;
+	var isForcedExtern = false;
 
 	var result: Null<Module> = null;
 	var failed: Bool = false;
@@ -47,12 +49,14 @@ class ParserModule_Function extends ParserModule {
 	var isInit: Bool = false;
 	var isDest: Bool = false;
 	var isOp: Bool = false;
+	var isExtern: Bool = false;
 
-	public function new(type: Int) {
+	public function new(type: Int, isExtern: Bool) {
 		super();
 		parser = Parser.BLANK();
 		classFunctions = type == 1;
 		modifyFunctions = type == 2;
+		isForcedExtern = isExtern;
 	}
 
 	public function canParseOperators() {
@@ -113,6 +117,8 @@ class ParserModule_Function extends ParserModule {
 					attributes.push(attr);
 				}
 			}
+
+			isExtern = attributes.contains(Extern) || isForcedExtern;
 
 			// Parse function name if applicable
 			var funcNameStart;
@@ -247,10 +253,16 @@ class ParserModule_Function extends ParserModule {
 			}
 
 			// Parse ending
+			parser.parseWhitespaceOrComments();
+			final contentStartIndex = parser.getIndex();
 			if(parser.parseNextContent(":")) {
 				final members = parser.parseNextLevelContent();
 				if(members != null) {
 					funcMember.setAllMembers(members);
+				}
+				if(isExtern) {
+					Error.addError(ErrorType.InvalidFunctionContentOnExtern, parser, contentStartIndex);
+					failed = true;
 				}
 			} else if(parser.parseNextContent(";")) {
 			} else {

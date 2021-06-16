@@ -65,4 +65,8 @@ class ClassMember {
 		if(newType == type.get()) return this;
 		return new ClassMember(name, newType.getRef(), memberLocation, options);
 	}
+
+	public function cppHeaderOnly(): Bool {
+		return type.get().cppHeaderOnly();
+	}
 }
